@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DevconArchiveVideoParser": {
+      "commandName": "Project",
+      "commandLineArgs": "D:\\Etherna\\VideoDevCon.csv"
+    }
+  }
+}

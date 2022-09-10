@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DevconArchiveVideoParser": {
+      "commandName": "Project",
+      "commandLineArgs": "D:\\tmp\\devcon-website-archive\\src\\content\\archive\\videos testfile.csv"
+    }
+  }
+}
