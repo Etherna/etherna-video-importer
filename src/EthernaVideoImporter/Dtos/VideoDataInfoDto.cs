@@ -1,4 +1,5 @@
 ﻿using CsvHelper.Configuration.Attributes;
+using System.Collections.Generic;
 
 namespace EthernaVideoImporter.Dtos
 {
@@ -7,6 +8,7 @@ namespace EthernaVideoImporter.Dtos
         public string? Description { get; set; }
         [Optional]
         public string? DownloadedFileName { get; set; }
+        public string? DownloadedFilePath { get; set; }
         public int Duration { get; set; }
         public int Edition { get; set; }
         public string? Expertise { get; set; }
