@@ -24,10 +24,11 @@ namespace EthernaVideoImporter.Services
         }
 
         // Public methods.
-        public async Task<VideoDownloadInfo?> Start(VideoDataInfoDto videoDataInfoDto)
+        public async Task Start(VideoDataInfoDto videoDataInfoDto)
         {
-            if (videoDataInfoDto.VideoStatus == VideoStatus.Processed)
-                return null;
+            if (videoDataInfoDto.VideoStatus == VideoStatus.Processed ||
+                videoDataInfoDto.VideoStatus == VideoStatus.Downloaded)
+                return;
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.YoutubeUrl))
                 throw new InvalidOperationException("Invalid YoutubeUrl");
 
@@ -56,16 +57,16 @@ namespace EthernaVideoImporter.Services
 #pragma warning restore CA1305 // Specify IFormatProvider
                     }));
                 Console.WriteLine("");
-                videoDataInfoDto.DownloadedFileName = videoDownload.FullName;
-                videoDataInfoDto.VideoStatus = VideoStatus.Downloaded;
-                videoDataInfoDto.VideoStatusNote = "";
 
-                // Result VideoDownloadInfo.
+                // Set VideoDataInfoDto from downloaded video
                 var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath).Length;
-                return new VideoDownloadInfo(
-                    (int)Math.Ceiling(fileSize / (videoDataInfoDto.Duration / 60 * 0.0075)),  //TODO it's OK?  bitrate = file size / (number of minutes * .0075)
-                    videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p",
-                    fileSize);
+                videoDataInfoDto.DownloadedFileName = videoDownload.FullName;
+                videoDataInfoDto.VideoStatusNote = "";
+                videoDataInfoDto.Bitrate = (int)Math.Ceiling(fileSize / (videoDataInfoDto.Duration / 60 * 0.0075));//TODO it's OK?  bitrate = file size / (number of minutes * .0075)
+                videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
+                videoDataInfoDto.Size = fileSize;
+
+                videoDataInfoDto.VideoStatus = VideoStatus.Downloaded;
             }
             catch (Exception)
             {

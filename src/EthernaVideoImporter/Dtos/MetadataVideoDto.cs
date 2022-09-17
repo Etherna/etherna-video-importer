@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json;
 
 namespace Etherna.EthernaVideoImporter.Dtos
 {
@@ -40,5 +41,17 @@ namespace Etherna.EthernaVideoImporter.Dtos
         public SwarmImageRaw? Thumbnail { get; }
         public string Title { get; }
         public long? UpdatedAt { get; }
+
+        //  Public Methods.
+        public string ToJson()
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            return JsonSerializer.Serialize(this, options);
+        }
     }
 }

@@ -1,17 +1,15 @@
 ﻿using CsvHelper;
 using Etherna.BeeNet;
-using Etherna.BeeNet.Clients.DebugApi;
-using Etherna.BeeNet.Clients.GatewayApi;
-using Etherna.EthernaVideoImporter.Dtos;
+using Etherna.EthernaVideoImporter.Config;
 using Etherna.EthernaVideoImporter.Services;
 using EthernaVideoImporter.Dtos;
 using EthernaVideoImporter.Services;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using YoutubeDownloader.Clients;
 
@@ -19,7 +17,17 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        string tmpFolder = "tmpData";
+        const string tmpFolder = "tmpData";
+
+        // Build a config object, using env vars and JSON providers.
+        IConfiguration config = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .AddEnvironmentVariables()
+            .Build();
+
+        // Get values from the config given their key and their target type.
+        var beeNodeConfig = config.GetRequiredSection("BeeNode").Get<BeeNodeConfig>();
+        var indexUrl = config.GetValue<string>("Index:EndPoint");
 
         if (args is null ||
             args.Length < 1)
@@ -32,28 +40,6 @@ internal class Program
             Console.WriteLine($"File not found {args[0]}");
             return;
         }
-        if (args.Length < 2)
-        {
-            Console.WriteLine("Missing beenode url");
-            return;
-        }
-        if (args.Length < 3)
-        {
-            Console.WriteLine("Missing beenode port");
-            return;
-        }
-        if (args.Length < 4)
-        {
-            Console.WriteLine("Missing beenode version");
-            return;
-        }
-        var beeNodeUrl = args[1];
-#pragma warning disable CA1305 // Specify IFormatProvider
-        var beeNodePort = Convert.ToInt32(args[2]);
-#pragma warning restore CA1305 // Specify IFormatProvider
-        var beeNodeDebugPort = beeNodePort + 1;
-        var beeNodeVersion = GatewayApiVersion.v3_0_2;
-        var beeNodeDebugVersion = DebugApiVersion.v3_0_2;
 
         if (!Directory.Exists(tmpFolder))
             Directory.CreateDirectory(tmpFolder);
@@ -62,16 +48,21 @@ internal class Program
         IEnumerable<VideoDataInfoDto> videoDataInfoDtos;
         using (var reader = new StreamReader(args[0]))
         using (var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture))
-        {
             videoDataInfoDtos = csvReader.GetRecords<VideoDataInfoDto>().ToList();
-        }
+
         var totalVideo = videoDataInfoDtos.Count();
         Console.WriteLine($"Csv with {totalVideo} items to upload");
 
         // Call import service for each video.
         var tmpFolderFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, tmpFolder);
         var videoImporterService = new VideoImporterService(new YoutubeDownloadClient(), tmpFolderFullPath);
-        var videoUploaderService = new VideoUploaderService(new BeeNodeClient(beeNodeUrl, beeNodePort, beeNodeDebugPort, beeNodeVersion, beeNodeDebugVersion), tmpFolderFullPath);
+        var videoUploaderService = new VideoUploaderService(
+            new BeeNodeClient(beeNodeConfig.EndPoint!,
+            beeNodeConfig.GatewayPort,
+            beeNodeConfig.DebugPort,
+            beeNodeConfig.GatewayVersion,
+            beeNodeConfig.DebugVersion),
+            indexUrl);
 
         var videoCount = 0;
         foreach (var videoInfo in videoDataInfoDtos)
@@ -81,11 +72,10 @@ internal class Program
                 Console.WriteLine($"Start processing video {++videoCount} of {totalVideo}");
 
                 // Download from youtube.
-                var downloadInfo = await videoImporterService.Start(videoInfo);
+                await videoImporterService.Start(videoInfo);
 
-                if (downloadInfo != null)
-                    // Upload on bee.
-                    await videoUploaderService.Start(videoInfo, downloadInfo);
+                // Upload on bee node.
+                await videoUploaderService.Start(videoInfo);
 
                 Console.WriteLine($"Video #{videoCount} processed");
             }
@@ -99,9 +89,9 @@ internal class Program
             finally
             {
                 // Save csv with results at every cycle.
-                using (var writer = new StreamWriter(args[0]))
-                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-                    await csv.WriteRecordsAsync(videoDataInfoDtos).ConfigureAwait(false);
+                using var writer = new StreamWriter(args[0]);
+                using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+                await csv.WriteRecordsAsync(videoDataInfoDtos).ConfigureAwait(false);
             }
         }
     }

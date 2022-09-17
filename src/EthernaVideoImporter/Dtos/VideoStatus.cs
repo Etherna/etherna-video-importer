@@ -5,7 +5,10 @@
         NotProcess,
         Downloading,
         Downloaded,
-        Uploading,
+        VideoUploading,
+        VideoUploaded,
+        MetadataUploaded,
+        IndexSynced,
         Processed
     }
 }
