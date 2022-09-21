@@ -1,6 +1,8 @@
-﻿using Etherna.EthernaVideoImporter.Dtos;
+﻿using EthernaVideoImporter.CommonData.Models;
+using System;
+using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace EthernaVideoImporter.CommonData.Services
 {
     public interface IDownloadClient
     {

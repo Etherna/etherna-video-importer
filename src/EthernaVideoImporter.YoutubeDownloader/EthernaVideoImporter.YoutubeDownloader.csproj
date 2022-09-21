@@ -3,15 +3,22 @@
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<RootNamespace>EthernaVideoImporter.CommonData</RootNamespace>
+		<RootNamespace>Etherna.EthernaVideoImporter.YoutubeDownloader</RootNamespace>
 
 		<Authors>Etherna Sagl</Authors>
-		<Description>A .Net console for upload video on Etherna</Description>
 
 		<LangVersion>10.0</LangVersion>
 		<Nullable>enable</Nullable>
 		<EnableNETAnalyzers>true</EnableNETAnalyzers>
 		<AnalysisMode>AllEnabledByDefault</AnalysisMode>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="VideoLibrary" Version="3.2.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EthernaVideoImporter.CommonData\EthernaVideoImporter.CommonData.csproj" />
+	</ItemGroup>
 
 </Project>

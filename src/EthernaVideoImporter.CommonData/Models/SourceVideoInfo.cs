@@ -1,4 +1,4 @@
-﻿namespace Etherna.EthernaVideoImporter.Dtos
+﻿namespace EthernaVideoImporter.CommonData.Models
 {
     public class SourceVideoInfo
     {

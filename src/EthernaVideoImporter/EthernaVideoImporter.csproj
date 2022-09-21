@@ -3,16 +3,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-	<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-	<RootNamespace>Etherna.EthernaVideoImporter</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Etherna.EthernaVideoImporter</RootNamespace>
 
-	<Authors>Etherna Sagl</Authors>
-	<Description>A .Net console for upload video on Etherna</Description>
+    <Authors>Etherna Sagl</Authors>
+    <Description>A .Net console for upload video on Etherna</Description>
 
-	<LangVersion>10.0</LangVersion>
-	<Nullable>enable</Nullable>
-	<EnableNETAnalyzers>true</EnableNETAnalyzers>
-	<AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,13 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\YoutubeDownloader\YoutubeDownloader.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="appsettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <ProjectReference Include="..\EthernaVideoImporter.CommonData\EthernaVideoImporter.CommonData.csproj" />
+    <ProjectReference Include="..\EthernaVideoImporter.YoutubeDownloader\EthernaVideoImporter.YoutubeDownloader.csproj" />
   </ItemGroup>
 
 </Project>

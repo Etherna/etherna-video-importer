@@ -2,7 +2,6 @@
 using Etherna.BeeNet.InputModels;
 using Etherna.EthernaVideoImporter.Dtos;
 using EthernaVideoImporter.Dtos;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -77,10 +76,10 @@ namespace Etherna.EthernaVideoImporter.Services
                 //TODO check validity
             }
 
-            if (string.IsNullOrWhiteSpace(videoInfoWithData.MetadataReference))
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference))
             {
                 // Upload metadata.
-                videoInfoWithData.MetadataReference = await UploadMetadataAsync(
+                videoInfoWithData.HashMetadataReference = await UploadMetadataAsync(
                     videoInfoWithData.VideoReference!, 
                     videoInfoWithData.BatchId!, 
                     videoInfoWithData).ConfigureAwait(false);
@@ -94,7 +93,7 @@ namespace Etherna.EthernaVideoImporter.Services
             if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId))
             {
                 // Sync Index.
-                videoInfoWithData.IndexVideoId = await IndexAsync(videoInfoWithData.MetadataReference!).ConfigureAwait(false);
+                videoInfoWithData.IndexVideoId = await IndexAsync(videoInfoWithData.HashMetadataReference!).ConfigureAwait(false);
                 videoInfoWithData.VideoStatus = VideoStatus.IndexSynced;
             }
             else
@@ -112,11 +111,11 @@ namespace Etherna.EthernaVideoImporter.Services
         }
 
         // Private methods.
-        private async Task<string> IndexAsync(string referenceMetadata)
+        private async Task<string> IndexAsync(string hashReferenceMetadata)
         {
             using var client = new HttpClient();
             client.BaseAddress = new Uri(indexUrl);
-            using var httpContent = new StringContent(JsonConvert.SerializeObject(referenceMetadata), Encoding.UTF8, "application/json");
+            using var httpContent = new StringContent(hashReferenceMetadata, Encoding.UTF8, "application/json");
 
 #pragma warning disable CA2234
             var httpResponse = await client.PostAsync("/api/Videos", httpContent).ConfigureAwait(false);

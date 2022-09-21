@@ -30,7 +30,7 @@ namespace EthernaVideoImporter.Dtos
         [Optional]
         public string? IndexVideoId { get; set; }
         [Optional]
-        public string? MetadataReference { get; set; }
+        public string? HashMetadataReference { get; set; }
         [Optional]
         public string? Quality { get; set; }
         [Optional]

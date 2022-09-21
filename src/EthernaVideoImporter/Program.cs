@@ -3,6 +3,7 @@ using Etherna.BeeNet;
 using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.EthernaVideoImporter.Services;
+using Etherna.EthernaVideoImporter.YoutubeDownloader;
 using EthernaVideoImporter.Dtos;
 using EthernaVideoImporter.Services;
 using System;
@@ -12,7 +13,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using YoutubeDownloader.Clients;
 
 internal class Program
 {
@@ -164,7 +164,7 @@ internal class Program
             currentItem.DownloadedFileName = previusItem.DownloadedFileName;
             currentItem.DownloadedFilePath = previusItem.DownloadedFilePath;
             currentItem.IndexVideoId = previusItem.IndexVideoId;
-            currentItem.MetadataReference = previusItem.MetadataReference;
+            currentItem.HashMetadataReference = previusItem.HashMetadataReference;
             currentItem.Quality = previusItem.Quality;
             currentItem.Size = previusItem.Size;
             currentItem.VideoReference = previusItem.VideoReference;

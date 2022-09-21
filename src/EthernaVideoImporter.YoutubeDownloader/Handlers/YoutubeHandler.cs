@@ -1,6 +1,7 @@
 ﻿using System.Net;
+using System.Net.Http;
 
-namespace YoutubeDownloader.Handlers
+namespace Etherna.EthernaVideoImporter.YoutubeDownloader
 {
     class YoutubeHandler
     {
