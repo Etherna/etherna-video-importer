@@ -35,57 +35,79 @@ namespace Etherna.EthernaVideoImporter.Services
         }
 
         // Public methods.
-        public async Task StartAsync(VideoDataInfo videoDataInfoDto)
+        public async Task StartAsync(
+            VideoInfoWithData videoInfoWithData,
+            bool pinVideo)
         {
-            if (videoDataInfoDto.VideoStatus == VideoStatus.Processed)
+            if (videoInfoWithData.VideoStatus == VideoStatus.Processed)
                 return;
-            if (videoDataInfoDto.VideoStatus == VideoStatus.NotProcess)
-                throw new InvalidOperationException($"Invalid Status: {videoDataInfoDto.VideoStatus}");
+            if (videoInfoWithData.VideoStatus == VideoStatus.NotProcess)
+                throw new InvalidOperationException($"Invalid Status: {videoInfoWithData.VideoStatus}");
 
-            if (videoDataInfoDto.VideoStatus == VideoStatus.Downloaded)
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.BatchId))
             {
                 // Create batch.
-                videoDataInfoDto.BatchId = await beeNodeClient.DebugClient!.BuyPostageBatchAsync(1, 28).ConfigureAwait(false);
-                videoDataInfoDto.VideoStatus = VideoStatus.BatchCreated;
+                videoInfoWithData.BatchId = await beeNodeClient.DebugClient!.BuyPostageBatchAsync(1, 28).ConfigureAwait(false);
+                videoInfoWithData.VideoStatus = VideoStatus.BatchCreated;
                 await Task.Delay(90000).ConfigureAwait(false);
+
+                //TODO check avaiable batch or another await with while
             }
-            
-            if (videoDataInfoDto.VideoStatus == VideoStatus.BatchCreated)
+            else
+            {
+                //TODO check validity
+            }
+
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.VideoReference))
             {
                 // Upload file.
                 var fileParameterInput = new FileParameterInput(
-                File.OpenRead(videoDataInfoDto.DownloadedFilePath!),
-                Path.GetFileName(videoDataInfoDto.DownloadedFilePath!),
-                MimeTypes.GetMimeType(Path.GetFileName(videoDataInfoDto.DownloadedFilePath!)));
-                videoDataInfoDto.VideoReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
-                    videoDataInfoDto.BatchId!, 
+                File.OpenRead(videoInfoWithData.DownloadedFilePath!),
+                Path.GetFileName(videoInfoWithData.DownloadedFilePath!),
+                MimeTypes.GetMimeType(Path.GetFileName(videoInfoWithData.DownloadedFilePath!)));
+                videoInfoWithData.VideoReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                    videoInfoWithData.BatchId!, 
                     files: new List<FileParameterInput> { fileParameterInput }, 
-                    swarmCollection: false).ConfigureAwait(false);
-                videoDataInfoDto.VideoStatus = VideoStatus.VideoUploaded;
+                    swarmCollection: false,
+                    swarmPin: pinVideo).ConfigureAwait(false);
+                videoInfoWithData.VideoStatus = VideoStatus.VideoUploaded;
+            }
+            else
+            {
+                //TODO check validity
             }
 
-            if (videoDataInfoDto.VideoStatus == VideoStatus.VideoUploaded)
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.MetadataReference))
             {
                 // Upload metadata.
-                videoDataInfoDto.MetadataReference = await UploadMetadataAsync(
-                    videoDataInfoDto.VideoReference!, 
-                    videoDataInfoDto.BatchId!, 
-                    videoDataInfoDto).ConfigureAwait(false);
-                videoDataInfoDto.VideoStatus = VideoStatus.MetadataUploaded;
+                videoInfoWithData.MetadataReference = await UploadMetadataAsync(
+                    videoInfoWithData.VideoReference!, 
+                    videoInfoWithData.BatchId!, 
+                    videoInfoWithData).ConfigureAwait(false);
+                videoInfoWithData.VideoStatus = VideoStatus.MetadataUploaded;
+            }
+            else
+            {
+                //TODO check validity
             }
 
-            if (videoDataInfoDto.VideoStatus == VideoStatus.MetadataUploaded)
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId))
             {
                 // Sync Index.
-                videoDataInfoDto.IndexVideoId = await IndexAsync(videoDataInfoDto.MetadataReference!).ConfigureAwait(false);
-                videoDataInfoDto.VideoStatus = VideoStatus.IndexSynced;
+                videoInfoWithData.IndexVideoId = await IndexAsync(videoInfoWithData.MetadataReference!).ConfigureAwait(false);
+                videoInfoWithData.VideoStatus = VideoStatus.IndexSynced;
+            }
+            else
+            {
+                //TODO check validity
             }
 
             // Remove downloaded file.
-            if (File.Exists(videoDataInfoDto.DownloadedFilePath))
-                File.Delete(videoDataInfoDto.DownloadedFilePath);
+            if (File.Exists(videoInfoWithData.DownloadedFilePath))
+                File.Delete(videoInfoWithData.DownloadedFilePath);
 
-            videoDataInfoDto.VideoStatus = VideoStatus.Processed;
+            videoInfoWithData.VideoStatus = VideoStatus.Processed;
+            videoInfoWithData.VideoStatusNote = "";
             return;
         }
 
@@ -107,7 +129,7 @@ namespace Etherna.EthernaVideoImporter.Services
         private async Task<string> UploadMetadataAsync(
             string referenceVideo,
             string postageBatch,
-            VideoDataInfo videoDataInfoDto)
+            VideoInfoWithData videoDataInfoDto)
         {
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.Title))
                 throw new InvalidOperationException("Title not defined");

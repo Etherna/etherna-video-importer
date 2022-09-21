@@ -3,8 +3,21 @@ using System.Collections.Generic;
 
 namespace EthernaVideoImporter.Dtos
 {
-    internal class VideoDataInfo
+    internal class VideoInfoWithData
     {
+        // Video Infos.
+        
+        public int Duration { get; set; }
+        public int Edition { get; set; }
+        public string? Expertise { get; set; }
+        public string? IpfsHash { get; set; }
+        public IEnumerable<string>? Keywords { get; set; }
+        public IEnumerable<string>? Tags { get; set; }
+        public string? Title { get; set; }
+        public string? YoutubeUrl { get; set; }
+
+        // Video Data.
+
         [Optional]
         public int Bitrate { get; set; }
         [Optional]
@@ -14,15 +27,10 @@ namespace EthernaVideoImporter.Dtos
         public string? DownloadedFileName { get; set; }
         [Optional]
         public string? DownloadedFilePath { get; set; }
-        public int Duration { get; set; }
-        public int Edition { get; set; }
-        public string? Expertise { get; set; }
         [Optional]
         public string? IndexVideoId { get; set; }
-        public string? IpfsHash { get; set; }
         [Optional]
         public string? MetadataReference { get; set; }
-        public IEnumerable<string>? Keywords { get; set; }
         [Optional]
         public string? Quality { get; set; }
         [Optional]
@@ -33,10 +41,5 @@ namespace EthernaVideoImporter.Dtos
         public VideoStatus? VideoStatus { get; set; }
         [Optional]
         public string? VideoStatusNote { get; set; }
-        public IEnumerable<string>? Tags { get; set; }
-        public string? Title { get; set; }
-        public string? Type { get; set; }
-        public string? Track { get; set; }
-        public string? YoutubeUrl { get; set; }
     }
 }

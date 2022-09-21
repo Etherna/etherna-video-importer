@@ -22,7 +22,7 @@ namespace EthernaVideoImporter.Services
         }
 
         // Public methods.
-        public async Task StartAsync(VideoDataInfo videoDataInfoDto)
+        public async Task StartAsync(VideoInfoWithData videoDataInfoDto)
         {
             if (videoDataInfoDto.VideoStatus == VideoStatus.Processed ||
                 videoDataInfoDto.VideoStatus == VideoStatus.Downloaded)
