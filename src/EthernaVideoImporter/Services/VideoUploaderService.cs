@@ -15,11 +15,13 @@ namespace Etherna.EthernaVideoImporter.Services
     internal class VideoUploaderService
     {
         private readonly BeeNodeClient beeNodeClient;
+        private readonly string gatewayUrl;
         private readonly string indexUrl;
 
         // Constractor.
         public VideoUploaderService(
             BeeNodeClient beeNodeClient,
+            string gatewayUrl,
             string indexUrl)
         {
             if (beeNodeClient is null)
@@ -28,6 +30,7 @@ namespace Etherna.EthernaVideoImporter.Services
                 throw new ArgumentNullException(nameof(indexUrl));
 
             this.beeNodeClient = beeNodeClient;
+            this.gatewayUrl = gatewayUrl;
             this.indexUrl = indexUrl;
         }
 
@@ -40,17 +43,14 @@ namespace Etherna.EthernaVideoImporter.Services
                 videoDataInfoDto.VideoStatus == VideoStatus.Downloading)
                 throw new InvalidOperationException($"Invalid Status: {videoDataInfoDto.VideoStatus}");
 
-            var postageBatch = videoDataInfoDto.BatchId;
             if (videoDataInfoDto.VideoStatus == VideoStatus.Downloaded)
             {
                 // Create batch.
-                postageBatch = await beeNodeClient.DebugClient!.BuyPostageBatchAsync(1, 28);
-                videoDataInfoDto.BatchId = postageBatch;
+                videoDataInfoDto.BatchId = await beeNodeClient.DebugClient!.BuyPostageBatchAsync(1, 28);
                 videoDataInfoDto.VideoStatus = VideoStatus.VideoUploading;
                 await Task.Delay(90000);
             }
-
-            var referenceVideo = videoDataInfoDto.VideoReference;
+            
             if (videoDataInfoDto.VideoStatus == VideoStatus.VideoUploading)
             {
                 // Upload file.
@@ -58,25 +58,21 @@ namespace Etherna.EthernaVideoImporter.Services
                 File.OpenRead(videoDataInfoDto.DownloadedFilePath!),
                 Path.GetFileName(videoDataInfoDto.DownloadedFilePath!),
                 MimeTypes.GetMimeType(Path.GetFileName(videoDataInfoDto.DownloadedFilePath!)));
-                referenceVideo = await beeNodeClient.GatewayClient!.UploadFileAsync(postageBatch!, files: new List<FileParameterInput> { fileParameterInput }, swarmCollection: false);
-                videoDataInfoDto.VideoReference = referenceVideo;
+                videoDataInfoDto.VideoReference = await beeNodeClient.GatewayClient!.UploadFileAsync(videoDataInfoDto.BatchId!, files: new List<FileParameterInput> { fileParameterInput }, swarmCollection: false);
                 videoDataInfoDto.VideoStatus = VideoStatus.VideoUploaded;
             }
 
-            var referenceMetadata = videoDataInfoDto.MetadataReference;
             if (videoDataInfoDto.VideoStatus == VideoStatus.VideoUploaded)
             {
                 // Upload metadata.
-                referenceMetadata = await UploadMetadataAsync(referenceVideo!, postageBatch!, videoDataInfoDto);
-                videoDataInfoDto.MetadataReference = referenceMetadata;
+                videoDataInfoDto.MetadataReference = await UploadMetadataAsync(videoDataInfoDto.VideoReference!, videoDataInfoDto.BatchId!, videoDataInfoDto);
                 videoDataInfoDto.VideoStatus = VideoStatus.MetadataUploaded;
             }
 
             if (videoDataInfoDto.VideoStatus == VideoStatus.MetadataUploaded)
             {
                 // Sync Index.
-                var videoId = await IndexAsync(referenceMetadata!);
-                videoDataInfoDto.IndexVideoId = videoId;
+                videoDataInfoDto.IndexVideoId = await IndexAsync(videoDataInfoDto.MetadataReference!);
                 videoDataInfoDto.VideoStatus = VideoStatus.IndexSynced;
             }
 

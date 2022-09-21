@@ -5,7 +5,7 @@ namespace Etherna.EthernaVideoImporter.Config
 {
     internal class BeeNodeConfig
     {
-        public string? EndPoint { get; set; }
+        public string? Url { get; set; }
         public int GatewayPort { get; set; }
         public GatewayApiVersion GatewayVersion { get; set; }
         public int DebugPort { get; set; }

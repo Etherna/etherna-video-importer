@@ -27,7 +27,8 @@ internal class Program
 
         // Get values from the config given their key and their target type.
         var beeNodeConfig = config.GetRequiredSection("BeeNode").Get<BeeNodeConfig>();
-        var indexUrl = config.GetValue<string>("Index:EndPoint");
+        var indexUrl = config.GetValue<string>("Etherna:IndexUrl");
+        var gatewayUrl = config.GetValue<string>("Etherna:GatewayUrl");
 
         if (args is null ||
             args.Length < 1)
@@ -57,11 +58,12 @@ internal class Program
         var tmpFolderFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, tmpFolder);
         var videoImporterService = new VideoImporterService(new YoutubeDownloadClient(), tmpFolderFullPath);
         var videoUploaderService = new VideoUploaderService(
-            new BeeNodeClient(beeNodeConfig.EndPoint!,
+            new BeeNodeClient(beeNodeConfig.Url!,
             beeNodeConfig.GatewayPort,
             beeNodeConfig.DebugPort,
             beeNodeConfig.GatewayVersion,
             beeNodeConfig.DebugVersion),
+            gatewayUrl,
             indexUrl);
 
         var videoCount = 0;
