@@ -3,9 +3,8 @@
     internal enum VideoStatus
     {
         NotProcess,
-        Downloading,
         Downloaded,
-        VideoUploading,
+        BatchCreated,
         VideoUploaded,
         MetadataUploaded,
         IndexSynced,

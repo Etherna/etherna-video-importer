@@ -10,4 +10,8 @@
     <PackageReference Include="VideoLibrary" Version="3.2.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\EthernaVideoImporter.CommonData\EthernaVideoImporter.CommonData.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,30 +1,28 @@
-﻿using Etherna.EthernaVideoImporter.Dtos;
+﻿using Etherna.EthernaVideoImporter.Services;
 using EthernaVideoImporter.Dtos;
 using System;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using YoutubeDownloader.Clients;
 
 namespace EthernaVideoImporter.Services
 {
     internal class VideoImporterService
     {
-        private readonly YoutubeDownloadClient youtubeDownloadClient;
+        private readonly IDownloadClient downloadClient;
         private readonly string tmpFolder;
 
         // Constractor.
         public VideoImporterService(
-            YoutubeDownloadClient youtubeDownloadClient,
+            IDownloadClient downloadClient,
             string tmpFolder)
         {
-            this.youtubeDownloadClient = youtubeDownloadClient;
+            this.downloadClient = downloadClient;
             this.tmpFolder = tmpFolder;
         }
 
         // Public methods.
-        public async Task Start(VideoDataInfoDto videoDataInfoDto)
+        public async Task StartAsync(VideoDataInfo videoDataInfoDto)
         {
             if (videoDataInfoDto.VideoStatus == VideoStatus.Processed ||
                 videoDataInfoDto.VideoStatus == VideoStatus.Downloaded)
@@ -35,32 +33,25 @@ namespace EthernaVideoImporter.Services
             try
             {
                 // Take best video resolution.
-                var videos = await youtubeDownloadClient.GetAllVideosAsync(videoDataInfoDto.YoutubeUrl);
-                var videoWithAudio = videos
-                    .Where(i => i.AudioBitrate != -1);
-                var videoDownload = videoWithAudio
-                    .First(i => i.AudioBitrate == videoWithAudio.Max(j => j.AudioBitrate)); // Take best resolution
+                var videoDownload = await downloadClient.FirstVideoWithBestResolutionAsync(videoDataInfoDto.YoutubeUrl).ConfigureAwait(false);
                 Console.WriteLine($"Resolution: {videoDownload.Resolution}\tAudio Bitrate: {videoDownload.AudioBitrate}");
 
-                // Start download.
-                videoDataInfoDto.VideoStatus = VideoStatus.Downloading;
-                videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.FullName);
-                await youtubeDownloadClient
-                    .CreateDownloadAsync(
+                // Start download and show progress.
+                videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
+                await downloadClient
+                    .DownloadAsync(
                     new Uri(videoDownload.Uri),
                     videoDataInfoDto.DownloadedFilePath,
                     new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
                     {
                         var percent = (int)((v.Item1 * 100) / v.Item2);
-#pragma warning disable CA1305 // Specify IFormatProvider
-                        Console.Write(string.Format("Downloading.. ( % {0} ) {1} / {2} MB\r", percent, (v.Item1 / (double)(1024 * 1024)).ToString("N"), (v.Item2 / (double)(1024 * 1024)).ToString("N")));
-#pragma warning restore CA1305 // Specify IFormatProvider
-                    }));
+                        Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (double)(1024 * 1024)} / {(v.Item2 / (double)(1024 * 1024))} MB\r");
+                    })).ConfigureAwait(false);
                 Console.WriteLine("");
 
                 // Set VideoDataInfoDto from downloaded video
                 var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath).Length;
-                videoDataInfoDto.DownloadedFileName = videoDownload.FullName;
+                videoDataInfoDto.DownloadedFileName = videoDownload.Filename;
                 videoDataInfoDto.VideoStatusNote = "";
                 videoDataInfoDto.Bitrate = (int)Math.Ceiling(fileSize / (videoDataInfoDto.Duration / 60 * 0.0075));//TODO it's OK?  bitrate = file size / (number of minutes * .0075)
                 videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
@@ -72,7 +63,6 @@ namespace EthernaVideoImporter.Services
             {
                 videoDataInfoDto.DownloadedFileName = "";
                 videoDataInfoDto.DownloadedFilePath = "";
-                videoDataInfoDto.VideoStatus = VideoStatus.Downloading;
                 throw;
             }
         }

@@ -46,10 +46,10 @@ internal class Program
             Directory.CreateDirectory(tmpFolder);
 
         // Read csv.
-        IEnumerable<VideoDataInfoDto> videoDataInfoDtos;
+        IEnumerable<VideoDataInfo> videoDataInfoDtos;
         using (var reader = new StreamReader(args[0]))
         using (var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture))
-            videoDataInfoDtos = csvReader.GetRecords<VideoDataInfoDto>().ToList();
+            videoDataInfoDtos = csvReader.GetRecords<VideoDataInfo>().ToList();
 
         var totalVideo = videoDataInfoDtos.Count();
         Console.WriteLine($"Csv with {totalVideo} items to upload");
@@ -74,16 +74,16 @@ internal class Program
                 Console.WriteLine($"Start processing video {++videoCount} of {totalVideo}");
 
                 // Download from youtube.
-                await videoImporterService.Start(videoInfo);
+                await videoImporterService.StartAsync(videoInfo).ConfigureAwait(false);
 
                 // Upload on bee node.
-                await videoUploaderService.Start(videoInfo);
+                await videoUploaderService.StartAsync(videoInfo).ConfigureAwait(false);
 
                 Console.WriteLine($"Video #{videoCount} processed");
             }
-#pragma warning disable CA1031 // Do not catch general exception types
+#pragma warning disable CA1031 // Catch general exception types for process next video in case of some error
             catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
+#pragma warning restore CA1031
             {
                 Console.WriteLine($"{ex.Message} \n Unable to upload: {videoDataInfoDtos}");
                 videoInfo.VideoStatusNote = ex.Message;

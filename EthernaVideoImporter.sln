@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EthernaVideoImporter", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoutubeDownloader", "src\YoutubeDownloader\YoutubeDownloader.csproj", "{4DA6944A-8048-4A33-BC18-D29C0C1A59A0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EthernaVideoImporter.CommonData", "src\EthernaVideoImporter.CommonData\EthernaVideoImporter.CommonData.csproj", "{DA8B07A0-D7D7-43B6-8CE0-7AE619A97817}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{4DA6944A-8048-4A33-BC18-D29C0C1A59A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DA6944A-8048-4A33-BC18-D29C0C1A59A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DA6944A-8048-4A33-BC18-D29C0C1A59A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA8B07A0-D7D7-43B6-8CE0-7AE619A97817}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA8B07A0-D7D7-43B6-8CE0-7AE619A97817}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA8B07A0-D7D7-43B6-8CE0-7AE619A97817}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA8B07A0-D7D7-43B6-8CE0-7AE619A97817}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

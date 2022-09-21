@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace EthernaVideoImporter.Dtos
 {
-    internal class VideoDataInfoDto
+    internal class VideoDataInfo
     {
         [Optional]
         public int Bitrate { get; set; }
