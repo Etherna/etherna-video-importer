@@ -1,6 +1,6 @@
 ﻿using Etherna.EthernaVideoImporter.Services;
 using EthernaVideoImporter.CommonData.Services;
-using EthernaVideoImporter.Dtos;
+using EthernaVideoImporter.Models;
 using System;
 using System.Globalization;
 using System.IO;

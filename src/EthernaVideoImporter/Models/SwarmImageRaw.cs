@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Etherna.EthernaVideoImporter.Dtos
+namespace Etherna.EthernaVideoImporter.Models
 {
     public class SwarmImageRaw
     {

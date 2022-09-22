@@ -4,7 +4,7 @@ using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.EthernaVideoImporter.Services;
 using Etherna.EthernaVideoImporter.YoutubeDownloader;
-using EthernaVideoImporter.Dtos;
+using EthernaVideoImporter.Models;
 using EthernaVideoImporter.Services;
 using System;
 using System.Collections.Generic;

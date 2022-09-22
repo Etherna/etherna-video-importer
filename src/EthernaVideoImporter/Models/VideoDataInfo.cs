@@ -1,7 +1,7 @@
 ﻿using CsvHelper.Configuration.Attributes;
 using System.Collections.Generic;
 
-namespace EthernaVideoImporter.Dtos
+namespace EthernaVideoImporter.Models
 {
     internal class VideoInfoWithData
     {

@@ -1,7 +1,7 @@
 ﻿using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
-using Etherna.EthernaVideoImporter.Dtos;
-using EthernaVideoImporter.Dtos;
+using Etherna.EthernaVideoImporter.Models;
+using EthernaVideoImporter.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;

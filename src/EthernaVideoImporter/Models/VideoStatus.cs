@@ -1,4 +1,4 @@
-﻿namespace EthernaVideoImporter.Dtos
+﻿namespace EthernaVideoImporter.Models
 {
     internal enum VideoStatus
     {

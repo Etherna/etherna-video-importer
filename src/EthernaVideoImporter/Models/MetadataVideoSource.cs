@@ -1,4 +1,4 @@
-﻿namespace Etherna.EthernaVideoImporter.Dtos
+﻿namespace Etherna.EthernaVideoImporter.Models
 {
     public class MetadataVideoSource
     {

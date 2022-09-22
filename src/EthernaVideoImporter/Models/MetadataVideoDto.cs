@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json;
 
-namespace Etherna.EthernaVideoImporter.Dtos
+namespace Etherna.EthernaVideoImporter.Models
 {
     internal class MetadataVideoDto
     {
