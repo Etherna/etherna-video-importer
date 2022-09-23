@@ -3,9 +3,11 @@ using Etherna.BeeNet;
 using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.EthernaVideoImporter.Services;
+using Etherna.EthernaVideoImporter.SSO;
 using Etherna.EthernaVideoImporter.YoutubeDownloader;
 using EthernaVideoImporter.Models;
 using EthernaVideoImporter.Services;
+using IdentityModel.OidcClient;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -24,13 +26,11 @@ internal class Program
         "-o\tOutput filepath\n" +
         "\n" +
         "-h\tPrint help\n";
-    private const int BEENODE_DEBUGPORT = 2;
-    private const DebugApiVersion BEENODE_DEBUGVERSION = DebugApiVersion.v3_0_2;
-    private const int BEENODE_GATEWAYPORT = 1;
+    private const int BEENODE_GATEWAYPORT = 443;
     private const GatewayApiVersion BEENODE_GATEWAYVERSION = GatewayApiVersion.v3_0_2;
-    private const string BEENODE_URL = "http://beenode.ext";
-    private const string ETHERNA_INDEX = "http://beenode.ext";
-    private const string ETHERNA_GATEWAY = "http://beenode.ext";
+    private const string BEENODE_URL = "https://gateway.etherna.io/";
+    private const string ETHERNA_INDEX = "https://index.etherna.io/";
+    private const string ETHERNA_GATEWAY = "https://gateway.etherna.io/";
 
     // Methods.
     static async Task Main(string[] args)
@@ -77,20 +77,22 @@ internal class Program
         var totalVideo = videoDataInfoDtos.Count();
         Console.WriteLine($"Csv with {totalVideo} items to upload");
 
+        // Sign with SSO
+        var httpClient = await CreateHttpClientAuthenticatedAsync().ConfigureAwait(false);
 
         // Inizialize services.
-        using var httpClient = CreateAuthClient();
         var videoImporterService = new VideoImporterService(
             new YoutubeDownloadClient(),
             tmpFolderFullPath);
         var beeNodeClient = new BeeNodeClient(
                 BEENODE_URL,
                 BEENODE_GATEWAYPORT,
-                BEENODE_DEBUGPORT,
+                null,
                 BEENODE_GATEWAYVERSION,
-                BEENODE_DEBUGVERSION,
+                DebugApiVersion.v3_0_2,
                 httpClient);
         var videoUploaderService = new VideoUploaderService(
+            httpClient,
             beeNodeClient,
             ETHERNA_GATEWAY,
             ETHERNA_INDEX);
@@ -127,9 +129,30 @@ internal class Program
     }
 
     // Private helpers.
-    private static HttpClient CreateAuthClient()
+    private static async Task<HttpClient> CreateHttpClientAuthenticatedAsync()
     {
-        return new HttpClient();
+        // create a redirect URI using an available port on the loopback address.
+        // requires the OP to allow random ports on 127.0.0.1 - otherwise set a static port
+        var browser = new SystemBrowser(59100);
+        var redirectUri = $"http://127.0.0.1:{browser.Port}";
+
+        var options = new OidcClientOptions
+        {
+            Authority = "https://sso.etherna.io/",
+            ClientId = "ethernaVideoImporterId",
+            RedirectUri = redirectUri,
+            Scope = "openid profile offline_access ether_accounts userApi.gateway userApi.index",
+            FilterClaims = false,
+
+            Browser = browser,
+            IdentityTokenValidator = new JwtHandlerIdentityTokenValidator(),
+            RefreshTokenInnerHttpHandler = new SocketsHttpHandler()
+        };
+
+        var oidcClient = new OidcClient(options);
+        var result = await oidcClient.LoginAsync(new LoginRequest()).ConfigureAwait(false);
+
+        return new HttpClient(result.RefreshTokenHandler);
     }
 
     private static IEnumerable<VideoInfoWithData> ReadFromCsv(
@@ -139,7 +162,7 @@ internal class Program
         IEnumerable<VideoInfoWithData> currentSourceVideoInfo;
         using (var reader = new StreamReader(sourceCsvFile))
         using (var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture))
-            currentSourceVideoInfo = csvReader.GetRecords<VideoInfoWithData>();
+            currentSourceVideoInfo = csvReader.GetRecords<VideoInfoWithData>().ToList();
 
         if (!File.Exists(outputFile))
             return currentSourceVideoInfo;
@@ -148,7 +171,7 @@ internal class Program
         IEnumerable<VideoInfoWithData> previusRunnerVideoInfo;
         using (var reader = new StreamReader(outputFile))
         using (var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture))
-            previusRunnerVideoInfo = csvReader.GetRecords<VideoInfoWithData>();
+            previusRunnerVideoInfo = csvReader.GetRecords<VideoInfoWithData>().ToList();
 
         foreach (var previusItem in previusRunnerVideoInfo)
         {
@@ -159,6 +182,7 @@ internal class Program
             // Copy only video data
             currentItem.Bitrate = previusItem.Bitrate;
             currentItem.BatchId = previusItem.BatchId;
+            currentItem.BatchReferenceId = previusItem.BatchReferenceId;
             currentItem.DownloadedFileName = previusItem.DownloadedFileName;
             currentItem.DownloadedFilePath = previusItem.DownloadedFilePath;
             currentItem.IndexVideoId = previusItem.IndexVideoId;
@@ -188,4 +212,5 @@ internal class Program
 
         return strValue;
     }
+
 }

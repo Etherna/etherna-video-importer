@@ -2,7 +2,7 @@
   "profiles": {
     "DevconArchiveVideoParser": {
       "commandName": "Project",
-      "commandLineArgs": "D:\\Etherna\\VideoDevCon.csv"
+      "commandLineArgs": "-s D:\\Etherna\\VideoDevCon.csv -o D:\\Etherna\\VideoDevCon.worked.csv -p true"
     }
   }
 }

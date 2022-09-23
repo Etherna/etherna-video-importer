@@ -22,6 +22,8 @@ namespace EthernaVideoImporter.Models
         public int Bitrate { get; set; }
         [Optional]
         public string? BatchId { get; set; }
+        [Optional]
+        public string? BatchReferenceId { get; set; }
         public string? Description { get; set; }
         [Optional]
         public string? DownloadedFileName { get; set; }

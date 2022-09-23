@@ -25,7 +25,7 @@ namespace EthernaVideoImporter.Services
         public async Task StartAsync(VideoInfoWithData videoDataInfoDto)
         {
             if (videoDataInfoDto.VideoStatus == VideoStatus.Processed ||
-                videoDataInfoDto.VideoStatus == VideoStatus.Downloaded)
+                File.Exists(videoDataInfoDto.DownloadedFilePath))
                 return;
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.YoutubeUrl))
                 throw new InvalidOperationException("Invalid YoutubeUrl");
@@ -43,14 +43,20 @@ namespace EthernaVideoImporter.Services
 
                 // Start download and show progress.
                 videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
+                Console.WriteLine("");
                 await downloadClient
                     .DownloadAsync(
                     new Uri(videoDownload.Uri),
                     videoDataInfoDto.DownloadedFilePath,
                     new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
                     {
-                        var percent = (int)(v.Item1 * 100 / v.Item2);
-                        Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (1024 * 1024)} / {v.Item2 / (1024 * 1024)} MB\r");
+                        var percent = (int)((v.Item1 * 100) / v.Item2);
+#pragma warning disable CA1305 // Specify IFormatProvider
+                        //Console.Write($"Downloading in progress.. {v.Item2 / (1024 * 1024)} MB\r");
+                        Console.Write(string.Format("Downloading.. ( % {0} ) {1} / {2} MB\r", percent, (v.Item1 / (double)(1024 * 1024)).ToString("N"), (v.Item2 / (double)(1024 * 1024)).ToString("N")));
+#pragma warning restore CA1305 // Specify IFormatProvider
+                        //var percent = (int)(v.Item1 * 100 / v.Item2);
+                        //Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (1024 * 1024)} / {v.Item2 / (1024 * 1024)} MB\r");
                     })).ConfigureAwait(false);
                 Console.WriteLine("");
 
