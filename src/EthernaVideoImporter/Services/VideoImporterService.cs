@@ -64,7 +64,7 @@ namespace EthernaVideoImporter.Services
                 var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath).Length;
                 videoDataInfoDto.DownloadedFileName = videoDownload.Filename;
                 videoDataInfoDto.VideoStatusNote = "";
-                videoDataInfoDto.Bitrate = (int)Math.Ceiling((double)fileSize / videoDataInfoDto.Duration);
+                videoDataInfoDto.Bitrate = (int)Math.Ceiling((double)fileSize * 8 / videoDataInfoDto.Duration);
                 videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
                 videoDataInfoDto.Size = fileSize;
 

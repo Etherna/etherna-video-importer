@@ -77,8 +77,21 @@ internal class Program
         var totalVideo = videoDataInfoDtos.Count();
         Console.WriteLine($"Csv with {totalVideo} items to upload");
 
-        // Sign with SSO
-        var httpClient = await CreateHttpClientAuthenticatedAsync().ConfigureAwait(false);
+        // Sign with SSO and create auth client.
+        var authResult = await SigInSSO().ConfigureAwait(false);
+        if (authResult.IsError)
+        {
+            Console.WriteLine($"Error during authentication");
+            Console.WriteLine(authResult.Error);
+            return;
+        }
+        var userEthAddr = authResult.User.Claims.Where(i => i.Type == "ether_address").FirstOrDefault()?.Value;
+        if (string.IsNullOrWhiteSpace(userEthAddr))
+        {
+            Console.WriteLine($"Missing ether address");
+            return;
+        }
+        var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(1) };
 
         // Inizialize services.
         var videoImporterService = new VideoImporterService(
@@ -95,7 +108,8 @@ internal class Program
             httpClient,
             beeNodeClient,
             ETHERNA_GATEWAY,
-            ETHERNA_INDEX);
+            ETHERNA_INDEX,
+            userEthAddr);
 
         // Call import service for each video.
         var videoCount = 0;
@@ -129,7 +143,7 @@ internal class Program
     }
 
     // Private helpers.
-    private static async Task<HttpClient> CreateHttpClientAuthenticatedAsync()
+    private static async Task<LoginResult> SigInSSO()
     {
         // create a redirect URI using an available port on the loopback address.
         // requires the OP to allow random ports on 127.0.0.1 - otherwise set a static port
@@ -150,9 +164,7 @@ internal class Program
         };
 
         var oidcClient = new OidcClient(options);
-        var result = await oidcClient.LoginAsync(new LoginRequest()).ConfigureAwait(false);
-
-        return new HttpClient(result.RefreshTokenHandler);
+        return await oidcClient.LoginAsync(new LoginRequest()).ConfigureAwait(false);
     }
 
     private static IEnumerable<VideoInfoWithData> ReadFromCsv(

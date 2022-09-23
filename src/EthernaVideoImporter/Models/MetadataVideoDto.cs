@@ -16,7 +16,8 @@ namespace Etherna.EthernaVideoImporter.Models
             IEnumerable<MetadataVideoSource> sources,
             SwarmImageRaw? thumbnail,
             string title,
-            long? updatedAt)
+            long? updatedAt,
+            string v)
         {
             BatchId = batchId;
             Description = description;
@@ -28,6 +29,7 @@ namespace Etherna.EthernaVideoImporter.Models
             Thumbnail = thumbnail;
             Title = title;
             UpdatedAt = updatedAt;
+            V = v;
         }
 
         // Properties.
@@ -41,6 +43,7 @@ namespace Etherna.EthernaVideoImporter.Models
         public SwarmImageRaw? Thumbnail { get; }
         public string Title { get; }
         public long? UpdatedAt { get; }
+        public string V { get; }
 
         //  Public Methods.
         public string ToJson()
