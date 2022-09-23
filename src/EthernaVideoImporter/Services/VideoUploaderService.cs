@@ -23,7 +23,7 @@ namespace Etherna.EthernaVideoImporter.Services
         private const int BATCH_WAITING_TIME = 30 * 1000;
         private const int BATCH_TIMEOUT_TIME = 5 * 60 * 1000;
         private const int BLOCK_TIME = 5;
-        private const string INDEX_API_CREATEBATCH = "api/Videos";
+        private const string INDEX_API_CREATEBATCH = "api/v0.3/videos";
         private const string GATEWAY_API_CREATEBATCH = "api/v0.3/users/current/batches";
         private const string GATEWAY_API_CHAINSTATE = "api/v0.3/system/chainstate";
         private const string GATEWAY_API_GETBATCH_REFERENCE = "api/v0.3/System/postageBatchRef/";
@@ -144,12 +144,11 @@ namespace Etherna.EthernaVideoImporter.Services
             var httpResponse = await httpClient.GetAsync(new Uri(gatewayUrl + GATEWAY_API_CHAINSTATE)).ConfigureAwait(false);
 
             httpResponse.EnsureSuccessStatusCode();
-            using var responseStream = await httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            var chainPriceDto = await JsonSerializer.DeserializeAsync<ChainPriceDto>(responseStream, serializeOptions).ConfigureAwait(false);
+            var responseText = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var chainPriceDto = JsonSerializer.Deserialize<ChainPriceDto>(responseText, serializeOptions);
             if (chainPriceDto is null)
                 throw new ArgumentNullException("Chainstate result is null");
 
-            chainPriceDto.CurrentPrice = 4;
             var amount = (long)BATCH_DURANTION_TIME * BLOCK_TIME / chainPriceDto.CurrentPrice;
             using var httpContent = new StringContent("{}", Encoding.UTF8, "application/json");
             httpResponse = await httpClient.PostAsync(new Uri(gatewayUrl+GATEWAY_API_CREATEBATCH + $"?depth={BATCH_DEEP}&amount={amount}"), httpContent).ConfigureAwait(false);
@@ -170,7 +169,7 @@ namespace Etherna.EthernaVideoImporter.Services
 
         private async Task<string> IndexAsync(string hashReferenceMetadata)
         {
-            using var httpContent = new StringContent(hashReferenceMetadata, Encoding.UTF8, "application/json");
+            using var httpContent = new StringContent($"{{ manifestHash: {hashReferenceMetadata}}}", Encoding.UTF8, "application/json");
 
             var httpResponse = await httpClient.PostAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH), httpContent).ConfigureAwait(false);
 
