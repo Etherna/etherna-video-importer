@@ -1,5 +1,5 @@
 ﻿using Etherna.BeeNet;
-using Etherna.BeeNet.InputModels;
+using Etherna.BeeNet.DtoModels;
 using Etherna.EthernaVideoImporter.Models;
 using EthernaVideoImporter.Models;
 using System;
@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.EthernaVideoImporter.Services
@@ -16,6 +17,10 @@ namespace Etherna.EthernaVideoImporter.Services
         private readonly BeeNodeClient beeNodeClient;
         private readonly string gatewayUrl;
         private readonly string indexUrl;
+        private const int BATCH_WAITING_TIME = 30 * 1000;
+        private const int BATCH_TIMEOUT_TIME = 5 * 60 * 1000;
+        private const string GATEWAY_API_CREATEBATCH = "/api/v0.3/users/current/batches";
+        private const string GATEWAY_API_GETBATCH = "/api/v0.3/users/current/batches";
 
         // Constractor.
         public VideoUploaderService(
@@ -40,54 +45,74 @@ namespace Etherna.EthernaVideoImporter.Services
         {
             if (videoInfoWithData.VideoStatus == VideoStatus.Processed)
                 return;
-            if (videoInfoWithData.VideoStatus == VideoStatus.NotProcess)
-                throw new InvalidOperationException($"Invalid Status: {videoInfoWithData.VideoStatus}");
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.DownloadedFilePath) ||
+                !File.Exists(videoInfoWithData.DownloadedFilePath))
+            {
+                var ex = new InvalidOperationException($"Video to upload not found");
+                ex.Data.Add("DownloadedFilePath", videoInfoWithData.DownloadedFilePath);
+                videoInfoWithData.DownloadedFilePath = "";
+                throw ex;
+            }
 
+            // Create new batch.
             if (string.IsNullOrWhiteSpace(videoInfoWithData.BatchId))
             {
                 // Create batch.
-                videoInfoWithData.BatchId = await beeNodeClient.DebugClient!.BuyPostageBatchAsync(1, 28).ConfigureAwait(false);
+                videoInfoWithData.BatchId = await CreateBatchAsync().ConfigureAwait(false);
                 videoInfoWithData.VideoStatus = VideoStatus.BatchCreated;
                 await Task.Delay(90000).ConfigureAwait(false);
-
-                //TODO check avaiable batch or another await with while
             }
-            else
+
+            // Check and wait until created batch is ready.
+            var batch = await GetBatchAsync(videoInfoWithData.BatchId).ConfigureAwait(false);
+            int timeWaited = 0;
+            while (batch is null ||
+                    !batch.Exists ||
+                    !batch.Usable)
             {
-                //TODO check validity
+                // Timeout throw exception and reset the BatchId field.
+                if (timeWaited >= BATCH_TIMEOUT_TIME)
+                {
+                    var ex = new InvalidOperationException("Batch not avaiable");
+                    ex.Data.Add("BatchId", videoInfoWithData.BatchId);
+                    videoInfoWithData.BatchId = "";
+                    throw ex;
+                }
+
+                // Waiting for batch ready.
+                await Task.Delay(BATCH_WAITING_TIME).ConfigureAwait(false);
+                batch = await GetBatchAsync(videoInfoWithData.BatchId).ConfigureAwait(false);
+                timeWaited += BATCH_WAITING_TIME;
             }
 
             if (string.IsNullOrWhiteSpace(videoInfoWithData.VideoReference))
             {
                 // Upload file.
-                var fileParameterInput = new FileParameterInput(
-                File.OpenRead(videoInfoWithData.DownloadedFilePath!),
-                Path.GetFileName(videoInfoWithData.DownloadedFilePath!),
-                MimeTypes.GetMimeType(Path.GetFileName(videoInfoWithData.DownloadedFilePath!)));
-                videoInfoWithData.VideoReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
-                    videoInfoWithData.BatchId!, 
-                    files: new List<FileParameterInput> { fileParameterInput }, 
-                    swarmCollection: false,
+                using var fileStream = File.OpenRead(videoInfoWithData.DownloadedFilePath!);
+                videoInfoWithData.VideoReference = await beeNodeClient.GatewayClient!.UploadDataAsync(
+                    videoInfoWithData.BatchId!,
+                    body: fileStream,
                     swarmPin: pinVideo).ConfigureAwait(false);
                 videoInfoWithData.VideoStatus = VideoStatus.VideoUploaded;
             }
             else
             {
-                //TODO check validity
+                //TODO check if exist, is possible to check file without download all?
             }
 
             if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference))
             {
                 // Upload metadata.
                 videoInfoWithData.HashMetadataReference = await UploadMetadataAsync(
-                    videoInfoWithData.VideoReference!, 
-                    videoInfoWithData.BatchId!, 
-                    videoInfoWithData).ConfigureAwait(false);
+                    videoInfoWithData.VideoReference!,
+                    videoInfoWithData.BatchId!,
+                    videoInfoWithData,
+                    pinVideo).ConfigureAwait(false);
                 videoInfoWithData.VideoStatus = VideoStatus.MetadataUploaded;
             }
             else
             {
-                //TODO check validity
+                //TODO check if exist, is possible to check file without download all?
             }
 
             if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId))
@@ -98,7 +123,7 @@ namespace Etherna.EthernaVideoImporter.Services
             }
             else
             {
-                //TODO check validity
+                //TODO check if exist
             }
 
             // Remove downloaded file.
@@ -111,15 +136,38 @@ namespace Etherna.EthernaVideoImporter.Services
         }
 
         // Private methods.
+        private async Task<string> CreateBatchAsync()
+        {
+            using var client = new HttpClient();
+            client.BaseAddress = new Uri(gatewayUrl);
+            using var httpContent = new StringContent("{depth: 20, amount: 1}", Encoding.UTF8, "application/json"); //TODO insert value for batch in body
+            var httpResponse = await client.PostAsync(GATEWAY_API_CREATEBATCH, httpContent).ConfigureAwait(false);
+
+            httpResponse.EnsureSuccessStatusCode();
+            return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+        }
+
+        private async Task<PostageBatchDto?> GetBatchAsync(string batchId)
+        {
+            using var client = new HttpClient();
+            client.BaseAddress = new Uri(gatewayUrl);
+
+            var httpResponse = await client.GetAsync($"{GATEWAY_API_GETBATCH}/{batchId}").ConfigureAwait(false);
+
+            if (!httpResponse.IsSuccessStatusCode)
+                return null;
+
+            using var responseStream = await httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            return await JsonSerializer.DeserializeAsync<PostageBatchDto>(responseStream).ConfigureAwait(false);
+        }
+
         private async Task<string> IndexAsync(string hashReferenceMetadata)
         {
             using var client = new HttpClient();
             client.BaseAddress = new Uri(indexUrl);
             using var httpContent = new StringContent(hashReferenceMetadata, Encoding.UTF8, "application/json");
 
-#pragma warning disable CA2234
             var httpResponse = await client.PostAsync("/api/Videos", httpContent).ConfigureAwait(false);
-#pragma warning restore CA2234
 
             httpResponse.EnsureSuccessStatusCode();
             return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -128,7 +176,8 @@ namespace Etherna.EthernaVideoImporter.Services
         private async Task<string> UploadMetadataAsync(
             string referenceVideo,
             string postageBatch,
-            VideoInfoWithData videoDataInfoDto)
+            VideoInfoWithData videoDataInfoDto,
+            bool swarmPin)
         {
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.Title))
                 throw new InvalidOperationException("Title not defined");
@@ -141,13 +190,13 @@ namespace Etherna.EthernaVideoImporter.Services
                 postageBatch,
                 videoDataInfoDto.Description!,
                 videoDataInfoDto.Duration,
-                -1L, //Created at
+                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 videoDataInfoDto.Quality!,
-                "owner",
+                "owner", //TODO take from SSO
                 new List<MetadataVideoSource> { new MetadataVideoSource(videoDataInfoDto.Bitrate, videoDataInfoDto.Quality!, referenceVideo, videoDataInfoDto.Size) },
                 null,
                 videoDataInfoDto.Title!,
-                -1); //Updated at
+                null);
 
             var tmpMetadata = Path.GetTempFileName();
             try
@@ -155,15 +204,10 @@ namespace Etherna.EthernaVideoImporter.Services
                 await File.WriteAllTextAsync(tmpMetadata, metadataVideoDto.ToJson()).ConfigureAwait(false);
 
                 // Upload file.
-                var fileParameterInput = new FileParameterInput(
-                    File.OpenRead(tmpMetadata),
-                    Path.GetFileName("metadata.json"),
-                    MimeTypes.GetMimeType("application/json"));
-
-                return await beeNodeClient.GatewayClient!.UploadFileAsync(
-                    postageBatch, 
-                    files: new List<FileParameterInput> { fileParameterInput }, 
-                    swarmCollection: false).ConfigureAwait(false);
+                using var fileStream = File.OpenRead(tmpMetadata);
+                return await beeNodeClient.GatewayClient!.UploadDataAsync(
+                    postageBatch,
+                    swarmPin: swarmPin).ConfigureAwait(false);
             }
             finally
             {

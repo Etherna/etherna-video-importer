@@ -1,5 +1,4 @@
-﻿using Etherna.EthernaVideoImporter.Services;
-using EthernaVideoImporter.CommonData.Services;
+﻿using EthernaVideoImporter.CommonData.Services;
 using EthernaVideoImporter.Models;
 using System;
 using System.Globalization;
@@ -35,7 +34,12 @@ namespace EthernaVideoImporter.Services
             {
                 // Take best video resolution.
                 var videoDownload = await downloadClient.FirstVideoWithBestResolutionAsync(videoDataInfoDto.YoutubeUrl).ConfigureAwait(false);
-                Console.WriteLine($"Resolution: {videoDownload.Resolution}\tAudio Bitrate: {videoDownload.AudioBitrate}");
+                if (videoDownload is null)
+                {
+                    var ex = new InvalidOperationException("Video not found");
+                    ex.Data.Add("Url", videoDataInfoDto.YoutubeUrl);
+                    throw ex;
+                }
 
                 // Start download and show progress.
                 videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
@@ -45,8 +49,8 @@ namespace EthernaVideoImporter.Services
                     videoDataInfoDto.DownloadedFilePath,
                     new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
                     {
-                        var percent = (int)((v.Item1 * 100) / v.Item2);
-                        Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (double)(1024 * 1024)} / {(v.Item2 / (double)(1024 * 1024))} MB\r");
+                        var percent = (int)(v.Item1 * 100 / v.Item2);
+                        Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (1024 * 1024)} / {v.Item2 / (1024 * 1024)} MB\r");
                     })).ConfigureAwait(false);
                 Console.WriteLine("");
 
@@ -54,7 +58,7 @@ namespace EthernaVideoImporter.Services
                 var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath).Length;
                 videoDataInfoDto.DownloadedFileName = videoDownload.Filename;
                 videoDataInfoDto.VideoStatusNote = "";
-                videoDataInfoDto.Bitrate = (int)Math.Ceiling(fileSize / (videoDataInfoDto.Duration / 60 * 0.0075));//TODO it's OK?  bitrate = file size / (number of minutes * .0075)
+                videoDataInfoDto.Bitrate = (int)Math.Ceiling((double)fileSize / videoDataInfoDto.Duration);
                 videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
                 videoDataInfoDto.Size = fileSize;
 

@@ -111,9 +111,7 @@ internal class Program
 
                 Console.WriteLine($"Video #{videoCount} processed");
             }
-#pragma warning disable CA1031 // Catch general exception types for process next video in case of some error
             catch (Exception ex)
-#pragma warning restore CA1031
             {
                 Console.WriteLine($"{ex.Message} \n Unable to upload: {videoDataInfoDtos}");
                 videoInfo.VideoStatusNote = ex.Message;

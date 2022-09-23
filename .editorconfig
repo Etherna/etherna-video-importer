@@ -39,3 +39,9 @@ dotnet_diagnostic.CA1822.severity = none    # Don't like static members
 
 # CA1054: URI-like parameters should not be strings
 dotnet_diagnostic.CA1054.severity = none
+
+# CA2234: Pass system uri objects instead of strings
+dotnet_diagnostic.CA2234.severity = none
+
+# CA1031: Catch general exception types for process next video in case of some error
+dotnet_diagnostic.CA1031.severity = none
