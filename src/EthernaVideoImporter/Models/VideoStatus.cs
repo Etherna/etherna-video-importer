@@ -6,6 +6,7 @@
         Downloaded,
         BatchCreated,
         VideoUploaded,
+        ThumbnailUploaded,
         MetadataUploaded,
         IndexSynced,
         Processed

@@ -1,8 +1,10 @@
-﻿using Etherna.BeeNet;
-using Etherna.BeeNet.DtoModels;
+﻿using Blurhash.ImageSharp;
+using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
 using Etherna.EthernaVideoImporter.Models;
 using EthernaVideoImporter.Models;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -31,14 +33,12 @@ namespace Etherna.EthernaVideoImporter.Services
         private const string INDEX_API_CREATEBATCH = "api/v0.3/videos";
         private const string GATEWAY_API_CREATEBATCH = "api/v0.3/users/current/batches";
         private const string GATEWAY_API_CHAINSTATE = "api/v0.3/system/chainstate";
-        private const string GATEWAY_API_GETBATCH_REFERENCE = "api/v0.3/System/postageBatchRef/";
         private const string GATEWAY_API_GETBATCH = "api/v0.3/users/current/batches";
-        
+        private const string GATEWAY_API_GETBATCH_REFERENCE = "api/v0.3/System/postageBatchRef/";
 
-        static readonly JsonSerializerOptions serializeOptions = new JsonSerializerOptions
+
+        static readonly JsonSerializerOptions options = new()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = true
         };
 
@@ -81,11 +81,13 @@ namespace Etherna.EthernaVideoImporter.Services
             // Create new batch.
             if (string.IsNullOrWhiteSpace(videoInfoWithData.BatchReferenceId))
             {
+                Console.WriteLine("Create batch...");
                 // Create batch.
                 videoInfoWithData.BatchReferenceId = await CreateBatchIdFromReferenceAsync().ConfigureAwait(false);
                 videoInfoWithData.VideoStatus = VideoStatus.BatchCreated;
                 await Task.Delay(BATCH_WAITING_TIME).ConfigureAwait(false);
             }
+            Console.WriteLine("Waiting for batch in ready status...");
 
             // Check and wait until created batchId is avaiable.
             videoInfoWithData.BatchId = await GetBatchIdFromReference(videoInfoWithData.BatchReferenceId).ConfigureAwait(false);
@@ -127,13 +129,14 @@ namespace Etherna.EthernaVideoImporter.Services
                 timeWaited += BATCH_WAITING_TIME;
             }
 
+            // Upload file.
             if (string.IsNullOrWhiteSpace(videoInfoWithData.VideoReference))
             {
-                // Upload file.
+                Console.WriteLine("Uploading video in progress...");
                 var fileParameterInput = new FileParameterInput(
-                File.OpenRead(videoInfoWithData.DownloadedFilePath!),
-                Path.GetFileName(videoInfoWithData.DownloadedFilePath!),
-                MimeTypes.GetMimeType(Path.GetFileName(videoInfoWithData.DownloadedFilePath!)));
+                    File.OpenRead(videoInfoWithData.DownloadedFilePath!),
+                    Path.GetFileName(videoInfoWithData.DownloadedFilePath!),
+                    MimeTypes.GetMimeType(Path.GetFileName(videoInfoWithData.DownloadedFilePath!)));
                 videoInfoWithData.VideoReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                     videoInfoWithData.BatchId!,
                     files: new List<FileParameterInput> { fileParameterInput },
@@ -141,9 +144,26 @@ namespace Etherna.EthernaVideoImporter.Services
                 videoInfoWithData.VideoStatus = VideoStatus.VideoUploaded;
             }
 
+            // Upload thumbnail.
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.ThumbnailReference) &&
+                File.Exists(videoInfoWithData.DownloadedThumbnailPath))
+            {
+                Console.WriteLine("Uploading thumbnail in progress...");
+                var fileParameterInput = new FileParameterInput(
+                    File.OpenRead(videoInfoWithData.DownloadedThumbnailPath!),
+                    Path.GetFileName(videoInfoWithData.DownloadedThumbnailPath!),
+                    MimeTypes.GetMimeType(Path.GetFileName(videoInfoWithData.DownloadedThumbnailPath!)));
+                videoInfoWithData.ThumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                    videoInfoWithData.BatchId!,
+                    files: new List<FileParameterInput> { fileParameterInput },
+                    swarmPin: pinVideo).ConfigureAwait(false);
+                videoInfoWithData.VideoStatus = VideoStatus.ThumbnailUploaded;
+            }
+
+            // Upload metadata.
             if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference))
             {
-                // Upload metadata.
+                Console.WriteLine("Uploading metadata in progress...");
                 videoInfoWithData.HashMetadataReference = await UploadMetadataAsync(
                     videoInfoWithData.VideoReference!,
                     videoInfoWithData.BatchId!,
@@ -152,16 +172,19 @@ namespace Etherna.EthernaVideoImporter.Services
                 videoInfoWithData.VideoStatus = VideoStatus.MetadataUploaded;
             }
 
+            // Sync Index.
             if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId))
             {
-                // Sync Index.
+                Console.WriteLine("Video indexing in progress...");
                 videoInfoWithData.IndexVideoId = await IndexAsync(videoInfoWithData.HashMetadataReference!).ConfigureAwait(false);
                 videoInfoWithData.VideoStatus = VideoStatus.IndexSynced;
             }
 
-            // Remove downloaded file.
+            // Remove downloaded files.
             if (File.Exists(videoInfoWithData.DownloadedFilePath))
                 File.Delete(videoInfoWithData.DownloadedFilePath);
+            if (File.Exists(videoInfoWithData.DownloadedThumbnailPath))
+                File.Delete(videoInfoWithData.DownloadedThumbnailPath);
 
             videoInfoWithData.VideoStatus = VideoStatus.Processed;
             videoInfoWithData.VideoStatusNote = "";
@@ -175,13 +198,13 @@ namespace Etherna.EthernaVideoImporter.Services
 
             httpResponse.EnsureSuccessStatusCode();
             var responseText = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var chainPriceDto = JsonSerializer.Deserialize<ChainPriceDto>(responseText, serializeOptions);
+            var chainPriceDto = JsonSerializer.Deserialize<ChainPriceDto>(responseText, options);
             if (chainPriceDto is null)
                 throw new ArgumentNullException("Chainstate result is null");
 
             var amount = (long)BATCH_DURANTION_TIME * BLOCK_TIME / chainPriceDto.CurrentPrice;
             using var httpContent = new StringContent("{}", Encoding.UTF8, "application/json");
-            httpResponse = await httpClient.PostAsync(new Uri(gatewayUrl+GATEWAY_API_CREATEBATCH + $"?depth={BATCH_DEEP}&amount={amount}"), httpContent).ConfigureAwait(false);
+            httpResponse = await httpClient.PostAsync(new Uri(gatewayUrl + GATEWAY_API_CREATEBATCH + $"?depth={BATCH_DEEP}&amount={amount}"), httpContent).ConfigureAwait(false);
 
             httpResponse.EnsureSuccessStatusCode();
             return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -195,7 +218,7 @@ namespace Etherna.EthernaVideoImporter.Services
                 return null;
 
             var responseText = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-            return JsonSerializer.Deserialize<BatchMinimalInfoDto>(responseText, serializeOptions);
+            return JsonSerializer.Deserialize<BatchMinimalInfoDto>(responseText, options);
         }
 
         private async Task<string> GetBatchIdFromReference(string referenceId)
@@ -232,6 +255,18 @@ namespace Etherna.EthernaVideoImporter.Services
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.Quality))
                 throw new InvalidOperationException("Quality not defined");
 
+            SwarmImageRaw? swarmImageRaw = null;
+            if (!string.IsNullOrWhiteSpace(videoDataInfoDto.ThumbnailReference))
+            {
+                var sourceImage = await Image.LoadAsync<Rgba32>(videoDataInfoDto.DownloadedThumbnailPath).ConfigureAwait(false);
+                var sourceData = Blurhasher.Encode(sourceImage, 4, 4);
+                swarmImageRaw = new SwarmImageRaw(
+                    sourceImage.Width / sourceImage.Height,
+                    sourceData,
+                    new Dictionary<string, string> { { $"{sourceImage.Width}w", videoDataInfoDto.ThumbnailReference } },
+                    "1");
+            }
+
             var metadataVideoDto = new MetadataVideoDto(
                 postageBatch,
                 videoDataInfoDto.Description,
@@ -239,8 +274,8 @@ namespace Etherna.EthernaVideoImporter.Services
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 videoDataInfoDto.Quality,
                 userEthAddr,
-                new List<MetadataVideoSource> { new MetadataVideoSource(videoDataInfoDto.Bitrate, videoDataInfoDto.Quality!, referenceVideo, videoDataInfoDto.Size) },
-                null,
+                new List<MetadataVideoSource> { new MetadataVideoSource(videoDataInfoDto.Bitrate, videoDataInfoDto.Quality, referenceVideo, videoDataInfoDto.Size) },
+                swarmImageRaw,
                 videoDataInfoDto.Title,
                 null,
                 "1");

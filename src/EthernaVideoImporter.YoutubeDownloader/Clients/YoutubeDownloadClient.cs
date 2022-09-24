@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.Web;
 using VideoLibrary;
 
 namespace Etherna.EthernaVideoImporter.YoutubeDownloader
@@ -32,6 +33,7 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
             }
             using var output = File.OpenWrite(filePath);
             var segmentCount = (int)Math.Ceiling(1.0 * fileSize / chunkSize);
+            var totalBytesCopied = 0L;
             for (var i = 0; i < segmentCount; i++)
             {
                 var from = i * chunkSize;
@@ -40,7 +42,6 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
                 request.Headers.Range = new RangeHeaderValue(from, to);
                 using (request)
                 {
-                    var totalBytesCopied = 0L;
                     // Download Stream
                     var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
@@ -66,15 +67,20 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
             if (string.IsNullOrWhiteSpace(url))
                 throw new ArgumentNullException(url);
             var videos = await GetAllVideosAsync(url).ConfigureAwait(false);
+
+            // Take best resolution with audio.
             var videoWithAudio = videos
-                .Where(i => i.AudioBitrate != -1);
+                .Where(i => i.AudioBitrate != -1)
+                .ToList();
+            var maxResolution = videoWithAudio.Max(j => j.Resolution);
             var videoDownload = videoWithAudio
-                .First(i => i.AudioBitrate == videoWithAudio.Max(j => j.AudioBitrate)); // Take best resolution
+                .First(i => i.Resolution == maxResolution);
 
             return new SourceVideoInfo(
                 videoDownload.AudioBitrate,
                 videoDownload.FullName,
                 videoDownload.Resolution,
+                GetVideoIdFromUrl(url),
                 videoDownload.Uri);
         }
 
@@ -86,6 +92,18 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
             if (ensureSuccess)
                 response.EnsureSuccessStatusCode();
             return response.Content.Headers.ContentLength;
+        }
+
+        private string? GetVideoIdFromUrl(string url)
+        {
+            var uri = new Uri(url);
+            var query = HttpUtility.ParseQueryString(uri.Query);
+
+            if (query != null &&
+                query.AllKeys.Contains("v"))
+                return query["v"];
+            
+            return uri.Segments.Last();
         }
     }
 

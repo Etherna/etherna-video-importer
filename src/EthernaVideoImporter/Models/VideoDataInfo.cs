@@ -30,6 +30,8 @@ namespace EthernaVideoImporter.Models
         [Optional]
         public string? DownloadedFilePath { get; set; }
         [Optional]
+        public string? DownloadedThumbnailPath { get; set; }
+        [Optional]
         public string? IndexVideoId { get; set; }
         [Optional]
         public string? HashMetadataReference { get; set; }
@@ -37,6 +39,8 @@ namespace EthernaVideoImporter.Models
         public string? Quality { get; set; }
         [Optional]
         public long Size { get; set; }
+        [Optional]
+        public string? ThumbnailReference { get; set; }
         [Optional]
         public string? VideoReference { get; set; }
         [Optional]

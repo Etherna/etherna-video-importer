@@ -117,7 +117,11 @@ internal class Program
         {
             try
             {
+                Console.WriteLine("===============================");
                 Console.WriteLine($"Start processing video {++videoCount} of {totalVideo}");
+                Console.WriteLine($"Title: {videoInfo.Title}");
+                Console.WriteLine($"Source Video: {videoInfo.YoutubeUrl}");
+
 
                 // Download from youtube.
                 await videoImporterService.StartAsync(videoInfo).ConfigureAwait(false);
@@ -125,11 +129,11 @@ internal class Program
                 // Upload on bee node.
                 await videoUploaderService.StartAsync(videoInfo, pinVideo).ConfigureAwait(false);
 
-                Console.WriteLine($"Video #{videoCount} processed");
+                Console.WriteLine($"Video uploaded successfully");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{ex.Message} \n Unable to upload: {videoDataInfoDtos}");
+                Console.WriteLine($"{ex.Message} \n Unable to upload video url {videoInfo.YoutubeUrl}");
                 videoInfo.VideoStatusNote = ex.Message;
             }
             finally

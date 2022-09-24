@@ -2,8 +2,8 @@
 {
     public class BatchMinimalInfoDto
     {
-        public string? Id { get; }
-        public bool Exists { get; }
-        public bool Usable { get; }
+        public string? Id { get; set; }
+        public bool Exists { get; set; }
+        public bool Usable { get; set; }
     }
 }

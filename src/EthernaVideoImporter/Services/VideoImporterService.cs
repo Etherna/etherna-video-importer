@@ -1,8 +1,10 @@
 ﻿using EthernaVideoImporter.CommonData.Services;
 using EthernaVideoImporter.Models;
+using ICSharpCode.SharpZipLib.Zip;
 using System;
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace EthernaVideoImporter.Services
@@ -43,7 +45,6 @@ namespace EthernaVideoImporter.Services
 
                 // Start download and show progress.
                 videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
-                Console.WriteLine("");
                 await downloadClient
                     .DownloadAsync(
                     new Uri(videoDownload.Uri),
@@ -60,7 +61,10 @@ namespace EthernaVideoImporter.Services
                     })).ConfigureAwait(false);
                 Console.WriteLine("");
 
-                // Set VideoDataInfoDto from downloaded video
+                // Download Thumbnail.
+                videoDataInfoDto.DownloadedThumbnailPath = await DownloadThumbnailAsync(videoDownload.VideoId, tmpFolder).ConfigureAwait(false);
+
+                // Set VideoDataInfoDto from downloaded video.
                 var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath).Length;
                 videoDataInfoDto.DownloadedFileName = videoDownload.Filename;
                 videoDataInfoDto.VideoStatusNote = "";
@@ -76,6 +80,21 @@ namespace EthernaVideoImporter.Services
                 videoDataInfoDto.DownloadedFilePath = "";
                 throw;
             }
+        }
+
+        // Private Methods.
+        private async Task<string?> DownloadThumbnailAsync(string? videoId, string tmpFolder)
+        {
+            if (string.IsNullOrWhiteSpace(videoId))
+                return null;
+
+            var filePath = $"{tmpFolder}/{videoId}.jpg";
+            using var httpClient = new HttpClient();
+            var streamGot = await httpClient.GetStreamAsync($"https://img.youtube.com/vi/{videoId}/maxresdefault.jpg").ConfigureAwait(false);
+            using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+            await streamGot.CopyToAsync(fileStream).ConfigureAwait(false);
+
+            return filePath;
         }
     }
 }
