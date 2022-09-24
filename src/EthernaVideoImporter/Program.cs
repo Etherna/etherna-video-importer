@@ -58,7 +58,7 @@ internal class Program
 
         Console.WriteLine();
         Console.WriteLine("Output filepath:");
-        outputFile = ReadStringIfEmpty(outputFile);
+        outputFile = ReadStringIfEmpty(outputFile); 
 
         // Check file and tmp folder.
         const string tmpFolder = "tmpData";
@@ -75,7 +75,9 @@ internal class Program
         // Load csv data.
         var videoDataInfoDtos = ReadFromCsv(sourceCsvFile, outputFile);
         var totalVideo = videoDataInfoDtos.Count();
+        Console.WriteLine();
         Console.WriteLine($"Csv with {totalVideo} items to upload");
+        Console.WriteLine();
 
         // Sign with SSO and create auth client.
         var authResult = await SigInSSO().ConfigureAwait(false);
@@ -118,7 +120,7 @@ internal class Program
             try
             {
                 Console.WriteLine("===============================");
-                Console.WriteLine($"Start processing video {++videoCount} of {totalVideo}");
+                Console.WriteLine($"Start processing video #{++videoCount} of #{totalVideo}");
                 Console.WriteLine($"Title: {videoInfo.Title}");
                 Console.WriteLine($"Source Video: {videoInfo.YoutubeUrl}");
 
@@ -129,11 +131,15 @@ internal class Program
                 // Upload on bee node.
                 await videoUploaderService.StartAsync(videoInfo, pinVideo).ConfigureAwait(false);
 
-                Console.WriteLine($"Video uploaded successfully");
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.WriteLine($"#{videoCount} Video uploaded successfully");
+                Console.ResetColor();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{ex.Message} \n Unable to upload video url {videoInfo.YoutubeUrl}");
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine($"Error:{ex.Message} \n#{videoCount} Video Unable to upload video url {videoInfo.YoutubeUrl}\n");
+                Console.ResetColor();
                 videoInfo.VideoStatusNote = ex.Message;
             }
             finally

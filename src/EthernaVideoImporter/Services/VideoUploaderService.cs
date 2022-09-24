@@ -99,7 +99,6 @@ namespace Etherna.EthernaVideoImporter.Services
                 {
                     var ex = new InvalidOperationException("Batch not avaiable");
                     ex.Data.Add("BatchReferenceId", videoInfoWithData.BatchReferenceId);
-                    videoInfoWithData.BatchReferenceId = "";
                     throw ex;
                 }
 
