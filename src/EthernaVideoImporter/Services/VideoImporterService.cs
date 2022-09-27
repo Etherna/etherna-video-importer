@@ -1,6 +1,5 @@
 ﻿using EthernaVideoImporter.CommonData.Services;
 using EthernaVideoImporter.Models;
-using ICSharpCode.SharpZipLib.Zip;
 using System;
 using System.Globalization;
 using System.IO;
@@ -12,14 +11,17 @@ namespace EthernaVideoImporter.Services
     internal class VideoImporterService
     {
         private readonly IDownloadClient downloadClient;
+        private readonly int maxFilesize;
         private readonly string tmpFolder;
 
         // Constractor.
         public VideoImporterService(
             IDownloadClient downloadClient,
-            string tmpFolder)
+            string tmpFolder,
+            int maxFilesize)
         {
             this.downloadClient = downloadClient;
+            this.maxFilesize = maxFilesize;
             this.tmpFolder = tmpFolder;
         }
 
@@ -35,7 +37,7 @@ namespace EthernaVideoImporter.Services
             try
             {
                 // Take best video resolution.
-                var videoDownload = await downloadClient.FirstVideoWithBestResolutionAsync(videoDataInfoDto.YoutubeUrl).ConfigureAwait(false);
+                var videoDownload = await downloadClient.FirstVideoWithBestResolutionAsync(videoDataInfoDto.YoutubeUrl, maxFilesize).ConfigureAwait(false);
                 if (videoDownload is null)
                 {
                     var ex = new InvalidOperationException("Video not found");

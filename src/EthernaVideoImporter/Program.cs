@@ -22,8 +22,10 @@ internal class Program
     private const string HelpText =
         "EthernaVideoImporter help:\n\n" +
         "-s\tSource csv filepath to import\n" +
-        "-p\tPin video (true/false)\n" +
         "-o\tOutput filepath\n" +
+        "-m\tMax file video size (Mb). 500Mb default value\n" +
+        "-f\tFree video offer by creator (true|false)\n" +
+        "-p\tPin video (true|false)\n" +
         "\n" +
         "-h\tPrint help\n";
     private const int BEENODE_GATEWAYPORT = 443;
@@ -37,6 +39,8 @@ internal class Program
     {
         // Parse arguments.
         string? sourceCsvFile = null;
+        string maxFilesizeStr = "500";
+        bool offerVideo = false;
         bool pinVideo = false;
         string? outputFile = null;
         for (int i = 0; i < args.Length; i++)
@@ -44,21 +48,30 @@ internal class Program
             switch (args[i])
             {
                 case "-s": sourceCsvFile = args[++i]; break;
-                case "-p": pinVideo = args[++i] == "true"; break;
                 case "-o": outputFile = args[++i]; break;
+                case "-m": maxFilesizeStr = args[++i]; break;
+                case "-f": offerVideo = args[++i] == "true"; break;
+                case "-p": pinVideo = args[++i] == "true"; break;
                 case "-h": Console.Write(HelpText); return;
                 default: throw new ArgumentException(args[i] + " is not a valid argument");
             }
         }
 
-        // Request connection urls.
+        // Request input data.
         Console.WriteLine();
         Console.WriteLine("Source csv filepath to import:");
         sourceCsvFile = ReadStringIfEmpty(sourceCsvFile);
 
         Console.WriteLine();
         Console.WriteLine("Output filepath:");
-        outputFile = ReadStringIfEmpty(outputFile); 
+        outputFile = ReadStringIfEmpty(outputFile);
+
+        if (string.IsNullOrWhiteSpace(maxFilesizeStr))
+            maxFilesizeStr = "500";
+        if (!int.TryParse(maxFilesizeStr, out int maxFilesize))
+        {
+            Console.WriteLine("Invalid input for max filesize, will be used 500Mb as default.");
+        }
 
         // Check file and tmp folder.
         const string tmpFolder = "tmpData";
@@ -98,7 +111,8 @@ internal class Program
         // Inizialize services.
         var videoImporterService = new VideoImporterService(
             new YoutubeDownloadClient(),
-            tmpFolderFullPath);
+            tmpFolderFullPath,
+            maxFilesize);
         var beeNodeClient = new BeeNodeClient(
                 BEENODE_URL,
                 BEENODE_GATEWAYPORT,
@@ -138,7 +152,7 @@ internal class Program
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine($"Error:{ex.Message} \n#{videoCount} Video Unable to upload video url {videoInfo.YoutubeUrl}\n");
+                Console.WriteLine($"Error:{ex.Message} \n#{videoCount} Video Unable to import url {videoInfo.YoutubeUrl}\n");
                 Console.ResetColor();
                 videoInfo.VideoStatusNote = ex.Message;
             }

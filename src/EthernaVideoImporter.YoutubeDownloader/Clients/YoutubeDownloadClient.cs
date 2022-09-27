@@ -19,8 +19,8 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
 
         // Public Methods.
         public async Task DownloadAsync(
-            Uri uri, 
-            string filePath, 
+            Uri uri,
+            string filePath,
             IProgress<Tuple<long, long>> progress)
         {
             if (uri is null)
@@ -62,7 +62,7 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
             }
         }
 
-        public async Task<SourceVideoInfo> FirstVideoWithBestResolutionAsync(string url)
+        public async Task<SourceVideoInfo> FirstVideoWithBestResolutionAsync(string url, int maxFilesize)
         {
             if (string.IsNullOrWhiteSpace(url))
                 throw new ArgumentNullException(url);
@@ -70,18 +70,33 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
 
             // Take best resolution with audio.
             var videoWithAudio = videos
-                .Where(i => i.AudioBitrate != -1)
+                .Where(video => video.AudioBitrate != -1 &&
+                                video.Resolution > 0)
                 .ToList();
-            var maxResolution = videoWithAudio.Max(j => j.Resolution);
-            var videoDownload = videoWithAudio
-                .First(i => i.Resolution == maxResolution);
+            var allResolutions = videoWithAudio
+                .Select(video => video.Resolution)
+                .Distinct()
+                .OrderByDescending(res => res);
 
-            return new SourceVideoInfo(
-                videoDownload.AudioBitrate,
-                videoDownload.FullName,
-                videoDownload.Resolution,
-                GetVideoIdFromUrl(url),
-                videoDownload.Uri);
+            long? bestFilesizeAccepted = null;
+            foreach (var currentRes in allResolutions)
+            {
+                var videoDownload = videoWithAudio
+                .First(video => video.Resolution == currentRes);
+
+                bestFilesizeAccepted = await GetContentLengthAsync(videoDownload.Uri, true).ConfigureAwait(false);
+                if (bestFilesizeAccepted > maxFilesize * 1024 * 1024)
+                    continue;
+
+                return new SourceVideoInfo(
+                    videoDownload.AudioBitrate,
+                    videoDownload.FullName,
+                    videoDownload.Resolution,
+                    GetVideoIdFromUrl(url),
+                    videoDownload.Uri);
+            }
+
+            throw new InvalidOperationException($"Not found source video less than {maxFilesize}Mb, the best size found is: {bestFilesizeAccepted / 1024 / 1024} Mb");
         }
 
         // Private Methods.
@@ -102,7 +117,7 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
             if (query != null &&
                 query.AllKeys.Contains("v"))
                 return query["v"];
-            
+
             return uri.Segments.Last();
         }
     }
