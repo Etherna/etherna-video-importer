@@ -114,6 +114,7 @@ namespace Etherna.EthernaVideoImporter.Services
                 timeWaited += BATCH_WAITING_TIME;
             }
 
+            // Check and wait until created batchId is usable.
             var batch = await GetBatchAsync(videoInfoWithData.BatchId).ConfigureAwait(false);
             timeWaited = 0;
             while (batch is null ||
