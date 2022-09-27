@@ -262,8 +262,9 @@ namespace Etherna.EthernaVideoImporter.Services
 
         private async Task<bool?> OfferResourceAsync(string reference)
         {
-            var url = string.Format(CultureInfo.InvariantCulture, GATEWAY_API_OFFER_RESOURCE, reference);
-            var httpResponse = await httpClient.GetAsync(new Uri(url)).ConfigureAwait(false);
+            var urlOffer = string.Format(CultureInfo.InvariantCulture, GATEWAY_API_OFFER_RESOURCE, reference);
+            using var httpContent = new StringContent("{}", Encoding.UTF8, "application/json");
+            var httpResponse = await httpClient.PostAsync(new Uri(gatewayUrl + urlOffer), httpContent).ConfigureAwait(false);
 
             if (!httpResponse.IsSuccessStatusCode)
                 throw new InvalidProgramException($"Error during offer resource");
