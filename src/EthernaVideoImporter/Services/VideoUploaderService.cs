@@ -7,6 +7,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Text;
@@ -22,7 +23,9 @@ namespace Etherna.EthernaVideoImporter.Services
         private readonly HttpClient httpClient;
         private readonly string gatewayUrl;
         private readonly string indexUrl;
+        private readonly bool offerVideo;
         private readonly string userEthAddr;
+        
 
         // Const.
         private const int BATCH_DEEP = 20;
@@ -31,11 +34,12 @@ namespace Etherna.EthernaVideoImporter.Services
         private const int BATCH_TIMEOUT_TIME = 5 * 60 * 1000;
         private const int BLOCK_TIME = 5;
         private const string INDEX_API_CREATEBATCH = "api/v0.3/videos";
+        private const string EMBED_LINK_RESOURCE = "<iframe src=\"https://etherna.io/embed/{0}\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";
         private const string GATEWAY_API_CREATEBATCH = "api/v0.3/users/current/batches";
         private const string GATEWAY_API_CHAINSTATE = "api/v0.3/system/chainstate";
         private const string GATEWAY_API_GETBATCH = "api/v0.3/users/current/batches";
         private const string GATEWAY_API_GETBATCH_REFERENCE = "api/v0.3/System/postageBatchRef/";
-
+        private const string GATEWAY_API_OFFER_RESOURCE = "api/v0.3/Resources/{0}/offers";
 
         static readonly JsonSerializerOptions options = new()
         {
@@ -48,7 +52,8 @@ namespace Etherna.EthernaVideoImporter.Services
             BeeNodeClient beeNodeClient,
             string gatewayUrl,
             string indexUrl,
-            string userEthAddr)
+            string userEthAddr,
+            bool offerVideo)
         {
             if (beeNodeClient is null)
                 throw new ArgumentNullException(nameof(beeNodeClient));
@@ -60,6 +65,7 @@ namespace Etherna.EthernaVideoImporter.Services
             this.gatewayUrl = gatewayUrl;
             this.indexUrl = indexUrl;
             this.userEthAddr = userEthAddr;
+            this.offerVideo = offerVideo;
         }
 
         // Public methods.
@@ -171,6 +177,16 @@ namespace Etherna.EthernaVideoImporter.Services
                 videoInfoWithData.VideoStatus = VideoStatus.MetadataUploaded;
             }
 
+            if (offerVideo)
+            {
+                Console.WriteLine("Flag video by offer from creator in progress...");
+                await OfferResourceAsync(videoInfoWithData.VideoReference).ConfigureAwait(false);
+                if (!string.IsNullOrWhiteSpace(videoInfoWithData.ThumbnailReference))
+                    await OfferResourceAsync(videoInfoWithData.ThumbnailReference).ConfigureAwait(false);
+                await OfferResourceAsync(videoInfoWithData.HashMetadataReference).ConfigureAwait(false);
+                videoInfoWithData.VideoStatus = VideoStatus.ReferenceOffer;
+            }
+
             // Sync Index.
             if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId))
             {
@@ -178,6 +194,9 @@ namespace Etherna.EthernaVideoImporter.Services
                 videoInfoWithData.IndexVideoId = await IndexAsync(videoInfoWithData.HashMetadataReference!).ConfigureAwait(false);
                 videoInfoWithData.VideoStatus = VideoStatus.IndexSynced;
             }
+
+            // Embed link.
+            videoInfoWithData.EmbedLink = String.Format(CultureInfo.InvariantCulture, EMBED_LINK_RESOURCE, videoInfoWithData.VideoReference);
 
             // Remove downloaded files.
             if (File.Exists(videoInfoWithData.DownloadedFilePath))
@@ -239,6 +258,17 @@ namespace Etherna.EthernaVideoImporter.Services
 
             httpResponse.EnsureSuccessStatusCode();
             return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+        }
+
+        private async Task<bool?> OfferResourceAsync(string reference)
+        {
+            var url = string.Format(CultureInfo.InvariantCulture, GATEWAY_API_OFFER_RESOURCE, reference);
+            var httpResponse = await httpClient.GetAsync(new Uri(url)).ConfigureAwait(false);
+
+            if (!httpResponse.IsSuccessStatusCode)
+                throw new InvalidProgramException($"Error during offer resource");
+            
+            return true;
         }
 
         private async Task<string> UploadMetadataAsync(

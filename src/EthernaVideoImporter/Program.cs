@@ -125,7 +125,8 @@ internal class Program
             beeNodeClient,
             ETHERNA_GATEWAY,
             ETHERNA_INDEX,
-            userEthAddr);
+            userEthAddr,
+            offerVideo);
 
         // Call import service for each video.
         var videoCount = 0;

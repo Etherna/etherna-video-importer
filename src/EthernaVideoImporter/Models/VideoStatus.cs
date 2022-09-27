@@ -8,6 +8,7 @@
         VideoUploaded,
         ThumbnailUploaded,
         MetadataUploaded,
+        ReferenceOffer,
         IndexSynced,
         Processed
     }
