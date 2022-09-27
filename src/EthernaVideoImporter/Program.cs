@@ -106,7 +106,7 @@ internal class Program
             Console.WriteLine($"Missing ether address");
             return;
         }
-        var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(1) };
+        var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
 
         // Inizialize services.
         var videoImporterService = new VideoImporterService(
@@ -139,7 +139,6 @@ internal class Program
                 Console.WriteLine($"Title: {videoInfo.Title}");
                 Console.WriteLine($"Source Video: {videoInfo.YoutubeUrl}");
 
-
                 // Download from youtube.
                 await videoImporterService.StartAsync(videoInfo).ConfigureAwait(false);
 
@@ -147,13 +146,13 @@ internal class Program
                 await videoUploaderService.StartAsync(videoInfo, pinVideo).ConfigureAwait(false);
 
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine($"#{videoCount} Video uploaded successfully");
+                Console.WriteLine($"#{videoCount} Video imported successfully");
                 Console.ResetColor();
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine($"Error:{ex.Message} \n#{videoCount} Video Unable to import url {videoInfo.YoutubeUrl}\n");
+                Console.WriteLine($"Error:{ex.Message} \n#{videoCount} Video unable to import\n");
                 Console.ResetColor();
                 videoInfo.VideoStatusNote = ex.Message;
             }

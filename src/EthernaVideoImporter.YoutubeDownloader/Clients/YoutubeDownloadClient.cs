@@ -96,7 +96,7 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
                     videoDownload.Uri);
             }
 
-            throw new InvalidOperationException($"Not found source video less than {maxFilesize}Mb, the best size found is: {bestFilesizeAccepted / 1024 / 1024} Mb");
+            throw new InvalidOperationException($"Not found video less than {maxFilesize}Mb, the best size found is: {bestFilesizeAccepted / 1024 / 1024} Mb");
         }
 
         // Private Methods.

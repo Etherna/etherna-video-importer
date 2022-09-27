@@ -40,7 +40,6 @@ namespace Etherna.EthernaVideoImporter.Services
         private const string GATEWAY_API_GETBATCH = "api/v0.3/users/current/batches";
         private const string GATEWAY_API_GETBATCH_REFERENCE = "api/v0.3/System/postageBatchRef/";
         private const string GATEWAY_API_OFFER_RESOURCE = "api/v0.3/Resources/{0}/offers";
-
         static readonly JsonSerializerOptions options = new()
         {
             PropertyNameCaseInsensitive = true
@@ -91,16 +90,14 @@ namespace Etherna.EthernaVideoImporter.Services
                 // Create batch.
                 videoInfoWithData.BatchReferenceId = await CreateBatchIdFromReferenceAsync().ConfigureAwait(false);
                 videoInfoWithData.VideoStatus = VideoStatus.BatchCreated;
-                await Task.Delay(BATCH_WAITING_TIME).ConfigureAwait(false);
             }
-            Console.WriteLine("Waiting for batch in ready status...");
 
             // Check and wait until created batchId is avaiable.
-            videoInfoWithData.BatchId = await GetBatchIdFromReference(videoInfoWithData.BatchReferenceId).ConfigureAwait(false);
+            Console.WriteLine("Waiting for batch ready...");
             int timeWaited = 0;
-            while (string.IsNullOrWhiteSpace(videoInfoWithData.BatchId))
+            do
             {
-                // Timeout throw exception and reset the BatchId field.
+                // Timeout throw exception.
                 if (timeWaited >= BATCH_TIMEOUT_TIME)
                 {
                     var ex = new InvalidOperationException("Batch not avaiable");
@@ -112,20 +109,18 @@ namespace Etherna.EthernaVideoImporter.Services
                 await Task.Delay(BATCH_WAITING_TIME).ConfigureAwait(false);
                 videoInfoWithData.BatchId = await GetBatchIdFromReference(videoInfoWithData.BatchReferenceId!).ConfigureAwait(false);
                 timeWaited += BATCH_WAITING_TIME;
-            }
+            } while (string.IsNullOrWhiteSpace(videoInfoWithData.BatchId));
 
-            // Check and wait until created batchId is usable.
-            var batch = await GetBatchAsync(videoInfoWithData.BatchId).ConfigureAwait(false);
+            // Check and wait until created batch is usable.
             timeWaited = 0;
-            while (batch is null ||
-                    !batch.Usable)
+            BatchMinimalInfoDto? batch;
+            do
             {
-                // Timeout throw exception and reset the BatchId field.
+                // Timeout throw exception.
                 if (timeWaited >= BATCH_TIMEOUT_TIME)
                 {
-                    var ex = new InvalidOperationException("Batch not ready");
+                    var ex = new InvalidOperationException("Batch not usable");
                     ex.Data.Add("BatchId", videoInfoWithData.BatchId);
-                    videoInfoWithData.BatchId = "";
                     throw ex;
                 }
 
@@ -133,7 +128,8 @@ namespace Etherna.EthernaVideoImporter.Services
                 await Task.Delay(BATCH_WAITING_TIME).ConfigureAwait(false);
                 batch = await GetBatchAsync(videoInfoWithData.BatchId).ConfigureAwait(false);
                 timeWaited += BATCH_WAITING_TIME;
-            }
+            } while (batch is null ||
+                    !batch.Usable);
 
             // Upload file.
             if (string.IsNullOrWhiteSpace(videoInfoWithData.VideoReference))
@@ -143,6 +139,7 @@ namespace Etherna.EthernaVideoImporter.Services
                     File.OpenRead(videoInfoWithData.DownloadedFilePath!),
                     Path.GetFileName(videoInfoWithData.DownloadedFilePath!),
                     MimeTypes.GetMimeType(Path.GetFileName(videoInfoWithData.DownloadedFilePath!)));
+
                 videoInfoWithData.VideoReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                     videoInfoWithData.BatchId!,
                     files: new List<FileParameterInput> { fileParameterInput },
@@ -159,6 +156,7 @@ namespace Etherna.EthernaVideoImporter.Services
                     File.OpenRead(videoInfoWithData.DownloadedThumbnailPath!),
                     Path.GetFileName(videoInfoWithData.DownloadedThumbnailPath!),
                     MimeTypes.GetMimeType(Path.GetFileName(videoInfoWithData.DownloadedThumbnailPath!)));
+
                 videoInfoWithData.ThumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                     videoInfoWithData.BatchId!,
                     files: new List<FileParameterInput> { fileParameterInput },
@@ -197,7 +195,7 @@ namespace Etherna.EthernaVideoImporter.Services
             }
 
             // Embed link.
-            videoInfoWithData.EmbedLink = String.Format(CultureInfo.InvariantCulture, EMBED_LINK_RESOURCE, videoInfoWithData.VideoReference);
+            videoInfoWithData.EmbedLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_RESOURCE, videoInfoWithData.VideoReference);
 
             // Remove downloaded files.
             if (File.Exists(videoInfoWithData.DownloadedFilePath))

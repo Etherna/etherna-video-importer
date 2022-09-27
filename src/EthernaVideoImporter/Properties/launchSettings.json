@@ -2,7 +2,7 @@
   "profiles": {
     "DevconArchiveVideoParser": {
       "commandName": "Project",
-      "commandLineArgs": "-s D:\\tmp\\DevCon_3Video.csv -o D:\\tmp\\DevCon_3Video.worked.csv -p true -m 500"
+      "commandLineArgs": "-s D:\\tmp\\DevCon_3Video.csv -o D:\\tmp\\DevCon_3Video.worked.csv -p true -m 500 -f true"
     }
   }
 }
