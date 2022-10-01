@@ -1,12 +1,12 @@
-﻿using Blurhash.ImageSharp;
-using Etherna.BeeNet;
+﻿using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
 using Etherna.EthernaVideoImporter.Models;
 using EthernaVideoImporter.Models;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using Microsoft.AspNetCore.Components.Forms;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
@@ -25,7 +25,7 @@ namespace Etherna.EthernaVideoImporter.Services
         private readonly string indexUrl;
         private readonly bool offerVideo;
         private readonly string userEthAddr;
-        
+
 
         // Const.
         private const int BATCH_DEEP = 20;
@@ -267,7 +267,7 @@ namespace Etherna.EthernaVideoImporter.Services
 
             if (!httpResponse.IsSuccessStatusCode)
                 throw new InvalidProgramException($"Error during offer resource");
-            
+
             return true;
         }
 
@@ -285,13 +285,17 @@ namespace Etherna.EthernaVideoImporter.Services
                 throw new InvalidOperationException("Quality not defined");
 
             SwarmImageRaw? swarmImageRaw = null;
-            if (!string.IsNullOrWhiteSpace(videoDataInfoDto.ThumbnailReference))
+            if (!string.IsNullOrWhiteSpace(videoDataInfoDto.ThumbnailReference) &&
+                !string.IsNullOrWhiteSpace(videoDataInfoDto.DownloadedThumbnailPath))
             {
-                var sourceImage = await Image.LoadAsync<Rgba32>(videoDataInfoDto.DownloadedThumbnailPath).ConfigureAwait(false);
-                var sourceData = Blurhasher.Encode(sourceImage, 4, 4);
+                using var input = File.OpenRead(videoDataInfoDto.DownloadedThumbnailPath);
+                using var inputStream = new SKManagedStream(input);
+                using var sourceImage = SKBitmap.Decode(inputStream);
+                var hash = Blurhash.SkiaSharp.Blurhasher.Encode(sourceImage, 4, 4);
+                //var sourceData = Blurhasher.
                 swarmImageRaw = new SwarmImageRaw(
                     sourceImage.Width / sourceImage.Height,
-                    sourceData,
+                    "",
                     new Dictionary<string, string> { { $"{sourceImage.Width}w", videoDataInfoDto.ThumbnailReference } },
                     "1");
             }
