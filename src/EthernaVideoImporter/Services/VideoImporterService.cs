@@ -11,14 +11,14 @@ namespace EthernaVideoImporter.Services
     internal class VideoImporterService
     {
         private readonly IDownloadClient downloadClient;
-        private readonly int maxFilesize;
+        private readonly int? maxFilesize;
         private readonly string tmpFolder;
 
         // Constractor.
         public VideoImporterService(
             IDownloadClient downloadClient,
             string tmpFolder,
-            int maxFilesize)
+            int? maxFilesize)
         {
             this.downloadClient = downloadClient;
             this.maxFilesize = maxFilesize;

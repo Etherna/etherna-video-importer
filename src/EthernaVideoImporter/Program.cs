@@ -23,7 +23,7 @@ internal class Program
         "EthernaVideoImporter help:\n\n" +
         "-s\tSource csv filepath to import\n" +
         "-o\tOutput filepath\n" +
-        "-m\tMax file video size (Mb). 500Mb default value\n" +
+        "-m\tMax file video size (Mb)\n" +
         "-f\tFree video offer by creator (true|false)\n" +
         "-p\tPin video (true|false)\n" +
         "\n" +
@@ -39,7 +39,7 @@ internal class Program
     {
         // Parse arguments.
         string? sourceCsvFile = null;
-        string maxFilesizeStr = "500";
+        string? maxFilesizeStr = null;
         bool offerVideo = false;
         bool pinVideo = false;
         string? outputFile = null;
@@ -66,12 +66,12 @@ internal class Program
         Console.WriteLine("Output filepath:");
         outputFile = ReadStringIfEmpty(outputFile);
 
-        if (string.IsNullOrWhiteSpace(maxFilesizeStr))
-            maxFilesizeStr = "500";
-        if (!int.TryParse(maxFilesizeStr, out int maxFilesize))
-        {
-            Console.WriteLine("Invalid input for max filesize, will be used 500Mb as default.");
-        }
+        int? maxFilesize = null;
+        if (!string.IsNullOrWhiteSpace(maxFilesizeStr))
+            if (!int.TryParse(maxFilesizeStr, out int convertedFileSize))
+                Console.WriteLine("Invalid input for max filesize, will be used unlimited size");
+            else
+                maxFilesize = convertedFileSize;
 
         // Check file and tmp folder.
         const string tmpFolder = "tmpData";

@@ -62,7 +62,9 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
             }
         }
 
-        public async Task<SourceVideoInfo> FirstVideoWithBestResolutionAsync(string url, int maxFilesize)
+        public async Task<SourceVideoInfo> FirstVideoWithBestResolutionAsync(
+            string url, 
+            int? maxFilesize)
         {
             if (string.IsNullOrWhiteSpace(url))
                 throw new ArgumentNullException(url);
@@ -85,7 +87,8 @@ namespace Etherna.EthernaVideoImporter.YoutubeDownloader
                 .First(video => video.Resolution == currentRes);
 
                 bestFilesizeAccepted = await GetContentLengthAsync(videoDownload.Uri, true).ConfigureAwait(false);
-                if (bestFilesizeAccepted > maxFilesize * 1024 * 1024)
+                if (maxFilesize is not null &&
+                    bestFilesizeAccepted > maxFilesize * 1024 * 1024)
                     continue;
 
                 return new SourceVideoInfo(
