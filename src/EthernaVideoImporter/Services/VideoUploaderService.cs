@@ -195,7 +195,7 @@ namespace Etherna.EthernaVideoImporter.Services
             }
 
             // Embed link.
-            videoInfoWithData.EmbedLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_RESOURCE, videoInfoWithData.VideoReference);
+            videoInfoWithData.EmbedLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_RESOURCE, videoInfoWithData.HashMetadataReference);
 
             // Remove downloaded files.
             if (File.Exists(videoInfoWithData.DownloadedFilePath))
@@ -297,7 +297,7 @@ namespace Etherna.EthernaVideoImporter.Services
                     sourceImage.Width / sourceImage.Height,
                     "",
                     new Dictionary<string, string> { { $"{sourceImage.Width}w", videoDataInfoDto.ThumbnailReference } },
-                    "1");
+                    "1.0");
             }
 
             var metadataVideoDto = new MetadataVideoDto(
@@ -311,7 +311,7 @@ namespace Etherna.EthernaVideoImporter.Services
                 swarmImageRaw,
                 videoDataInfoDto.Title,
                 null,
-                "1");
+                "1.1");
 
             var tmpMetadata = Path.GetTempFileName();
             try
