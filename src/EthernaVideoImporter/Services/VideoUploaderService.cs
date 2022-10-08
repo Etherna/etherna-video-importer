@@ -34,7 +34,8 @@ namespace Etherna.EthernaVideoImporter.Services
         private const int BATCH_TIMEOUT_TIME = 5 * 60 * 1000;
         private const int BLOCK_TIME = 5;
         private const string INDEX_API_CREATEBATCH = "api/v0.3/videos";
-        private const string EMBED_LINK_RESOURCE = "<iframe src=\"https://etherna.io/embed/{0}\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";
+        private const string EMBED_LINK_DECENTRALIZED_RESOURCE = "<iframe src=\"https://etherna.io/embed/{0}\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";
+        private const string EMBED_LINK_INDEX_RESOURCE = "<iframe src=\"https://etherna.io/embed/{0}\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";
         private const string GATEWAY_API_CREATEBATCH = "api/v0.3/users/current/batches";
         private const string GATEWAY_API_CHAINSTATE = "api/v0.3/system/chainstate";
         private const string GATEWAY_API_GETBATCH = "api/v0.3/users/current/batches";
@@ -194,8 +195,9 @@ namespace Etherna.EthernaVideoImporter.Services
                 videoInfoWithData.VideoStatus = VideoStatus.IndexSynced;
             }
 
-            // Embed link.
-            videoInfoWithData.EmbedLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_RESOURCE, videoInfoWithData.HashMetadataReference);
+            // Embed links.
+            videoInfoWithData.EmbedDecentralizedLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_DECENTRALIZED_RESOURCE, videoInfoWithData.HashMetadataReference);
+            videoInfoWithData.EmbedIndexLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_INDEX_RESOURCE, videoInfoWithData.HashMetadataReference);
 
             // Remove downloaded files.
             if (File.Exists(videoInfoWithData.DownloadedFilePath))
