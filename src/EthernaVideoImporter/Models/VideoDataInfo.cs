@@ -6,6 +6,7 @@ namespace EthernaVideoImporter.Models
     internal class VideoInfoWithData
     {
         // Video Infos.
+        public int Duration { get; set; }
         public int Edition { get; set; }
         public string? Title { get; set; }
         public string? Type { get; set; }
