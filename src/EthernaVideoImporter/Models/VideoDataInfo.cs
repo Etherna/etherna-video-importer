@@ -48,7 +48,9 @@ namespace EthernaVideoImporter.Models
         [Optional]
         public string? VideoStatusNote { get; set; }
         [Optional]
-        public string? EmbedLink { get; set; }
-        
+        public string? EmbedDecentralizedLink { get; set; }
+        [Optional]
+        public string? EmbedIndexLink { get; set; }
+
     }
 }
