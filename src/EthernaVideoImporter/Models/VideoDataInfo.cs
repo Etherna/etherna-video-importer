@@ -1,4 +1,5 @@
 ﻿using CsvHelper.Configuration.Attributes;
+using Etherna.EthernaVideoImporter.Models;
 using System.Collections.Generic;
 
 namespace EthernaVideoImporter.Models
@@ -45,6 +46,8 @@ namespace EthernaVideoImporter.Models
         public string? VideoReference { get; set; }
         [Optional]
         public VideoStatus? VideoStatus { get; set; }
+        [Optional]
+        public CsvItemStatus? CsvItemStatus { get; set; }
         [Optional]
         public string? VideoStatusNote { get; set; }
         [Optional]

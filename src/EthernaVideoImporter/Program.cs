@@ -2,6 +2,7 @@
 using Etherna.BeeNet;
 using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
+using Etherna.EthernaVideoImporter.Models;
 using Etherna.EthernaVideoImporter.Services;
 using Etherna.EthernaVideoImporter.SSO;
 using Etherna.EthernaVideoImporter.YoutubeDownloader;
@@ -22,7 +23,7 @@ internal class Program
     private const string HelpText =
         "EthernaVideoImporter help:\n\n" +
         "-s\tSource csv filepath to import\n" +
-        "-o\tOutput filepath\n" +
+        "-o\tOutput filepath that contains all import history\n" +
         "-m\tMax file video size (Mb)\n" +
         "-f\tFree video offer by creator (true|false)\n" +
         "-p\tPin video (true|false)\n" +
@@ -195,7 +196,7 @@ internal class Program
         string sourceCsvFile,
         string outputFile)
     {
-        IEnumerable<VideoInfoWithData> currentSourceVideoInfo;
+        List<VideoInfoWithData> currentSourceVideoInfo;
         using (var reader = new StreamReader(sourceCsvFile))
         using (var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture))
             currentSourceVideoInfo = csvReader.GetRecords<VideoInfoWithData>().ToList();
@@ -204,33 +205,62 @@ internal class Program
             return currentSourceVideoInfo;
 
         // Merge video data with previus runner if outputFile exists.
-        IEnumerable<VideoInfoWithData> previusRunnerVideoInfo;
+        IEnumerable<VideoInfoWithData> historyVideoInfo;
         using (var reader = new StreamReader(outputFile))
         using (var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture))
-            previusRunnerVideoInfo = csvReader.GetRecords<VideoInfoWithData>().ToList();
+            historyVideoInfo = csvReader.GetRecords<VideoInfoWithData>().ToList();
 
-        foreach (var previusItem in previusRunnerVideoInfo)
+        // Set Added status for new element in .csv that never processed in history .csv
+        foreach (var currentItem in currentSourceVideoInfo)
         {
-            var currentItem = currentSourceVideoInfo.FirstOrDefault(i => i.YoutubeUrl == previusItem.YoutubeUrl);
-            if (currentItem is null)
-                continue;
+            var previusItem = historyVideoInfo.FirstOrDefault(i => i.YoutubeUrl == currentItem.YoutubeUrl);
+            if (previusItem is null)
+                currentItem.CsvItemStatus = CsvItemStatus.Added;
+        }
 
-            // Copy only video data
-            currentItem.Bitrate = previusItem.Bitrate;
-            currentItem.BatchId = previusItem.BatchId;
-            currentItem.BatchReferenceId = previusItem.BatchReferenceId;
-            currentItem.DownloadedFileName = previusItem.DownloadedFileName;
-            currentItem.DownloadedFilePath = previusItem.DownloadedFilePath;
-            currentItem.IndexVideoId = previusItem.IndexVideoId;
-            currentItem.HashMetadataReference = previusItem.HashMetadataReference;
-            currentItem.Quality = previusItem.Quality;
-            currentItem.Size = previusItem.Size;
-            currentItem.VideoReference = previusItem.VideoReference;
-            currentItem.VideoStatus = previusItem.VideoStatus;
-            currentItem.VideoStatusNote = previusItem.VideoStatusNote;
+        // Restore old values for element in .csv that are already processed in history .csv
+        foreach (var historyItem in historyVideoInfo)
+        {
+            var currentItem = currentSourceVideoInfo.FirstOrDefault(i => i.YoutubeUrl == historyItem.YoutubeUrl);
+
+            // Add to currentSourceVideoInfo the old item imported.
+            if (currentItem is null)
+            {
+                historyItem.CsvItemStatus = CsvItemStatus.Unchanged;
+                currentSourceVideoInfo.Add(historyItem);
+                continue;
+            }
+
+            // Copy only video data.
+            currentItem.Bitrate = historyItem.Bitrate;
+            currentItem.BatchId = historyItem.BatchId;
+            currentItem.BatchReferenceId = historyItem.BatchReferenceId;
+            currentItem.DownloadedFileName = historyItem.DownloadedFileName;
+            currentItem.DownloadedFilePath = historyItem.DownloadedFilePath;
+            currentItem.IndexVideoId = historyItem.IndexVideoId;
+            currentItem.HashMetadataReference = historyItem.HashMetadataReference;
+            currentItem.Quality = historyItem.Quality;
+            currentItem.Size = historyItem.Size;
+            currentItem.VideoReference = historyItem.VideoReference;
+            currentItem.VideoStatus = historyItem.VideoStatus;
+            currentItem.VideoStatusNote = historyItem.VideoStatusNote;
+
+            // Set property status.
+            if (IsChangedAnyData(currentItem, historyItem))
+                currentItem.CsvItemStatus = CsvItemStatus.MetadataModified;
+            else
+                currentItem.CsvItemStatus = CsvItemStatus.Unchanged;
         }
 
         return currentSourceVideoInfo;
+    }
+
+    private static bool IsChangedAnyData(
+        VideoInfoWithData currentCsv,
+        VideoInfoWithData historyCsv)
+    {
+        return currentCsv.Title != historyCsv.Title ||
+                currentCsv.Description != historyCsv.Description;
     }
 
     private static string ReadStringIfEmpty(string? strValue)
