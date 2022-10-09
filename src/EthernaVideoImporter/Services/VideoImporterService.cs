@@ -28,7 +28,7 @@ namespace EthernaVideoImporter.Services
         // Public methods.
         public async Task StartAsync(VideoInfoWithData videoDataInfoDto)
         {
-            if (videoDataInfoDto.VideoStatus == VideoStatus.Processed ||
+            if (videoDataInfoDto.ImportStatus == ImportStatus.Processed ||
                 File.Exists(videoDataInfoDto.DownloadedFilePath))
                 return;
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.YoutubeUrl))
@@ -69,7 +69,7 @@ namespace EthernaVideoImporter.Services
                 videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
                 videoDataInfoDto.Size = fileSize;
 
-                videoDataInfoDto.VideoStatus = VideoStatus.Downloaded;
+                videoDataInfoDto.ImportStatus = ImportStatus.Downloaded;
             }
             catch (Exception)
             {

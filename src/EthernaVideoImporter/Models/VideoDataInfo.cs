@@ -45,7 +45,7 @@ namespace EthernaVideoImporter.Models
         [Optional]
         public string? VideoReference { get; set; }
         [Optional]
-        public VideoStatus? VideoStatus { get; set; }
+        public ImportStatus? ImportStatus { get; set; }
         [Optional]
         public CsvItemStatus? CsvItemStatus { get; set; }
         [Optional]

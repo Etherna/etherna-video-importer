@@ -72,7 +72,7 @@ namespace Etherna.EthernaVideoImporter.Services
             VideoInfoWithData videoInfoWithData,
             bool pinVideo)
         {
-            if (videoInfoWithData.VideoStatus == VideoStatus.Processed)
+            if (videoInfoWithData.ImportStatus == ImportStatus.Processed)
                 return;
             if (string.IsNullOrWhiteSpace(videoInfoWithData.DownloadedFilePath) ||
                 !File.Exists(videoInfoWithData.DownloadedFilePath))
@@ -89,7 +89,7 @@ namespace Etherna.EthernaVideoImporter.Services
                 Console.WriteLine("Create batch...");
                 // Create batch.
                 videoInfoWithData.BatchReferenceId = await CreateBatchIdFromReferenceAsync().ConfigureAwait(false);
-                videoInfoWithData.VideoStatus = VideoStatus.BatchCreated;
+                videoInfoWithData.ImportStatus = ImportStatus.BatchCreated;
             }
 
             // Check and wait until created batchId is avaiable.
@@ -144,7 +144,7 @@ namespace Etherna.EthernaVideoImporter.Services
                     videoInfoWithData.BatchId!,
                     files: new List<FileParameterInput> { fileParameterInput },
                     swarmPin: pinVideo).ConfigureAwait(false);
-                videoInfoWithData.VideoStatus = VideoStatus.VideoUploaded;
+                videoInfoWithData.ImportStatus = ImportStatus.VideoUploaded;
             }
 
             // Upload thumbnail.
@@ -161,7 +161,7 @@ namespace Etherna.EthernaVideoImporter.Services
                     videoInfoWithData.BatchId!,
                     files: new List<FileParameterInput> { fileParameterInput },
                     swarmPin: pinVideo).ConfigureAwait(false);
-                videoInfoWithData.VideoStatus = VideoStatus.ThumbnailUploaded;
+                videoInfoWithData.ImportStatus = ImportStatus.ThumbnailUploaded;
             }
 
             // Upload metadata.
@@ -173,7 +173,7 @@ namespace Etherna.EthernaVideoImporter.Services
                     videoInfoWithData.BatchId!,
                     videoInfoWithData,
                     pinVideo).ConfigureAwait(false);
-                videoInfoWithData.VideoStatus = VideoStatus.MetadataUploaded;
+                videoInfoWithData.ImportStatus = ImportStatus.MetadataUploaded;
             }
 
             if (offerVideo)
@@ -183,7 +183,7 @@ namespace Etherna.EthernaVideoImporter.Services
                 if (!string.IsNullOrWhiteSpace(videoInfoWithData.ThumbnailReference))
                     await OfferResourceAsync(videoInfoWithData.ThumbnailReference).ConfigureAwait(false);
                 await OfferResourceAsync(videoInfoWithData.HashMetadataReference).ConfigureAwait(false);
-                videoInfoWithData.VideoStatus = VideoStatus.ReferenceOffer;
+                videoInfoWithData.ImportStatus = ImportStatus.ReferenceOffer;
             }
 
             // Sync Index.
@@ -191,7 +191,7 @@ namespace Etherna.EthernaVideoImporter.Services
             {
                 Console.WriteLine("Video indexing in progress...");
                 videoInfoWithData.IndexVideoId = await IndexAsync(videoInfoWithData.HashMetadataReference!).ConfigureAwait(false);
-                videoInfoWithData.VideoStatus = VideoStatus.IndexSynced;
+                videoInfoWithData.ImportStatus = ImportStatus.IndexSynced;
             }
 
             // Embed link.
@@ -203,7 +203,7 @@ namespace Etherna.EthernaVideoImporter.Services
             if (File.Exists(videoInfoWithData.DownloadedThumbnailPath))
                 File.Delete(videoInfoWithData.DownloadedThumbnailPath);
 
-            videoInfoWithData.VideoStatus = VideoStatus.Processed;
+            videoInfoWithData.ImportStatus = ImportStatus.Processed;
             videoInfoWithData.VideoStatusNote = "";
             return;
         }

@@ -242,7 +242,7 @@ internal class Program
             currentItem.Quality = historyItem.Quality;
             currentItem.Size = historyItem.Size;
             currentItem.VideoReference = historyItem.VideoReference;
-            currentItem.VideoStatus = historyItem.VideoStatus;
+            currentItem.ImportStatus = historyItem.ImportStatus;
             currentItem.VideoStatusNote = historyItem.VideoStatusNote;
 
             // Set property status.
