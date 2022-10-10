@@ -166,7 +166,8 @@ namespace Etherna.EthernaVideoImporter.Services
             }
 
             // Upload metadata.
-            var updateMetadata = videoInfoWithData.CsvItemStatus == CsvItemStatus.MetadataModified;
+            var updateMetadata = string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) &&
+                                videoInfoWithData.CsvItemStatus == CsvItemStatus.MetadataModified;
             if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) ||
                 updateMetadata)
             {
