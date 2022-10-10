@@ -1,4 +1,5 @@
-﻿using EthernaVideoImporter.CommonData.Services;
+﻿using Etherna.EthernaVideoImporter.Models;
+using EthernaVideoImporter.CommonData.Services;
 using EthernaVideoImporter.Models;
 using System;
 using System.Globalization;
@@ -28,8 +29,9 @@ namespace EthernaVideoImporter.Services
         // Public methods.
         public async Task StartAsync(VideoInfoWithData videoDataInfoDto)
         {
-            if (videoDataInfoDto.ImportStatus == ImportStatus.Processed ||
-                File.Exists(videoDataInfoDto.DownloadedFilePath))
+            if ((videoDataInfoDto.ImportStatus == ImportStatus.Processed ||
+                File.Exists(videoDataInfoDto.DownloadedFilePath)) &&
+                videoDataInfoDto.CsvItemStatus != CsvItemStatus.MetadataModified)
                 return;
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.YoutubeUrl))
                 throw new InvalidOperationException("Invalid YoutubeUrl");
@@ -46,28 +48,32 @@ namespace EthernaVideoImporter.Services
                 }
 
                 // Start download and show progress.
-                videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
-                await downloadClient
-                    .DownloadAsync(
-                    new Uri(videoDownload.Uri),
-                    videoDataInfoDto.DownloadedFilePath,
-                    new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
-                    {
-                        var percent = (int)(v.Item1 * 100 / v.Item2);
-                        Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (1024 * 1024)} / {v.Item2 / (1024 * 1024)} MB\r");
-                    })).ConfigureAwait(false);
-                Console.WriteLine("");
+                if (videoDataInfoDto.ImportStatus == ImportStatus.Processed ||
+                    File.Exists(videoDataInfoDto.DownloadedFilePath))
+                {
+                    videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
+                    await downloadClient
+                        .DownloadAsync(
+                        new Uri(videoDownload.Uri),
+                        videoDataInfoDto.DownloadedFilePath,
+                        new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
+                        {
+                            var percent = (int)(v.Item1 * 100 / v.Item2);
+                            Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (1024 * 1024)} / {v.Item2 / (1024 * 1024)} MB\r");
+                        })).ConfigureAwait(false);
+                    Console.WriteLine("");
+
+                    // Set VideoDataInfoDto from downloaded video.
+                    var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath!).Length;
+                    videoDataInfoDto.DownloadedFileName = videoDownload.Filename;
+                    videoDataInfoDto.VideoStatusNote = "";
+                    videoDataInfoDto.Bitrate = (int)Math.Ceiling((double)fileSize * 8 / videoDataInfoDto.Duration);
+                    videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
+                    videoDataInfoDto.Size = fileSize;
+                }
 
                 // Download Thumbnail.
                 videoDataInfoDto.DownloadedThumbnailPath = await DownloadThumbnailAsync(videoDownload.VideoId, tmpFolder).ConfigureAwait(false);
-
-                // Set VideoDataInfoDto from downloaded video.
-                var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath).Length;
-                videoDataInfoDto.DownloadedFileName = videoDownload.Filename;
-                videoDataInfoDto.VideoStatusNote = "";
-                videoDataInfoDto.Bitrate = (int)Math.Ceiling((double)fileSize * 8 / videoDataInfoDto.Duration);
-                videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
-                videoDataInfoDto.Size = fileSize;
 
                 videoDataInfoDto.ImportStatus = ImportStatus.Downloaded;
             }

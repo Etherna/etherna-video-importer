@@ -71,10 +71,12 @@ namespace Etherna.EthernaVideoImporter.Services
             VideoInfoWithData videoInfoWithData,
             bool pinVideo)
         {
-            if (videoInfoWithData.ImportStatus == ImportStatus.Processed)
+            if (videoInfoWithData.ImportStatus == ImportStatus.Processed &&
+                videoInfoWithData.CsvItemStatus != CsvItemStatus.MetadataModified)
                 return;
             if (string.IsNullOrWhiteSpace(videoInfoWithData.DownloadedFilePath) ||
-                !File.Exists(videoInfoWithData.DownloadedFilePath))
+                !File.Exists(videoInfoWithData.DownloadedFilePath) &&
+                videoInfoWithData.CsvItemStatus != CsvItemStatus.MetadataModified)
             {
                 var ex = new InvalidOperationException($"Video to upload not found");
                 ex.Data.Add("DownloadedFilePath", videoInfoWithData.DownloadedFilePath);
@@ -164,7 +166,9 @@ namespace Etherna.EthernaVideoImporter.Services
             }
 
             // Upload metadata.
-            if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference))
+            var updateMetadata = videoInfoWithData.CsvItemStatus == CsvItemStatus.MetadataModified;
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) ||
+                updateMetadata)
             {
                 Console.WriteLine("Uploading metadata in progress...");
                 videoInfoWithData.HashMetadataReference = await UploadMetadataAsync(
@@ -181,15 +185,19 @@ namespace Etherna.EthernaVideoImporter.Services
                 await OfferResourceAsync(videoInfoWithData.VideoReference).ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(videoInfoWithData.ThumbnailReference))
                     await OfferResourceAsync(videoInfoWithData.ThumbnailReference).ConfigureAwait(false);
-                await OfferResourceAsync(videoInfoWithData.HashMetadataReference).ConfigureAwait(false);
+                await OfferResourceAsync(videoInfoWithData.HashMetadataReference!).ConfigureAwait(false);
                 videoInfoWithData.ImportStatus = ImportStatus.ReferenceOffer;
             }
 
             // Sync Index.
-            if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId))
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId) ||
+                updateMetadata)
             {
                 Console.WriteLine("Video indexing in progress...");
-                videoInfoWithData.IndexVideoId = await IndexAsync(videoInfoWithData.HashMetadataReference!).ConfigureAwait(false);
+                videoInfoWithData.IndexVideoId = await IndexAsync(
+                    videoInfoWithData.HashMetadataReference, 
+                    updateMetadata)
+                    .ConfigureAwait(false);
                 videoInfoWithData.ImportStatus = ImportStatus.IndexSynced;
             }
 
@@ -248,13 +256,18 @@ namespace Etherna.EthernaVideoImporter.Services
             return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
         }
 
-        private async Task<string> IndexAsync(string hashReferenceMetadata)
+        private async Task<string> IndexAsync(
+            string hashReferenceMetadata,
+            bool updateMetadata)
         {
             var indexManifestRequest = new IndexManifestRequest(hashReferenceMetadata);
             using var httpContent = new StringContent(JsonSerializer.Serialize(indexManifestRequest), Encoding.UTF8, "application/json");
 
-            var httpResponse = await httpClient.PostAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH), httpContent).ConfigureAwait(false);
-
+            HttpResponseMessage httpResponse;
+            if (updateMetadata)
+                httpResponse = await httpClient.PutAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH), httpContent).ConfigureAwait(false);
+            else
+                httpResponse = await httpClient.PostAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH), httpContent).ConfigureAwait(false);
             httpResponse.EnsureSuccessStatusCode();
             return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
         }
