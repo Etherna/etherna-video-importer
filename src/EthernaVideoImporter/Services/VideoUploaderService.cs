@@ -2,6 +2,7 @@
 using Etherna.BeeNet.InputModels;
 using Etherna.EthernaVideoImporter.Models;
 using EthernaVideoImporter.Models;
+using Microsoft.AspNetCore.Http;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -260,11 +261,13 @@ namespace Etherna.EthernaVideoImporter.Services
 
         private async Task<string> IndexAsync(
             string hashReferenceMetadata,
-            bool updateMetadata,
             string? videoIndexIdReference)
         {
+            var httpGetResponse = await httpClient.GetAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH + $"/{videoIndexIdReference}")).ConfigureAwait(false);
+            var haveIndexLink = httpGetResponse.StatusCode == System.Net.HttpStatusCode.OK;
+
             HttpResponseMessage httpResponse;
-            if (updateMetadata)
+            if (haveIndexLink)
             {
                 using var httpContent = new StringContent("{}", Encoding.UTF8, "application/json");
                 httpResponse = await httpClient.PutAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH + $"/{videoIndexIdReference}?newHash={hashReferenceMetadata}"), httpContent).ConfigureAwait(false);
