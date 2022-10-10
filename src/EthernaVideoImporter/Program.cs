@@ -259,6 +259,8 @@ internal class Program
             currentItem.VideoReference = historyItem.VideoReference;
             currentItem.ImportStatus = historyItem.ImportStatus;
             currentItem.VideoStatusNote = historyItem.VideoStatusNote;
+            currentItem.EmbedDecentralizedLink = historyItem.EmbedDecentralizedLink;
+            currentItem.EmbedIndexLink = historyItem.EmbedIndexLink;
 
             // Set property status.
             if (IsChangedAnyData(currentItem, historyItem) ||
