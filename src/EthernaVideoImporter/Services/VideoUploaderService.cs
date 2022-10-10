@@ -198,7 +198,6 @@ namespace Etherna.EthernaVideoImporter.Services
                 Console.WriteLine("Video indexing in progress...");
                 videoInfoWithData.IndexVideoId = await IndexAsync(
                     videoInfoWithData.HashMetadataReference, 
-                    updateMetadata,
                     videoInfoWithData.IndexVideoId)
                     .ConfigureAwait(false);
                 videoInfoWithData.ImportStatus = ImportStatus.IndexSynced;
@@ -269,6 +268,7 @@ namespace Etherna.EthernaVideoImporter.Services
             HttpResponseMessage httpResponse;
             if (haveIndexLink)
             {
+                Console.WriteLine($"Update Index: {videoIndexIdReference}\t{hashReferenceMetadata}");
                 using var httpContent = new StringContent("{}", Encoding.UTF8, "application/json");
                 httpResponse = await httpClient.PutAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH + $"/{videoIndexIdReference}?newHash={hashReferenceMetadata}"), httpContent).ConfigureAwait(false);
                 httpResponse.EnsureSuccessStatusCode();
@@ -276,6 +276,7 @@ namespace Etherna.EthernaVideoImporter.Services
             }
             else
             {
+                Console.WriteLine($"Create Index: {videoIndexIdReference}\t{hashReferenceMetadata}");
                 var indexManifestRequest = new IndexManifestRequest(hashReferenceMetadata);
                 using var httpContent = new StringContent(JsonSerializer.Serialize(indexManifestRequest), Encoding.UTF8, "application/json");
                 httpResponse = await httpClient.PostAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH), httpContent).ConfigureAwait(false);
