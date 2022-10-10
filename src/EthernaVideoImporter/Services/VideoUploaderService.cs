@@ -2,11 +2,9 @@
 using Etherna.BeeNet.InputModels;
 using Etherna.EthernaVideoImporter.Models;
 using EthernaVideoImporter.Models;
-using Microsoft.AspNetCore.Components.Forms;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
@@ -292,10 +290,9 @@ namespace Etherna.EthernaVideoImporter.Services
                 using var inputStream = new SKManagedStream(input);
                 using var sourceImage = SKBitmap.Decode(inputStream);
                 var hash = Blurhash.SkiaSharp.Blurhasher.Encode(sourceImage, 4, 4);
-                //var sourceData = Blurhasher.
                 swarmImageRaw = new SwarmImageRaw(
                     sourceImage.Width / sourceImage.Height,
-                    "",
+                    hash,
                     new Dictionary<string, string> { { $"{sourceImage.Width}w", videoDataInfoDto.ThumbnailReference } },
                     "1.0");
             }
