@@ -167,6 +167,13 @@ internal class Program
                     Console.ResetColor();
                     continue;
                 }
+                if (videoInfo.Description!.Length > indexParams.VideoDescriptionMaxLength)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Error: Description too long, max: {indexParams.VideoDescriptionMaxLength}\n");
+                    Console.ResetColor();
+                    continue;
+                }
                 Console.WriteLine($"Source Video: {videoInfo.YoutubeUrl}");
 
                 // Download from youtube.
