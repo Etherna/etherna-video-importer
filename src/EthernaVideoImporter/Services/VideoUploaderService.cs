@@ -28,12 +28,12 @@ namespace Etherna.EthernaVideoImporter.Services
         // Const.
         private const int BATCH_DEEP = 20;
         private const int BATCH_DURANTION_TIME = 31536000;
-        private const int BATCH_WAITING_TIME = 30 * 1000;
+        private const int BATCH_WAITING_TIME = 7 * 1000;
         private const int BATCH_TIMEOUT_TIME = 5 * 60 * 1000;
         private const int BLOCK_TIME = 5;
         private const string INDEX_API_CREATEBATCH = "api/v0.3/videos";
-        private const string EMBED_LINK_DECENTRALIZED_RESOURCE = "<iframe src=\"https://etherna.io/embed/{0}\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";
-        private const string EMBED_LINK_INDEX_RESOURCE = "<iframe src=\"https://etherna.io/embed/{0}\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";
+        private const string EMBED_LINK_DECENTRALIZED_RESOURCE = "https://etherna.io/embed/{0}";
+        private const string EMBED_LINK_INDEX_RESOURCE = "https://etherna.io/embed/{0}";
         private const string GATEWAY_API_CREATEBATCH = "api/v0.3/users/current/batches";
         private const string GATEWAY_API_CHAINSTATE = "api/v0.3/system/chainstate";
         private const string GATEWAY_API_GETBATCH = "api/v0.3/users/current/batches";
@@ -205,7 +205,7 @@ namespace Etherna.EthernaVideoImporter.Services
 
             // Embed links.
             videoInfoWithData.EmbedDecentralizedLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_DECENTRALIZED_RESOURCE, videoInfoWithData.HashMetadataReference);
-            videoInfoWithData.EmbedIndexLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_INDEX_RESOURCE, videoInfoWithData.HashMetadataReference);
+            videoInfoWithData.EmbedIndexLink = string.Format(CultureInfo.InvariantCulture, EMBED_LINK_INDEX_RESOURCE, videoInfoWithData.IndexVideoId);
 
             // Remove downloaded files.
             if (File.Exists(videoInfoWithData.DownloadedFilePath))
