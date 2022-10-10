@@ -25,8 +25,9 @@ internal class Program
         "-s\tSource csv filepath to import\n" +
         "-o\tOutput filepath that contains all import history\n" +
         "-m\tMax file video size (Mb)\n" +
-        "-f\tFree video offer by creator (true|false)\n" +
-        "-p\tPin video (true|false)\n" +
+        "-f\tFree video offer by creator\n" +
+        "-p\tPin video\n" +
+        "-u\tforce metadata update for all videos that already have it\n" +
         "\n" +
         "-h\tPrint help\n";
     private const int BEENODE_GATEWAYPORT = 443;
@@ -52,8 +53,8 @@ internal class Program
                 case "-s": sourceCsvFile = args[++i]; break;
                 case "-o": outputFile = args[++i]; break;
                 case "-m": maxFilesizeStr = args[++i]; break;
-                case "-f": offerVideo = args[++i] == "true"; break;
-                case "-p": pinVideo = args[++i] == "true"; break;
+                case "-f": offerVideo = true; break;
+                case "-p": pinVideo = true; break;
                 case "-u": forceUpdateMetadata = true; break;
                 case "-h": Console.Write(HelpText); return;
                 default: throw new ArgumentException(args[i] + " is not a valid argument");
