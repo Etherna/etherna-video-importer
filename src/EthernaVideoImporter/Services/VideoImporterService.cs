@@ -29,8 +29,8 @@ namespace EthernaVideoImporter.Services
         // Public methods.
         public async Task StartAsync(VideoInfoWithData videoDataInfoDto)
         {
-            if ((videoDataInfoDto.ImportStatus == ImportStatus.Processed ||
-                File.Exists(videoDataInfoDto.DownloadedFilePath)) &&
+            if ((File.Exists(videoDataInfoDto.DownloadedFilePath) ||
+                !string.IsNullOrWhiteSpace(videoDataInfoDto.VideoReference)) &&
                 videoDataInfoDto.CsvItemStatus != CsvItemStatus.MetadataModified)
                 return;
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.YoutubeUrl))
@@ -48,8 +48,8 @@ namespace EthernaVideoImporter.Services
                 }
 
                 // Start download and show progress.
-                if (videoDataInfoDto.ImportStatus == ImportStatus.Processed ||
-                    File.Exists(videoDataInfoDto.DownloadedFilePath))
+                if (!File.Exists(videoDataInfoDto.DownloadedFilePath) &&
+                    string.IsNullOrWhiteSpace(videoDataInfoDto.VideoReference))
                 {
                     videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
                     await downloadClient

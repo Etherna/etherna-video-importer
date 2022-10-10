@@ -74,8 +74,8 @@ namespace Etherna.EthernaVideoImporter.Services
             if (videoInfoWithData.ImportStatus == ImportStatus.Processed &&
                 videoInfoWithData.CsvItemStatus != CsvItemStatus.MetadataModified)
                 return;
-            if (string.IsNullOrWhiteSpace(videoInfoWithData.DownloadedFilePath) ||
-                !File.Exists(videoInfoWithData.DownloadedFilePath) &&
+            if ((string.IsNullOrWhiteSpace(videoInfoWithData.DownloadedFilePath) ||
+                !File.Exists(videoInfoWithData.DownloadedFilePath)) &&
                 videoInfoWithData.CsvItemStatus != CsvItemStatus.MetadataModified)
             {
                 var ex = new InvalidOperationException($"Video to upload not found");
@@ -196,7 +196,8 @@ namespace Etherna.EthernaVideoImporter.Services
                 Console.WriteLine("Video indexing in progress...");
                 videoInfoWithData.IndexVideoId = await IndexAsync(
                     videoInfoWithData.HashMetadataReference, 
-                    updateMetadata)
+                    updateMetadata,
+                    videoInfoWithData.VideoReference)
                     .ConfigureAwait(false);
                 videoInfoWithData.ImportStatus = ImportStatus.IndexSynced;
             }
@@ -258,14 +259,15 @@ namespace Etherna.EthernaVideoImporter.Services
 
         private async Task<string> IndexAsync(
             string hashReferenceMetadata,
-            bool updateMetadata)
+            bool updateMetadata,
+            string videoReference)
         {
             var indexManifestRequest = new IndexManifestRequest(hashReferenceMetadata);
             using var httpContent = new StringContent(JsonSerializer.Serialize(indexManifestRequest), Encoding.UTF8, "application/json");
 
             HttpResponseMessage httpResponse;
             if (updateMetadata)
-                httpResponse = await httpClient.PutAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH), httpContent).ConfigureAwait(false);
+                httpResponse = await httpClient.PutAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH + $"/{videoReference}"), httpContent).ConfigureAwait(false);
             else
                 httpResponse = await httpClient.PostAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH), httpContent).ConfigureAwait(false);
             httpResponse.EnsureSuccessStatusCode();

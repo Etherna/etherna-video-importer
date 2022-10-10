@@ -27,7 +27,7 @@ internal class Program
         "-m\tMax file video size (Mb)\n" +
         "-f\tFree video offer by creator\n" +
         "-p\tPin video\n" +
-        "-u\tforce metadata update for all videos that already have it\n" +
+        "-u\tForce metadata update for all videos that already have it\n" +
         "\n" +
         "-h\tPrint help\n";
     private const int BEENODE_GATEWAYPORT = 443;
