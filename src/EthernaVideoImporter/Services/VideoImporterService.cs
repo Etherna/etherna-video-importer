@@ -1,4 +1,5 @@
 ﻿using Etherna.EthernaVideoImporter.Models;
+using EthernaVideoImporter.CommonData.Models;
 using EthernaVideoImporter.CommonData.Services;
 using EthernaVideoImporter.Models;
 using System;
@@ -39,7 +40,21 @@ namespace EthernaVideoImporter.Services
             try
             {
                 // Take best video resolution.
-                var videoDownload = await downloadClient.FirstVideoWithBestResolutionAsync(videoDataInfoDto.YoutubeUrl, maxFilesize).ConfigureAwait(false);
+                SourceVideoInfo? videoDownload = null;
+                var reTry = 0;
+                while (videoDownload is null &&
+                        reTry < 5)
+                {
+                    try
+                    {
+                        videoDownload = await downloadClient.FirstVideoWithBestResolutionAsync(videoDataInfoDto.YoutubeUrl, maxFilesize).ConfigureAwait(false);
+                    }
+                    catch (Exception) { }
+                    finally
+                    {
+                        reTry++;
+                    }
+                }
                 if (videoDownload is null)
                 {
                     var ex = new InvalidOperationException("Video not found");
