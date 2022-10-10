@@ -43,6 +43,7 @@ internal class Program
         string? maxFilesizeStr = null;
         bool offerVideo = false;
         bool pinVideo = false;
+        bool forceUpdateMetadata = false;
         string? outputFile = null;
         for (int i = 0; i < args.Length; i++)
         {
@@ -53,6 +54,7 @@ internal class Program
                 case "-m": maxFilesizeStr = args[++i]; break;
                 case "-f": offerVideo = args[++i] == "true"; break;
                 case "-p": pinVideo = args[++i] == "true"; break;
+                case "-u": forceUpdateMetadata = true; break;
                 case "-h": Console.Write(HelpText); return;
                 default: throw new ArgumentException(args[i] + " is not a valid argument");
             }
@@ -87,7 +89,7 @@ internal class Program
         var tmpFolderFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, tmpFolder);
 
         // Load csv data.
-        var videoDataInfoDtos = ReadFromCsv(sourceCsvFile, outputFile);
+        var videoDataInfoDtos = ReadFromCsv(sourceCsvFile, outputFile, forceUpdateMetadata);
         var totalVideo = videoDataInfoDtos.Count();
         var itemsToAdd = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.Added).Count();
         var itemsChanged = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.Unchanged).Count();
@@ -205,7 +207,8 @@ internal class Program
 
     private static IEnumerable<VideoInfoWithData> ReadFromCsv(
         string sourceCsvFile,
-        string outputFile)
+        string outputFile,
+        bool forceUpdateMetadata)
     {
         List<VideoInfoWithData> currentSourceVideoInfo;
         using (var reader = new StreamReader(sourceCsvFile))
@@ -257,7 +260,8 @@ internal class Program
             currentItem.VideoStatusNote = historyItem.VideoStatusNote;
 
             // Set property status.
-            if (IsChangedAnyData(currentItem, historyItem))
+            if (IsChangedAnyData(currentItem, historyItem) ||
+                forceUpdateMetadata)
                 currentItem.CsvItemStatus = CsvItemStatus.MetadataModified;
             else
                 currentItem.CsvItemStatus = CsvItemStatus.Unchanged;
