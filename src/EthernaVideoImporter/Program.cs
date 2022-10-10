@@ -15,6 +15,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 internal class Program
@@ -35,6 +36,11 @@ internal class Program
     private const string BEENODE_URL = "https://gateway.etherna.io/";
     private const string ETHERNA_INDEX = "https://index.etherna.io/";
     private const string ETHERNA_GATEWAY = "https://gateway.etherna.io/";
+    private const string ETHERNA_INDEX_PARAMS_INFO = "api/v0.3/System/parameters";
+    static readonly JsonSerializerOptions options = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     // Methods.
     static async Task Main(string[] args)
@@ -144,6 +150,7 @@ internal class Program
             offerVideo);
 
         // Call import service for each video.
+        var indexParams = await GetParamsInfoAsync(httpClient).ConfigureAwait(false);
         var videoCount = 0;
         foreach (var videoInfo in videoDataInfoDtos)
         {
@@ -152,6 +159,14 @@ internal class Program
                 Console.WriteLine("===============================");
                 Console.WriteLine($"Start processing video #{++videoCount} of #{totalVideo}");
                 Console.WriteLine($"Title: {videoInfo.Title}");
+                
+                if (videoInfo.Title!.Length > indexParams.VideoTitleMaxLength)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Error: Title too long, max: {indexParams.VideoTitleMaxLength}\n");
+                    Console.ResetColor();
+                    continue;
+                }
                 Console.WriteLine($"Source Video: {videoInfo.YoutubeUrl}");
 
                 // Download from youtube.
@@ -305,6 +320,16 @@ internal class Program
         else Console.WriteLine(strValue);
 
         return strValue;
+    }
+
+    private static async Task<IndexParamsDto> GetParamsInfoAsync(HttpClient httpClient)
+    {
+        var httpResponse = await httpClient.GetAsync(new Uri($"{ETHERNA_INDEX}{ETHERNA_INDEX_PARAMS_INFO}")).ConfigureAwait(false);
+
+        httpResponse.EnsureSuccessStatusCode();
+
+        var responseText = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+        return JsonSerializer.Deserialize<IndexParamsDto>(responseText, options)!;
     }
 
 }
