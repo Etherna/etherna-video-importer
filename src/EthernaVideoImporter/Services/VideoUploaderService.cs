@@ -166,7 +166,7 @@ namespace Etherna.EthernaVideoImporter.Services
             }
 
             // Upload metadata.
-            var updateMetadata = string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) &&
+            var updateMetadata = !string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) &&
                                 videoInfoWithData.CsvItemStatus == CsvItemStatus.MetadataModified;
             if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) ||
                 updateMetadata)
@@ -198,7 +198,7 @@ namespace Etherna.EthernaVideoImporter.Services
                 videoInfoWithData.IndexVideoId = await IndexAsync(
                     videoInfoWithData.HashMetadataReference, 
                     updateMetadata,
-                    videoInfoWithData.VideoReference)
+                    videoInfoWithData.IndexVideoId)
                     .ConfigureAwait(false);
                 videoInfoWithData.ImportStatus = ImportStatus.IndexSynced;
             }
@@ -261,18 +261,24 @@ namespace Etherna.EthernaVideoImporter.Services
         private async Task<string> IndexAsync(
             string hashReferenceMetadata,
             bool updateMetadata,
-            string videoReference)
+            string? videoIndexIdReference)
         {
-            var indexManifestRequest = new IndexManifestRequest(hashReferenceMetadata);
-            using var httpContent = new StringContent(JsonSerializer.Serialize(indexManifestRequest), Encoding.UTF8, "application/json");
-
             HttpResponseMessage httpResponse;
             if (updateMetadata)
-                httpResponse = await httpClient.PutAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH + $"/{videoReference}"), httpContent).ConfigureAwait(false);
+            {
+                using var httpContent = new StringContent("{}", Encoding.UTF8, "application/json");
+                httpResponse = await httpClient.PutAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH + $"/{videoIndexIdReference}?newHash={hashReferenceMetadata}"), httpContent).ConfigureAwait(false);
+                httpResponse.EnsureSuccessStatusCode();
+                return videoIndexIdReference!;
+            }
             else
+            {
+                var indexManifestRequest = new IndexManifestRequest(hashReferenceMetadata);
+                using var httpContent = new StringContent(JsonSerializer.Serialize(indexManifestRequest), Encoding.UTF8, "application/json");
                 httpResponse = await httpClient.PostAsync(new Uri(indexUrl + INDEX_API_CREATEBATCH), httpContent).ConfigureAwait(false);
-            httpResponse.EnsureSuccessStatusCode();
-            return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                httpResponse.EnsureSuccessStatusCode();
+                return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
         }
 
         private async Task<bool?> OfferResourceAsync(string reference)
