@@ -89,8 +89,19 @@ internal class Program
         // Load csv data.
         var videoDataInfoDtos = ReadFromCsv(sourceCsvFile, outputFile);
         var totalVideo = videoDataInfoDtos.Count();
+        var itemsToAdd = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.Added).Count();
+        var itemsChanged = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.Unchanged).Count();
+        var itemsImported = videoDataInfoDtos
+                            .Where(item => item.ImportStatus == ImportStatus.Processed &&
+                                            item.CsvItemStatus == CsvItemStatus.Unchanged)
+                            .Count();
+        var itemsToImport = totalVideo - itemsImported;
         Console.WriteLine();
-        Console.WriteLine($"Csv with {totalVideo} items to upload");
+        Console.WriteLine($"Csv with {totalVideo} items");
+        Console.WriteLine($"New items added: {itemsToAdd}");
+        Console.WriteLine($"Items with metadata changed: {itemsChanged}");
+        Console.WriteLine($"Items already imported: {itemsImported}");
+        Console.WriteLine($"Items to import: {itemsToImport}");
         Console.WriteLine();
 
         // Sign with SSO and create auth client.
