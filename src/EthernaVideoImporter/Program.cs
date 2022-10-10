@@ -101,10 +101,10 @@ internal class Program
         var itemsToImport = totalVideo - itemsImported;
         Console.WriteLine();
         Console.WriteLine($"Csv with {totalVideo} items");
-        Console.WriteLine($"New items added: {itemsToAdd}");
-        Console.WriteLine($"Items with metadata changed: {itemsChanged}");
-        Console.WriteLine($"Items already imported: {itemsImported}");
-        Console.WriteLine($"Items to import: {itemsToImport}");
+        Console.WriteLine($"New items added since last import: {itemsToAdd}");
+        Console.WriteLine($"Items with metadata changed since last import: {itemsChanged}");
+        Console.WriteLine($"Total items already imported: {itemsImported}");
+        Console.WriteLine($"Total items require import or metadata update: {itemsToImport}");
         Console.WriteLine();
 
         // Sign with SSO and create auth client.
@@ -217,7 +217,11 @@ internal class Program
             currentSourceVideoInfo = csvReader.GetRecords<VideoInfoWithData>().ToList();
 
         if (!File.Exists(outputFile))
+        {
+            currentSourceVideoInfo.ForEach(i => i.CsvItemStatus = CsvItemStatus.Added);
             return currentSourceVideoInfo;
+        }
+            
 
         // Merge video data with previus runner if outputFile exists.
         IEnumerable<VideoInfoWithData> historyVideoInfo;
@@ -266,8 +270,11 @@ internal class Program
             currentItem.EmbedIndexLink = historyItem.EmbedIndexLink;
 
             // Set property status.
-            if (IsChangedAnyData(currentItem, historyItem) ||
-                forceUpdateMetadata)
+            if (IsChangedAnyData(currentItem, historyItem))
+                currentItem.CsvItemStatus = CsvItemStatus.MetadataModified;
+            else if (forceUpdateMetadata &&
+                    (currentItem.ImportStatus != ImportStatus.NotProcess &&
+                    currentItem.ImportStatus != null))
                 currentItem.CsvItemStatus = CsvItemStatus.MetadataModified;
             else
                 currentItem.CsvItemStatus = CsvItemStatus.Unchanged;
