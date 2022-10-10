@@ -93,7 +93,7 @@ internal class Program
         var videoDataInfoDtos = ReadFromCsv(sourceCsvFile, outputFile, forceUpdateMetadata);
         var totalVideo = videoDataInfoDtos.Count();
         var itemsToAdd = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.Added).Count();
-        var itemsChanged = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.Unchanged).Count();
+        var itemsChanged = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.MetadataModified).Count();
         var itemsImported = videoDataInfoDtos
                             .Where(item => item.ImportStatus == ImportStatus.Processed &&
                                             item.CsvItemStatus == CsvItemStatus.Unchanged)
@@ -252,12 +252,15 @@ internal class Program
             currentItem.BatchReferenceId = historyItem.BatchReferenceId;
             currentItem.DownloadedFileName = historyItem.DownloadedFileName;
             currentItem.DownloadedFilePath = historyItem.DownloadedFilePath;
+            currentItem.DownloadedThumbnailPath = historyItem.DownloadedThumbnailPath;
             currentItem.IndexVideoId = historyItem.IndexVideoId;
             currentItem.HashMetadataReference = historyItem.HashMetadataReference;
             currentItem.Quality = historyItem.Quality;
             currentItem.Size = historyItem.Size;
+            currentItem.ThumbnailReference = historyItem.ThumbnailReference;
             currentItem.VideoReference = historyItem.VideoReference;
             currentItem.ImportStatus = historyItem.ImportStatus;
+            currentItem.CsvItemStatus = historyItem.CsvItemStatus;
             currentItem.VideoStatusNote = historyItem.VideoStatusNote;
             currentItem.EmbedDecentralizedLink = historyItem.EmbedDecentralizedLink;
             currentItem.EmbedIndexLink = historyItem.EmbedIndexLink;

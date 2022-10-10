@@ -7,6 +7,7 @@ namespace EthernaVideoImporter.Models
     internal class VideoInfoWithData
     {
         // Video Infos.
+        public string? Description { get; set; }
         public int Duration { get; set; }
         public int Edition { get; set; }
         public string? Title { get; set; }
@@ -22,7 +23,6 @@ namespace EthernaVideoImporter.Models
         public string? BatchId { get; set; }
         [Optional]
         public string? BatchReferenceId { get; set; }
-        public string? Description { get; set; }
         [Optional]
         public string? DownloadedFileName { get; set; }
         [Optional]
