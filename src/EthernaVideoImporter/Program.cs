@@ -267,8 +267,7 @@ internal class Program
             // Add to currentSourceVideoInfo the old item imported.
             if (currentItem is null)
             {
-                historyItem.CsvItemStatus = CsvItemStatus.Unchanged;
-                currentSourceVideoInfo.Add(historyItem);
+                // Remove item not in source.
                 continue;
             }
 
