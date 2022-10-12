@@ -19,6 +19,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\publish-app-release.yml = .github\workflows\publish-app-release.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EthernaVideoImporterChecker", "src\EthernaVideoImporterChecker\EthernaVideoImporterChecker.csproj", "{466751CA-8F2B-4481-B2DF-D11202B3DCFD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +39,10 @@ Global
 		{DA8B07A0-D7D7-43B6-8CE0-7AE619A97817}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA8B07A0-D7D7-43B6-8CE0-7AE619A97817}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DA8B07A0-D7D7-43B6-8CE0-7AE619A97817}.Release|Any CPU.Build.0 = Release|Any CPU
+		{466751CA-8F2B-4481-B2DF-D11202B3DCFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{466751CA-8F2B-4481-B2DF-D11202B3DCFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{466751CA-8F2B-4481-B2DF-D11202B3DCFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{466751CA-8F2B-4481-B2DF-D11202B3DCFD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

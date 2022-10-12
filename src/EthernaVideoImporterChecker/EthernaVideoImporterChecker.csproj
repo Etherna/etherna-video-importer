@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Etherna.EthernaVideoImporter</RootNamespace>
+
+    <Authors>Etherna Sagl</Authors>
+    <Description>A .Net console for check index video on Etherna</Description>
+
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EthernaVideoImporter\EthernaVideoImporter.csproj" />
+  </ItemGroup>
+
+</Project>

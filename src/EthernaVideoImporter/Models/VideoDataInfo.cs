@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace EthernaVideoImporter.Models
 {
-    internal class VideoInfoWithData
+    public class VideoInfoWithData
     {
         // Video Infos.
         public string? Description { get; set; }

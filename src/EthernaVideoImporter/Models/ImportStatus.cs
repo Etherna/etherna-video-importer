@@ -1,6 +1,6 @@
 ﻿namespace EthernaVideoImporter.Models
 {
-    internal enum ImportStatus
+    public enum ImportStatus
     {
         NotProcess,
         Downloaded,

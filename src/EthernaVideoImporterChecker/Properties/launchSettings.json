@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DevconArchiveVideoParser": {
+      "commandName": "Project",
+      "commandLineArgs": "-s D:\\tmp\\output.VERYFINAL.csv -o D:\\tmp\\DevCon_3Video.worked.CHECKED2.csv"
+    }
+  }
+}

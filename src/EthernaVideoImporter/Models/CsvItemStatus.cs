@@ -1,6 +1,6 @@
 ﻿namespace Etherna.EthernaVideoImporter.Models
 {
-    internal enum CsvItemStatus
+    public enum CsvItemStatus
     {
         Added,
         MetadataModified,
