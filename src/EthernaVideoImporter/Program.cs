@@ -1,6 +1,7 @@
 ﻿using CsvHelper;
 using Etherna.BeeNet;
 using Etherna.BeeNet.Clients.DebugApi;
+using Etherna.BeeNet.Clients.DebugApi.V3_0_2;
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.EthernaVideoImporter.Models;
 using Etherna.EthernaVideoImporter.Services;
@@ -15,7 +16,10 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 internal class Program
@@ -179,6 +183,14 @@ internal class Program
                 // Download from youtube.
                 await videoImporterService.StartAsync(videoInfo).ConfigureAwait(false);
 
+                if (videoInfo.Duration <= 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Error: Duration missing\n");
+                    Console.ResetColor();
+                    continue;
+                }
+
                 // Upload on bee node.
                 await videoUploaderService.StartAsync(videoInfo, pinVideo).ConfigureAwait(false);
 
@@ -204,6 +216,24 @@ internal class Program
     }
 
     // Private helpers.
+    private static async Task<IndexParamsDto> GetParamsInfoAsync(HttpClient httpClient)
+    {
+        var httpResponse = await httpClient.GetAsync(new Uri($"{ETHERNA_INDEX}{ETHERNA_INDEX_PARAMS_INFO}")).ConfigureAwait(false);
+
+        httpResponse.EnsureSuccessStatusCode();
+
+        var responseText = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+        return JsonSerializer.Deserialize<IndexParamsDto>(responseText, options)!;
+    }
+
+    private static bool IsChangedAnyData(
+        VideoInfoWithData currentCsv,
+        VideoInfoWithData historyCsv)
+    {
+        return currentCsv.Title != historyCsv.Title ||
+                currentCsv.Description != historyCsv.Description;
+    }
+
     private static async Task<LoginResult> SigInSSO()
     {
         // create a redirect URI using an available port on the loopback address.
@@ -303,15 +333,6 @@ internal class Program
 
         return currentSourceVideoInfo;
     }
-
-    private static bool IsChangedAnyData(
-        VideoInfoWithData currentCsv,
-        VideoInfoWithData historyCsv)
-    {
-        return currentCsv.Title != historyCsv.Title ||
-                currentCsv.Description != historyCsv.Description;
-    }
-
     private static string ReadStringIfEmpty(string? strValue)
     {
         if (string.IsNullOrWhiteSpace(strValue))
@@ -326,16 +347,6 @@ internal class Program
         else Console.WriteLine(strValue);
 
         return strValue;
-    }
-
-    private static async Task<IndexParamsDto> GetParamsInfoAsync(HttpClient httpClient)
-    {
-        var httpResponse = await httpClient.GetAsync(new Uri($"{ETHERNA_INDEX}{ETHERNA_INDEX_PARAMS_INFO}")).ConfigureAwait(false);
-
-        httpResponse.EnsureSuccessStatusCode();
-
-        var responseText = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-        return JsonSerializer.Deserialize<IndexParamsDto>(responseText, options)!;
     }
 
 }

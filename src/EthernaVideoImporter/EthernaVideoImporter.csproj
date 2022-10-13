@@ -28,6 +28,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.1" />
+    <PackageReference Include="NReco.VideoInfo.LT" Version="1.1.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.23.1" />
   </ItemGroup>
@@ -35,6 +36,12 @@
   <ItemGroup>
     <ProjectReference Include="..\EthernaVideoImporter.CommonData\EthernaVideoImporter.CommonData.csproj" />
     <ProjectReference Include="..\EthernaVideoImporter.YoutubeDownloader\EthernaVideoImporter.YoutubeDownloader.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ffprobe.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

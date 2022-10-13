@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using VideoLibrary;
 
 namespace EthernaVideoImporter.Services
 {
@@ -63,29 +64,33 @@ namespace EthernaVideoImporter.Services
                 }
 
                 // Start download and show progress.
-                if (!File.Exists(videoDataInfoDto.DownloadedFilePath) &&
-                    string.IsNullOrWhiteSpace(videoDataInfoDto.VideoReference))
-                {
-                    videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
-                    await downloadClient
-                        .DownloadAsync(
-                        new Uri(videoDownload.Uri),
-                        videoDataInfoDto.DownloadedFilePath,
-                        new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
-                        {
-                            var percent = (int)(v.Item1 * 100 / v.Item2);
-                            Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (1024 * 1024)} / {v.Item2 / (1024 * 1024)} MB\r");
-                        })).ConfigureAwait(false);
-                    Console.WriteLine("");
+                videoDataInfoDto.DownloadedFilePath = Path.Combine(tmpFolder, videoDownload.Filename);
+                await downloadClient
+                    .DownloadAsync(
+                    new Uri(videoDownload.Uri),
+                    videoDataInfoDto.DownloadedFilePath,
+                    new Progress<Tuple<long, long>>((Tuple<long, long> v) =>
+                    {
+                        var percent = (int)(v.Item1 * 100 / v.Item2);
+                        Console.Write($"Downloading.. ( % {percent} ) {v.Item1 / (1024 * 1024)} / {v.Item2 / (1024 * 1024)} MB\r");
+                    })).ConfigureAwait(false);
+                Console.WriteLine("");
 
-                    // Set VideoDataInfoDto from downloaded video.
-                    var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath!).Length;
-                    videoDataInfoDto.DownloadedFileName = videoDownload.Filename;
-                    videoDataInfoDto.VideoStatusNote = "";
-                    videoDataInfoDto.Bitrate = (int)Math.Ceiling((double)fileSize * 8 / videoDataInfoDto.Duration);
-                    videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
-                    videoDataInfoDto.Size = fileSize;
+                // Set VideoDataInfoDto from downloaded video.
+                var fileSize = new FileInfo(videoDataInfoDto.DownloadedFilePath!).Length;
+                videoDataInfoDto.DownloadedFileName = videoDownload.Filename;
+                videoDataInfoDto.VideoStatusNote = "";
+                videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
+                videoDataInfoDto.Size = fileSize;
+
+                var tmpDuration = videoDataInfoDto.Duration;
+                videoDataInfoDto.Duration = GetDuration(videoDataInfoDto.DownloadedFilePath);
+                if (tmpDuration > 0 &&
+                    Math.Abs(tmpDuration - videoDataInfoDto.Duration) > 10)
+                {
+                    throw new InvalidOperationException($"Invalid Duration tmpDuration: {tmpDuration}\t Duration: {videoDataInfoDto.Duration}");
                 }
+                videoDataInfoDto.Bitrate = (int)Math.Ceiling((double)fileSize * 8 / videoDataInfoDto.Duration);
 
                 // Download Thumbnail.
                 videoDataInfoDto.DownloadedThumbnailPath = await DownloadThumbnailAsync(videoDownload.VideoId, tmpFolder).ConfigureAwait(false);
@@ -113,6 +118,14 @@ namespace EthernaVideoImporter.Services
             await streamGot.CopyToAsync(fileStream).ConfigureAwait(false);
 
             return filePath;
+        }
+        public static int GetDuration(string? pathToVideoFile)
+        {
+            if (string.IsNullOrWhiteSpace(pathToVideoFile))
+                return 0;
+            var ffProbe = new NReco.VideoInfo.FFProbe();
+            var videoInfo = ffProbe.GetMediaInfo(pathToVideoFile);
+            return (int)Math.Ceiling(videoInfo.Duration.TotalSeconds);
         }
     }
 }
