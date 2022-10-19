@@ -103,7 +103,7 @@ internal class Program
         var videoDataInfoDtos = ReadFromCsv(sourceCsvFile, outputFile, forceUpdateMetadata);
         var totalVideo = videoDataInfoDtos.Count();
         var itemsToAdd = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.Added).Count();
-        var itemsChanged = videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.MetadataModified).Count();
+        var itemsChanged = 0; //videoDataInfoDtos.Where(item => item.CsvItemStatus == CsvItemStatus.MetadataModified).Count(); //ignore now, causes a lot of reuploads
         var itemsImported = videoDataInfoDtos
                             .Where(item => item.ImportStatus == ImportStatus.Processed &&
                                             item.CsvItemStatus == CsvItemStatus.Unchanged)
@@ -321,14 +321,14 @@ internal class Program
             currentItem.EmbedIndexLink = historyItem.EmbedIndexLink;
 
             // Set property status.
-            if (IsChangedAnyData(currentItem, historyItem))
-                currentItem.CsvItemStatus = CsvItemStatus.MetadataModified;
-            else if (forceUpdateMetadata &&
-                    (currentItem.ImportStatus != ImportStatus.NotProcess &&
-                    currentItem.ImportStatus != null))
-                currentItem.CsvItemStatus = CsvItemStatus.MetadataModified;
-            else
-                currentItem.CsvItemStatus = CsvItemStatus.Unchanged;
+            //if (IsChangedAnyData(currentItem, historyItem))
+            //    currentItem.CsvItemStatus = CsvItemStatus.MetadataModified;
+            //else if (forceUpdateMetadata &&
+            //        (currentItem.ImportStatus != ImportStatus.NotProcess &&
+            //        currentItem.ImportStatus != null))
+            //    currentItem.CsvItemStatus = CsvItemStatus.MetadataModified;
+            //else
+            currentItem.CsvItemStatus = CsvItemStatus.Unchanged;
         }
 
         return currentSourceVideoInfo;

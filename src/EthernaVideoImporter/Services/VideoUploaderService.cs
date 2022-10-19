@@ -72,12 +72,12 @@ namespace Etherna.EthernaVideoImporter.Services
             VideoInfoWithData videoInfoWithData,
             bool pinVideo)
         {
-            if (videoInfoWithData.ImportStatus == ImportStatus.Processed &&
-                videoInfoWithData.CsvItemStatus != CsvItemStatus.MetadataModified)
+            if (videoInfoWithData.ImportStatus == ImportStatus.Processed /*&&
+                videoInfoWithData.CsvItemStatus != CsvItemStatus.MetadataModified*/)
                 return;
             if ((string.IsNullOrWhiteSpace(videoInfoWithData.DownloadedFilePath) ||
-                !File.Exists(videoInfoWithData.DownloadedFilePath)) &&
-                videoInfoWithData.CsvItemStatus != CsvItemStatus.MetadataModified)
+                !File.Exists(videoInfoWithData.DownloadedFilePath)) /*&&
+                videoInfoWithData.CsvItemStatus != CsvItemStatus.MetadataModified*/)
             {
                 var ex = new InvalidOperationException($"Video to upload not found");
                 ex.Data.Add("DownloadedFilePath", videoInfoWithData.DownloadedFilePath);
@@ -163,10 +163,10 @@ namespace Etherna.EthernaVideoImporter.Services
             }
 
             // Upload metadata.
-            var updateMetadata = !string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) &&
-                                videoInfoWithData.CsvItemStatus == CsvItemStatus.MetadataModified;
-            if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) ||
-                updateMetadata)
+            //var updateMetadata = !string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference) &&
+            //                    videoInfoWithData.CsvItemStatus == CsvItemStatus.MetadataModified;
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.HashMetadataReference)/* ||
+                updateMetadata*/)
             {
                 Console.WriteLine("Uploading metadata in progress...");
                 videoInfoWithData.HashMetadataReference = await UploadMetadataAsync(
@@ -188,8 +188,8 @@ namespace Etherna.EthernaVideoImporter.Services
             }
 
             // Sync Index.
-            if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId) ||
-                updateMetadata)
+            if (string.IsNullOrWhiteSpace(videoInfoWithData.IndexVideoId) /*||
+                updateMetadata*/)
             {
                 Console.WriteLine("Video indexing in progress...");
                 videoInfoWithData.IndexVideoId = await IndexAsync(

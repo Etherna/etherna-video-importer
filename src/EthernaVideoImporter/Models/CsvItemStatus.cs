@@ -3,7 +3,7 @@
     internal enum CsvItemStatus
     {
         Added,
-        MetadataModified,
+        MetadataModified, //ignored now, causes a lot of reupload
         Unchanged
     }
 }
