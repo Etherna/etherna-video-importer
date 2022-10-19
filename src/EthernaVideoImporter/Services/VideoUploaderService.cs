@@ -86,13 +86,9 @@ namespace Etherna.EthernaVideoImporter.Services
             }
 
             // Create new batch.
-            if (string.IsNullOrWhiteSpace(videoInfoWithData.BatchReferenceId))
-            {
-                Console.WriteLine("Create batch...");
-                // Create batch.
-                videoInfoWithData.BatchReferenceId = await CreateBatchIdFromReferenceAsync().ConfigureAwait(false);
-                videoInfoWithData.ImportStatus = ImportStatus.BatchCreated;
-            }
+            Console.WriteLine("Create batch...");
+            videoInfoWithData.BatchReferenceId = await CreateBatchIdFromReferenceAsync().ConfigureAwait(false);
+            videoInfoWithData.ImportStatus = ImportStatus.BatchCreated;
 
             // Check and wait until created batchId is avaiable.
             Console.WriteLine("Waiting for batch ready...");
