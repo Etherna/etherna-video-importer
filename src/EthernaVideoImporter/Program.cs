@@ -163,6 +163,14 @@ internal class Program
                 Console.WriteLine("===============================");
                 Console.WriteLine($"Start processing video #{++videoCount} of #{totalVideo}");
                 Console.WriteLine($"Title: {videoInfo.Title}");
+
+                if (!string.IsNullOrEmpty(videoInfo.EmbedDecentralizedLink))
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    Console.WriteLine($"#{videoCount} Video already imported");
+                    Console.ResetColor();
+                    continue;
+                }
                 
                 if (videoInfo.Title!.Length > indexParams.VideoTitleMaxLength)
                 {
