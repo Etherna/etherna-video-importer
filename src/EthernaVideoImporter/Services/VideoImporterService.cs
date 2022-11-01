@@ -82,18 +82,15 @@ namespace EthernaVideoImporter.Services
                 videoDataInfoDto.VideoStatusNote = "";
                 videoDataInfoDto.Quality = videoDownload.Resolution.ToString(CultureInfo.InvariantCulture) + "p";
                 videoDataInfoDto.Size = fileSize;
-
-                var tmpDuration = videoDataInfoDto.Duration;
                 videoDataInfoDto.Duration = GetDuration(videoDataInfoDto.DownloadedFilePath);
-                if (tmpDuration > 0 &&
-                    Math.Abs(tmpDuration - videoDataInfoDto.Duration) > 10)
-                {
-                    throw new InvalidOperationException($"Invalid Duration tmpDuration: {tmpDuration}\t Duration: {videoDataInfoDto.Duration}");
-                }
                 videoDataInfoDto.Bitrate = (int)Math.Ceiling((double)fileSize * 8 / videoDataInfoDto.Duration);
 
                 // Download Thumbnail.
-                videoDataInfoDto.DownloadedThumbnailPath = await DownloadThumbnailAsync(videoDownload.VideoId, tmpFolder).ConfigureAwait(false);
+                try
+                {
+                    videoDataInfoDto.DownloadedThumbnailPath = await DownloadThumbnailAsync(videoDownload.VideoId, tmpFolder).ConfigureAwait(false);
+                }
+                catch { }
 
                 videoDataInfoDto.ImportStatus = ImportStatus.Downloaded;
             }

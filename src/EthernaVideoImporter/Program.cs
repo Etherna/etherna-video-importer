@@ -191,14 +191,6 @@ internal class Program
                 // Download from youtube.
                 await videoImporterService.StartAsync(videoInfo).ConfigureAwait(false);
 
-                if (videoInfo.Duration <= 0)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error: Duration missing\n");
-                    Console.ResetColor();
-                    continue;
-                }
-
                 // Upload on bee node.
                 await videoUploaderService.StartAsync(videoInfo, pinVideo).ConfigureAwait(false);
 
