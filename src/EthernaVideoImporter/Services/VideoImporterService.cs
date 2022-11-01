@@ -31,10 +31,6 @@ namespace EthernaVideoImporter.Services
         // Public methods.
         public async Task StartAsync(VideoInfoWithData videoDataInfoDto)
         {
-            if ((File.Exists(videoDataInfoDto.DownloadedFilePath) ||
-                !string.IsNullOrWhiteSpace(videoDataInfoDto.VideoReference)) /*&&
-                videoDataInfoDto.CsvItemStatus != CsvItemStatus.MetadataModified*/)
-                return;
             if (string.IsNullOrWhiteSpace(videoDataInfoDto.YoutubeUrl))
                 throw new InvalidOperationException("Invalid YoutubeUrl");
 

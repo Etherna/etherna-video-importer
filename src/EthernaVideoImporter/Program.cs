@@ -189,6 +189,13 @@ internal class Program
                 Console.WriteLine($"Source Video: {videoInfo.YoutubeUrl}");
 
                 // Download from youtube.
+                if (string.IsNullOrWhiteSpace(videoInfo.YoutubeUrl))
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Error: Invalid YoutubeUrl \n#{videoCount} Video unable to import\n");
+                    Console.ResetColor();
+                    continue;
+                }
                 await videoImporterService.StartAsync(videoInfo).ConfigureAwait(false);
 
                 // Upload on bee node.
