@@ -2,46 +2,45 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>Etherna.EthernaVideoImporter</RootNamespace>
 
     <Authors>Etherna Sagl</Authors>
     <Description>A .Net console for upload video on Etherna</Description>
 
-    <LangVersion>10.0</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="FFmpeg\ffmpeg.linux-64" />
+    <None Remove="FFmpeg\ffmpeg.osx-64" />
+    <None Remove="FFmpeg\ffmpeg.windows-64.exe" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <PackageReference Include="Bee.Net" Version="0.2.0-alpha.127" />
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
-    <PackageReference Include="CsvHelper" Version="28.0.1" />
-    <PackageReference Include="IdentityModel.OidcClient" Version="5.0.2" />
+    <PackageReference Include="EthernaServicesClient" Version="0.3.0-alpha.59" />
     <PackageReference Include="MimeTypes" Version="2.4.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="7.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="7.0.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />
+    <PackageReference Include="IdentityModel.OidcClient" Version="5.2.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.25.1" />
+    <PackageReference Include="YoutubeExplode" Version="6.2.5" />
+    <PackageReference Include="YoutubeExplode.Converter" Version="6.2.5" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.1" />
-    <PackageReference Include="NReco.VideoInfo.LT" Version="1.1.0" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.2" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.23.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EthernaVideoImporter.CommonData\EthernaVideoImporter.CommonData.csproj" />
-    <ProjectReference Include="..\EthernaVideoImporter.YoutubeDownloader\EthernaVideoImporter.YoutubeDownloader.csproj" />
+    <Folder Include="FFmpeg\" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Update="ffprobe.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
+  
 </Project>

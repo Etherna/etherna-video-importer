@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -23,13 +22,9 @@ namespace Etherna.EthernaVideoImporter.SSO
             this.path = path ?? string.Empty;
 
             if (!port.HasValue)
-            {
                 Port = GetRandomUnusedPort();
-            }
             else
-            {
                 Port = port.Value;
-            }
         }
 
         private int GetRandomUnusedPort()
@@ -53,9 +48,7 @@ namespace Etherna.EthernaVideoImporter.SSO
             {
                 var result = await listener.WaitForCallbackAsync().ConfigureAwait(false);
                 if (String.IsNullOrWhiteSpace(result))
-                {
                     return new BrowserResult { ResultType = BrowserResultType.UnknownError, Error = "Empty response." };
-                }
 
                 return new BrowserResult { Response = result, ResultType = BrowserResultType.Success };
             }
@@ -85,35 +78,27 @@ namespace Etherna.EthernaVideoImporter.SSO
                     Process.Start(new ProcessStartInfo("cmd", $"/c start {url}") { CreateNoWindow = true });
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
                     Process.Start("xdg-open", url);
-                }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
                     Process.Start("open", url);
-                }
                 else
-                {
                     throw;
-                }
             }
         }
     }
 
-#pragma warning disable CA1063 // Implement IDisposable Correctly
     public class LoopbackHttpListener : IDisposable
-#pragma warning restore CA1063 // Implement IDisposable Correctly
     {
         const int DefaultTimeout = 60 * 5; // 5 mins (in seconds)
+        private bool isDisposed;
 
-#pragma warning disable CA2213 // Disposable fields should be disposed
         readonly IWebHost host;
-#pragma warning restore CA2213 // Disposable fields should be disposed
-        readonly TaskCompletionSource<string> _source = new ();
+        readonly TaskCompletionSource<string> _source = new();
         readonly string _url;
 
         public string Url => _url;
 
+        // Constructors and dispose.
         public LoopbackHttpListener(int port, string? path = null)
         {
             path ??= String.Empty;
@@ -130,36 +115,42 @@ namespace Etherna.EthernaVideoImporter.SSO
             host.Start();
         }
 
-#pragma warning disable CA1063 // Implement IDisposable Correctly
-#pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
+#pragma warning disable CA1063 // Causated only by the Task.Delay
         public void Dispose()
-#pragma warning restore CA1816 // Dispose methods should call SuppressFinalize
 #pragma warning restore CA1063 // Implement IDisposable Correctly
         {
             Task.Run(async () =>
             {
                 await Task.Delay(500).ConfigureAwait(false);
-                host.Dispose();
+                Dispose(true);
+                GC.SuppressFinalize(this);
             });
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (isDisposed)
+                return;
+
+            if (disposing)
+                host.Dispose();
+
+            isDisposed = true;
+        }
+
+        // Public Methods.
         void Configure(IApplicationBuilder app)
         {
             app.Run(async ctx =>
             {
                 if (ctx.Request.Method == "GET")
-                {
-#pragma warning disable CS8604
-                    await SetResultAsync(ctx.Request.QueryString.Value, ctx).ConfigureAwait(false);
-#pragma warning restore CS8604
-                }
+                    await SetResultAsync(ctx.Request.QueryString.Value ?? "", ctx).ConfigureAwait(false);
                 else
-                {
                     ctx.Response.StatusCode = 405;
-                }
             });
         }
 
+        // Private Methods.
         private async Task SetResultAsync(string value, HttpContext ctx)
         {
             _source.TrySetResult(value);
@@ -190,5 +181,6 @@ namespace Etherna.EthernaVideoImporter.SSO
 
             return _source.Task;
         }
+
     }
 }
