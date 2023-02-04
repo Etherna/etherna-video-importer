@@ -1,13 +1,13 @@
-﻿using Etherna.EthernaVideoImporter.Models;
+﻿using Etherna.EthernaVideoImporterLibrary.Models;
 using Etherna.ServicesClient.Clients.Index;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.EthernaVideoImporterLibrary.Services
 {
     /// <summary>
     /// Uploader services
     /// </summary>
-    internal interface IVideoUploaderService
+    public interface IVideoUploaderService
     {
         /// <summary>
         /// Start to upload all video data (manifest, video with all avaiable resolutions, thumbnail, index).

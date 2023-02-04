@@ -1,4 +1,4 @@
-﻿using Etherna.EthernaVideoImporter.Models;
+﻿using Etherna.EthernaVideoImporterLibrary.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,7 +12,7 @@ using YoutubeExplode.Converter;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Videos.Streams;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.EthernaVideoImporterLibrary.Services
 {
     public sealed class VideoDownloaderService : IVideoDownloaderService, IDisposable
     {

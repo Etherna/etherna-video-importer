@@ -1,7 +1,8 @@
-﻿using Etherna.ServicesClient.Clients.Index;
+﻿using Etherna.EthernaVideoImporterLibrary.Dtos;
+using Etherna.ServicesClient.Clients.Index;
 using System.Collections.Generic;
 
-namespace Etherna.EthernaVideoImporter.Dtos
+namespace Etherna.EthernaVideoImporterLibrary.Dtos
 {
     public sealed class MetadataManifestInsertInput
     {

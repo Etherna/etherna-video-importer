@@ -15,6 +15,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\publish-app-release.yml = .github\workflows\publish-app-release.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevconArchiveVideoImporter", "src\DevconArchiveVideoImporter\DevconArchiveVideoImporter.csproj", "{AB161723-7CC9-4748-AC19-97A25BB76BB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EthernaVideoImporterLibrary", "src\EthernaVideoImporterLibrary\EthernaVideoImporterLibrary.csproj", "{E9AAFEF3-78CF-4208-BE0A-BC689D164A9F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +29,14 @@ Global
 		{6B534273-4C90-4EEC-A13B-ABBD9867E1D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B534273-4C90-4EEC-A13B-ABBD9867E1D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6B534273-4C90-4EEC-A13B-ABBD9867E1D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB161723-7CC9-4748-AC19-97A25BB76BB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB161723-7CC9-4748-AC19-97A25BB76BB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB161723-7CC9-4748-AC19-97A25BB76BB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB161723-7CC9-4748-AC19-97A25BB76BB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9AAFEF3-78CF-4208-BE0A-BC689D164A9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9AAFEF3-78CF-4208-BE0A-BC689D164A9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9AAFEF3-78CF-4208-BE0A-BC689D164A9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9AAFEF3-78CF-4208-BE0A-BC689D164A9F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

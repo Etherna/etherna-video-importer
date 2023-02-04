@@ -1,20 +1,20 @@
-﻿using Etherna.EthernaVideoImporter.Models;
+﻿using Etherna.EthernaVideoImporterLibrary.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.EthernaVideoImporterLibrary.Services
 {
-    internal sealed class YouTubeChannelVideoParserServices
+    public sealed class YouTubeChannelVideoParserServices : IVideoParseServices
     {
 
         // Methods.
-        public static async Task<IEnumerable<VideoDataMinimalInfo>> ToVideoDataMinimalInfoDtosAsync(string channelUrl)
+        public async Task<IEnumerable<VideoDataMinimalInfo>> ToVideoDataMinimalInfoDtosAsync(string uri)
         {
             var youtube = new YoutubeClient();
 
-            var channel = await youtube.Channels.GetByHandleAsync(channelUrl).ConfigureAwait(false);
+            var channel = await youtube.Channels.GetByHandleAsync(uri).ConfigureAwait(false);
             var youtubeVideos = await youtube.Channels.GetUploadsAsync(channel.Url);
 
             List<VideoDataMinimalInfo> videos = new();
@@ -27,7 +27,7 @@ namespace Etherna.EthernaVideoImporter.Services
             return videos;
         }
 
-        public static async Task<VideoData?> ToVideoDataDtosAsync(string uri)
+        public async Task<VideoData?> ToVideoDataDtosAsync(string uri)
         {
             var youtube = new YoutubeClient();
 

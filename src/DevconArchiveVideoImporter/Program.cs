@@ -17,11 +17,10 @@ namespace Etherna.EthernaVideoImporter
         // Consts.
         private const string HelpText =
             "DevconArchiveVideoImporter help:\n\n" +
-            "-yc\tYoutube channel url\n" +
-            "-yv\tYoutube single video url\n" +
+            "-md\tSource folder path with *.md files to import\n" +
             "-f\tFree video offer by creator\n" +
             "-p\tPin video\n" +
-            "-d\tDelete old videos that are no longer in channel\n" +
+            "-d\tDelete old videos that are no longer in the .MD files\n" +
             "-c\tDelete all index video with no valid manifest or old PersonalData\n" +
             "-ff\tPath FFmpeg (default dir: FFmpeg\\)\n" +
             "\n" +
@@ -30,8 +29,7 @@ namespace Etherna.EthernaVideoImporter
         static async Task Main(string[] args)
         {
             // Parse arguments.
-            string? youtubeChannelUrl = null;
-            string? youtubeVideoUrl = null;
+            string? sourceFolderPath = null;
             string? ffMpegFolderPath = null;
             bool offerVideo = false;
             bool pinVideo = false;
@@ -42,8 +40,7 @@ namespace Etherna.EthernaVideoImporter
             {
                 switch (args[i])
                 {
-                    case "-yc": youtubeChannelUrl = args[++i]; break;
-                    case "-yv": youtubeVideoUrl = args[++i]; break;
+                    case "-md": sourceFolderPath = args[++i]; break;
                     case "-ff": ffMpegFolderPath = args[++i]; break;
                     case "-f": offerVideo = true; break;
                     case "-p": pinVideo = true; break;
@@ -62,21 +59,9 @@ namespace Etherna.EthernaVideoImporter
             ffMpegFolderPath ??= "FFmpeg\\";
 
             // Request missing params.
-            var sourceParam = 0;
-            sourceParam += string.IsNullOrWhiteSpace(youtubeChannelUrl) ? 0 : 1;
-            sourceParam += string.IsNullOrWhiteSpace(youtubeVideoUrl) ? 0 : 1;
-            switch (sourceParam)
-            {
-                case 0:
-                    Console.WriteLine("Missing require param (one of: -ch or -yt)");
-                    return;
-                case > 1:
-                    Console.WriteLine("Only one of require param (one of: -ch or -yt)");
-                    return;
-            }
-
-            var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
-
+            Console.WriteLine();
+            Console.WriteLine("Source folder path with *.md files to import:");
+            sourceFolderPath = ReadStringIfEmpty(sourceFolderPath);
 
             // Check tmp folder.
             const string tmpFolder = "tmpData";
@@ -132,7 +117,7 @@ namespace Etherna.EthernaVideoImporter
                 videoUploaderService,
                 new YouTubeChannelVideoParserServices());
             await runner.RunAsync(
-                sourceUri,
+                sourceFolderPath,
                 offerVideo,
                 pinVideo,
                 deleteOldVideo,
@@ -140,5 +125,23 @@ namespace Etherna.EthernaVideoImporter
                 userEthAddr,
                 tmpFolderFullPath).ConfigureAwait(false);
         }
+
+        // Private helpers.
+        private static string ReadStringIfEmpty(string? strValue)
+        {
+            if (string.IsNullOrWhiteSpace(strValue))
+            {
+                while (string.IsNullOrWhiteSpace(strValue))
+                {
+                    strValue = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(strValue))
+                        Console.WriteLine("*Empty string not allowed*");
+                }
+            }
+            else Console.WriteLine(strValue);
+
+            return strValue;
+        }
+
     }
 }

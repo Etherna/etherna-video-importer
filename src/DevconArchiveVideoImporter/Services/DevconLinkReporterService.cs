@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Etherna.EthernaVideoImporterLibrary.Services;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,21 +7,21 @@ using System.Threading.Tasks;
 
 namespace Etherna.EthernaVideoImporter.Services
 {
-    internal sealed class LinkReporterService : ILinkReporterService
+    public sealed class DevconLinkReporterService : ILinkReporterService
     {
         // Fields.
         private const string EthernaIndexPrefix = "ethernaIndex:";
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
 
-        private readonly string mdFilePath;
+        private readonly string sourceUri;
 
         // Constructors.
-        public LinkReporterService(string mdFilePath)
+        public DevconLinkReporterService(string sourceUri)
         {
-            if (string.IsNullOrWhiteSpace(mdFilePath))
-                throw new ArgumentNullException(nameof(mdFilePath));
+            if (string.IsNullOrWhiteSpace(sourceUri))
+                throw new ArgumentNullException(nameof(sourceUri));
 
-            this.mdFilePath = mdFilePath;
+            this.sourceUri = sourceUri;
         }
 
         // Methods.
@@ -29,7 +30,7 @@ namespace Etherna.EthernaVideoImporter.Services
             string ethernaPermalink)
         {
             // Reaad all line.
-            var lines = File.ReadLines(mdFilePath).ToList();
+            var lines = File.ReadLines(sourceUri).ToList();
 
 
             //TODO check number o fline (min of 2 throw error)
@@ -51,7 +52,7 @@ namespace Etherna.EthernaVideoImporter.Services
                 lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaPermalinkLine);
 
             // Save file.
-            await File.WriteAllLinesAsync(mdFilePath, lines).ConfigureAwait(false);
+            await File.WriteAllLinesAsync(sourceUri, lines).ConfigureAwait(false);
         }
 
         // Helpers.

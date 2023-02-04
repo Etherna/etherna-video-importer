@@ -1,12 +1,12 @@
-﻿using Etherna.EthernaVideoImporter.Models;
+﻿using Etherna.EthernaVideoImporterLibrary.Models;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.EthernaVideoImporterLibrary.Services
 {
     /// <summary>
     /// Downloader services
     /// </summary>
-    internal interface IVideoDownloaderService
+    public interface IVideoDownloaderService
     {
         /// <summary>
         /// Start download from youtube url.

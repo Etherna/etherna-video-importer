@@ -1,4 +1,4 @@
-﻿using Etherna.EthernaVideoImporter.Models;
+﻿using Etherna.EthernaVideoImporterLibrary.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.EthernaVideoImporterLibrary.Services
 {
     internal sealed class MdVideoParserService
     {

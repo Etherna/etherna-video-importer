@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.EthernaVideoImporterLibrary.Services
 {
     /// <summary>
     /// Link services

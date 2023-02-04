@@ -1,6 +1,6 @@
-﻿namespace Etherna.EthernaVideoImporter.Models
+﻿namespace Etherna.EthernaVideoImporterLibrary.Models
 {
-    internal sealed class VideoDataMinimalInfo
+    public sealed class VideoDataMinimalInfo
     {
         // Properties.
         public string Uri { get; set; } = default!;

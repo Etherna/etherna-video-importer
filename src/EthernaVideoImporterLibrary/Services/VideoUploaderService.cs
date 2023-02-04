@@ -1,8 +1,8 @@
 ﻿using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
-using Etherna.EthernaVideoImporter.Dtos;
-using Etherna.EthernaVideoImporter.Models;
-using Etherna.EthernaVideoImporter.Utilities;
+using Etherna.EthernaVideoImporterLibrary.Dtos;
+using Etherna.EthernaVideoImporterLibrary.Models;
+using Etherna.EthernaVideoImporterLibrary.Utilities;
 using Etherna.ServicesClient.Clients.Index;
 using SkiaSharp;
 using System;
@@ -12,7 +12,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.EthernaVideoImporterLibrary.Services
 {
     public sealed class VideoUploaderService : IVideoUploaderService
     {

@@ -1,8 +1,9 @@
-﻿using Etherna.ServicesClient.Clients.Index;
+﻿using Etherna.EthernaVideoImporterLibrary.Models;
+using Etherna.ServicesClient.Clients.Index;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.EthernaVideoImporterLibrary.Services
 {
     /// <summary>
     /// Etherna services
@@ -53,5 +54,13 @@ namespace Etherna.EthernaVideoImporter.Services
         /// </summary>
         /// <param name="hash">hash</param>
         Task OfferResourceAsync(string hash);
+
+        /// <summary>
+        /// Update manifest index (or create if not exist)
+        /// </summary>
+        /// <param name="hash">hash</param>
+        Task<string> UpsertManifestToIndex(
+            string hashReferenceMetadata,
+            VideoData videoData);
     }
 }

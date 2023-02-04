@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>Etherna.EthernaVideoImporter</RootNamespace>
+    <RootNamespace>Etherna.DevconArchiveVideoImporter</RootNamespace>
 
     <Authors>Etherna Sagl</Authors>
     <Description>A .Net console for upload video on Etherna</Description>
@@ -13,7 +13,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Bee.Net" Version="0.2.0-alpha.127" />
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
@@ -40,5 +40,5 @@
   <ItemGroup>
     <ProjectReference Include="..\EthernaVideoImporterLibrary\EthernaVideoImporterLibrary.csproj" />
   </ItemGroup>
-  
+
 </Project>

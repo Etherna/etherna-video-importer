@@ -1,7 +1,7 @@
 ﻿using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
 
-namespace Etherna.EthernaVideoImporter.Utilities
+namespace Etherna.EthernaVideoImporterLibrary.Utilities
 {
     public sealed class CommonConst
     {

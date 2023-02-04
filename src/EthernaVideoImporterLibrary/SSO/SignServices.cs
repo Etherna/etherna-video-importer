@@ -1,11 +1,11 @@
-﻿using Etherna.EthernaVideoImporter.Utilities;
+﻿using Etherna.EthernaVideoImporterLibrary.Utilities;
 using IdentityModel.OidcClient;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter.SSO
+namespace Etherna.EthernaVideoImporterLibrary.SSO
 {
-    static internal class SignServices
+    public static class SignServices
     {
         public static async Task<LoginResult> SigInSSO()
         {
