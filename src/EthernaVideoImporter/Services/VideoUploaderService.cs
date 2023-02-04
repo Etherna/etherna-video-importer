@@ -19,6 +19,7 @@ namespace Etherna.EthernaVideoImporter.Services
         // Fields.
         private readonly BeeNodeClient beeNodeClient;
         private readonly EthernaUserClientsAdapter ethernaClientService;
+        private readonly bool includeTrackAudio;
         private readonly string userEthAddr;
         private readonly HttpClient httpClient;
 
@@ -33,7 +34,8 @@ namespace Etherna.EthernaVideoImporter.Services
             BeeNodeClient beeNodeClient,
             EthernaUserClientsAdapter ethernaClientService,
             string userEthAddr,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            bool includeTrackAudio)
         {
             if (beeNodeClient is null)
                 throw new ArgumentNullException(nameof(beeNodeClient));
@@ -44,6 +46,7 @@ namespace Etherna.EthernaVideoImporter.Services
             this.ethernaClientService = ethernaClientService;
             this.userEthAddr = userEthAddr;
             this.httpClient = httpClient;
+            this.includeTrackAudio = includeTrackAudio;
         }
 
         // Public methods.

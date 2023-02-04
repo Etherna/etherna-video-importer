@@ -21,6 +21,7 @@ namespace Etherna.EthernaVideoImporter.Services
 
         // Fields.
         private readonly string ffMpegFolderPath;
+        private readonly bool includeTrackAudio;
         private readonly string tmpFolder;
         private readonly HttpClient client = new();
         private readonly YoutubeClient youTubeClient = new();
@@ -28,14 +29,17 @@ namespace Etherna.EthernaVideoImporter.Services
         // Constractor.
         public VideoDownloaderService(
             string ffMpegFolderPath,
-            string tmpFolder)
+            string tmpFolder,
+            bool includeTrackAudio)
         {
             this.ffMpegFolderPath = ffMpegFolderPath;
             this.tmpFolder = tmpFolder;
+            this.includeTrackAudio = includeTrackAudio;
         }
 
         // Public methods.
-        public async Task<VideoData> StartDownloadAsync(VideoData videoData)
+        public async Task<VideoData> StartDownloadAsync(
+            VideoData videoData)
         {
             if (string.IsNullOrWhiteSpace(videoData?.YoutubeUrl))
                 throw new InvalidOperationException("Invalid YoutubeUrl");
@@ -124,8 +128,68 @@ namespace Etherna.EthernaVideoImporter.Services
                     sourceVideoInfos.Add(videoDataResolution);
                 }
             }
+            if (includeTrackAudio)
+            {
+                var bestStreamAudioInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
+                var audioDataTrack = await DownloadAudioTrackAsync(
+                    bestStreamAudioInfo,
+                    videoTitle,
+                    videoManifest).ConfigureAwait(false);
+                sourceVideoInfos.Add(audioDataTrack);
+            }
 
             return sourceVideoInfos;
+        }
+
+        private async Task<VideoDataResolution> DownloadAudioTrackAsync(
+            IStreamInfo audioStream,
+            string videoTitle,
+            Video videoManifest)
+        {
+            var videoName = $"{videoTitle}_onlyaudio";
+            var filename = $"{videoTitle}.audio.{audioStream.Container}";
+            var videoDataResolution = new VideoDataResolution(
+                audioStream.Bitrate.BitsPerSecond,
+                Path.Combine(tmpFolder, filename),
+                videoName,
+                "0p");
+            if (videoManifest.Duration is null)
+                throw new InvalidOperationException("Invalid duration video");
+
+            var i = 0;
+            var downloaded = false;
+            while (i < MAX_RETRY &&
+                    !downloaded)
+                try
+                {
+                    i++;
+
+                    // Download and process them into one file
+                    await youTubeClient.Videos.Streams.DownloadAsync(
+                        audioStream,
+                        videoDataResolution.DownloadedFilePath,
+                        new Progress<double>((progressStatus) =>
+                        {
+                            Console.Write($"Downloading track audio {videoDataResolution.Resolution} ({(progressStatus * 100):N0}%) {audioStream.Size.MegaBytes:N2} MB\r");
+                        })).ConfigureAwait(false);
+
+                    downloaded = true;
+                }
+                catch { await Task.Delay(3500).ConfigureAwait(false); }
+            if (!downloaded)
+                throw new InvalidOperationException($"Some error during download of video {audioStream.Url}");
+
+            // Download thumbnail.
+            var thumbnailPath = await DownloadThumbnailAsync(videoManifest, 0).ConfigureAwait(false);
+            videoDataResolution.SetDownloadThumbnail(thumbnailPath);
+            Console.WriteLine("");
+
+            videoDataResolution.SetVideoInfo(
+                videoName,
+                audioStream.Size.Bytes,
+                (int)videoManifest.Duration.Value.TotalSeconds);
+
+            return videoDataResolution;
         }
 
         private async Task<VideoDataResolution> DownloadVideoAsync(

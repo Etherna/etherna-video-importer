@@ -42,6 +42,7 @@ namespace Etherna.EthernaVideoImporter
             bool pinVideo = false;
             bool deleteOldVideo = false;
             bool deleteInvalidVideo = false;
+            bool includeTrackAudio = true;
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
@@ -111,7 +112,7 @@ namespace Etherna.EthernaVideoImporter
                 new Uri(CommonConst.SSO_AUTHORITY),
                 () => httpClient);
             var ethernaClientService = new EthernaUserClientsAdapter(ethernaUserClients);
-            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath);
+            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath, includeTrackAudio);
             var beeNodeClient = new BeeNodeClient(
                 CommonConst.ETHERNA_GATEWAY,
                 CommonConst.BEENODE_GATEWAYPORT,
@@ -123,7 +124,8 @@ namespace Etherna.EthernaVideoImporter
                 beeNodeClient,
                 ethernaClientService,
                 userEthAddr,
-                httpClient);
+                httpClient,
+                includeTrackAudio);
 
             // Read from files md.
             //var allVideoMinimalInfos = MdVideoParserService.ToVideoDataMinimalInfoDtos(sourceFolderPath);
