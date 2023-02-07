@@ -32,9 +32,6 @@ namespace Etherna.EthernaVideoImporter.Services
             // Reaad all line.
             var lines = File.ReadLines(sourceUri).ToList();
 
-
-            //TODO check number o fline (min of 2 throw error)
-
             // Set ethernaIndex.
             var index = GetLineNumber(lines, EthernaIndexPrefix);
             var ethernaIndexLine = $"{EthernaIndexPrefix} \"{ethernaIndex}\"";
