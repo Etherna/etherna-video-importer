@@ -37,7 +37,7 @@ namespace Etherna.EthernaVideoImporter
             bool pinVideo = false;
             bool deleteOldVideo = false;
             bool deleteInvalidVideo = false;
-            bool includeTrackAudio = true;
+            bool includeTrackAudio = false;
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
