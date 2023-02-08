@@ -5,6 +5,7 @@ using Etherna.EthernaVideoImporterLibrary.SSO;
 using Etherna.EthernaVideoImporterLibrary.Utilities;
 using Etherna.ServicesClient;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -15,7 +16,8 @@ namespace Etherna.EthernaVideoImporter
     internal static class Program
     {
         // Consts.
-        private const string HelpText =
+        private const int DefaultTTLPostageStamp = 365;
+        private static readonly string HelpText =
             "DevconArchiveVideoImporter help:\n\n" +
             "-md\tSource folder path with *.md files to import\n" +
             "-f\tFree video offer by creator\n" +
@@ -23,6 +25,7 @@ namespace Etherna.EthernaVideoImporter
             "-d\tDelete old videos that are no longer in the .MD files\n" +
             "-c\tDelete all index video with no valid manifest or old PersonalData\n" +
             "-ff\tPath FFmpeg (default dir: FFmpeg\\)\n" +
+            $"-t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "\n" +
             "-h\tPrint help\n";
 
@@ -31,11 +34,13 @@ namespace Etherna.EthernaVideoImporter
             // Parse arguments.
             string? sourceFolderPath = null;
             string? ffMpegFolderPath = null;
+            string? ttlPostageStampStr = null;
+            int ttlPostageStamp = DefaultTTLPostageStamp;
             bool offerVideo = false;
             bool pinVideo = false;
             bool deleteOldVideo = false;
             bool deleteInvalidVideo = false;
-            bool includeTrackAudio = true;
+            bool includeTrackAudio = false;
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
@@ -46,10 +51,13 @@ namespace Etherna.EthernaVideoImporter
                     case "-p": pinVideo = true; break;
                     case "-d": deleteOldVideo = true; break;
                     case "-c": deleteInvalidVideo = true; break;
+                    case "-t": ttlPostageStampStr = args[++i]; break;
                     case "-h": Console.Write(HelpText); return;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
+
+            // FFMPeg dir.
             if (ffMpegFolderPath is not null &&
                 !Directory.Exists(ffMpegFolderPath))
             {
@@ -57,6 +65,14 @@ namespace Etherna.EthernaVideoImporter
                 return;
             }
             ffMpegFolderPath ??= "FFmpeg\\";
+
+            // TTL Postage batch.
+            if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
+                Int32.TryParse(ttlPostageStampStr, CultureInfo.CurrentCulture, out ttlPostageStamp))
+            {
+                Console.WriteLine($"Invalid value for TTL Postage Stamp, will be set default value");
+                ttlPostageStamp = DefaultTTLPostageStamp;
+            }
 
             // Request missing params.
             Console.WriteLine();
@@ -106,7 +122,8 @@ namespace Etherna.EthernaVideoImporter
                 ethernaClientService,
                 userEthAddr,
                 httpClient,
-                includeTrackAudio);
+                includeTrackAudio,
+                ttlPostageStamp);
 
             // Call runner.
             var runner = new Runner(

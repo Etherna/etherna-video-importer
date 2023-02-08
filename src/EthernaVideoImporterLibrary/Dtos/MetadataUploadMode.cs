@@ -2,7 +2,7 @@
 {
     public enum MetadataUploadMode
     {
-        DevconImporter,
+        Importer,
         WebApp
     }
 }

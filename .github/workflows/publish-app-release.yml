@@ -32,15 +32,31 @@ jobs:
       - name: Setup dotnet 
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 7.0.x
 
-      - name: Build
+      - name: Build Project Etherna Video Importer
         shell: bash
         run: |
           tag=$(git describe --tags --abbrev=0)
           release_name="etherna-video-importer-$tag-${{ matrix.kind }}"
           # Build everything
-          dotnet publish src/EthernaVideoImporter/EthernaVideoImporter.csproj --framework net6.0 --runtime "${{ matrix.target }}" "${{ matrix.frameworktype }}" -c Release -o "$release_name"
+          dotnet publish src/EthernaVideoImporter/EthernaVideoImporter.csproj --framework net7.0 --runtime "${{ matrix.target }}" "${{ matrix.frameworktype }}" -c Release -o "$release_name"
+          # Pack files
+          if [ "${{ matrix.target }}" == "win-x64" ]; then
+            # Pack to zip for Windows
+            7z a -tzip "${release_name}.zip" "./${release_name}/*"
+          else
+          tar czvf "${release_name}.tar.gz" "$release_name"
+          fi
+          # Delete output directory
+          rm -r "$release_name"
+      - name: Build Project Devcon Archive Video Importer
+        shell: bash
+        run: |
+          tag=$(git describe --tags --abbrev=0)
+          release_name="devcon-archive-video-importer-$tag-${{ matrix.kind }}"
+          # Build everything
+          dotnet publish src/DevconArchiveVideoImporter/DevconArchiveVideoImporter.csproj --framework net7.0 --runtime "${{ matrix.target }}" "${{ matrix.frameworktype }}" -c Release -o "$release_name"
           # Pack files
           if [ "${{ matrix.target }}" == "win-x64" ]; then
             # Pack to zip for Windows
@@ -53,6 +69,8 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
-          files: "etherna-video-importer-*"
+          files: |
+            "etherna-video-importer-*"
+            "devcon-archive-video-importer-*"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

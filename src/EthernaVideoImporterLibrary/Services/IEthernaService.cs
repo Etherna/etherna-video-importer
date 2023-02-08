@@ -13,7 +13,9 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
         /// <summary>
         /// Create batch
         /// </summary>
-        Task<string> CreateBatchAsync();
+        Task<string> CreateBatchAsync(
+            VideoData videoData,
+            int ttlPostageStamp);
 
         /// <summary>
         /// Delete video from index

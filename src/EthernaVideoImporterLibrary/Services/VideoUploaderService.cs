@@ -19,9 +19,10 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
         // Fields.
         private readonly BeeNodeClient beeNodeClient;
         private readonly EthernaUserClientsAdapter ethernaClientService;
-        private readonly bool includeTrackAudio;
-        private readonly string userEthAddr;
         private readonly HttpClient httpClient;
+        private readonly bool includeTrackAudio;
+        private readonly int ttlPostageStamp;
+        private readonly string userEthAddr;
 
 
         // Const.
@@ -35,7 +36,8 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
             EthernaUserClientsAdapter ethernaClientService,
             string userEthAddr,
             HttpClient httpClient,
-            bool includeTrackAudio)
+            bool includeTrackAudio,
+            int ttlPostageStamp)
         {
             if (beeNodeClient is null)
                 throw new ArgumentNullException(nameof(beeNodeClient));
@@ -47,6 +49,7 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
             this.userEthAddr = userEthAddr;
             this.httpClient = httpClient;
             this.includeTrackAudio = includeTrackAudio;
+            this.ttlPostageStamp = ttlPostageStamp;
         }
 
         // Public methods.
@@ -62,7 +65,7 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
             // Create new batch.
             Console.WriteLine("Create batch...");
 
-            var batchReferenceId = await ethernaClientService.CreateBatchAsync().ConfigureAwait(false);
+            var batchReferenceId = await ethernaClientService.CreateBatchAsync(videoData, ttlPostageStamp).ConfigureAwait(false);
 
             // Check and wait until created batchId is avaiable.
             Console.WriteLine("Waiting for batch ready...");
@@ -152,7 +155,7 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
                 videoData.Description,
                 videoData.VideoDataResolutions.First().Duration,
                  $"720p",
-                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.DevconImporter, VideoId = videoData.YoutubeId! }),
+                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.Importer, VideoId = videoData.YoutubeId! }),
                  new MetadataImageInput(
                      videoManifestDto.Thumbnail.AspectRatio,
                      videoManifestDto.Thumbnail.Blurhash,
@@ -306,7 +309,7 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
                 videoData.Description,
                 videoData.VideoDataResolutions.First().Duration,
                  $"{videoData.VideoDataResolutions.First().Resolution}",
-                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.DevconImporter, VideoId = videoData.YoutubeId! }),
+                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.Importer, VideoId = videoData.YoutubeId! }),
                  swarmImageRaw,
                  videoData.Title,
                  videoData.VideoDataResolutions.Select(vr => new SourceDto

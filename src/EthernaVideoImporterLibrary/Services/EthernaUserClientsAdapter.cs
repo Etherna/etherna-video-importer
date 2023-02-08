@@ -11,8 +11,6 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
     public class EthernaUserClientsAdapter : IEthernaUserClientsAdapter
     {
         // Const.
-        private const int BATCH_DEEP = 20;
-        private readonly TimeSpan BATCH_DURANTION_TIME = new(365, 0, 0, 0);
         private const int BLOCK_TIME = 5;
         private const int WAITING_PROPAGATION_BATCH_SECONDS = 5000; // ms.
         private const int WAITING_PROPAGATION_BATCH_RETRY = 50; // retry.
@@ -60,11 +58,28 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
             }
         }
 
-        public async Task<string> CreateBatchAsync()
+        public async Task<string> CreateBatchAsync(
+            VideoData videoData, 
+            int ttlPostageStamp)
         {
+            if (videoData is null)
+                throw new ArgumentNullException(nameof(videoData));
+
+            // Size of all video to upload.
+            var totalSize = videoData.VideoDataResolutions.Sum(v => v.Size);
+
+            // Calculate batch deep.
+            var batchDeep = 17;
+            while ((2^ batchDeep * 4) < totalSize)
+            {
+                batchDeep++;
+                if (batchDeep > 64)
+                    throw new InvalidOperationException("Batch deep exceeds the maximum");
+            }
+
             var chainState = await ethernaUserClients.GatewayClient.SystemClient.ChainstateAsync().ConfigureAwait(false);
-            var amount = (long)BATCH_DURANTION_TIME.TotalSeconds * chainState.CurrentPrice / BLOCK_TIME;
-            return await ethernaUserClients.GatewayClient.UsersClient.BatchesPostAsync(BATCH_DEEP, amount).ConfigureAwait(false);
+            var amount = (long)new TimeSpan(ttlPostageStamp * 24, 0, 0).TotalSeconds * chainState.CurrentPrice / BLOCK_TIME;
+            return await ethernaUserClients.GatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount).ConfigureAwait(false);
         }
 
         public async Task DeleteIndexVideoAsync(string videoId)
