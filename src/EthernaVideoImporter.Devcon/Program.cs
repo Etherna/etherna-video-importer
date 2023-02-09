@@ -18,9 +18,9 @@ namespace Etherna.VideoImporter.Devcon
         // Consts.
         private const int DefaultTTLPostageStamp = 365;
         private static readonly string HelpText =
-            "DevconArchiveVideoImporter help:\n\n" +
+            "Etherna Video Importer for Devcon Archive help:\n\n" +
             "-md\tSource folder path with *.md files to import\n" +
-            "-f\tFree video offer by creator\n" +
+            "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
             "-d\tDelete old videos that are no longer in the .MD files\n" +
             "-c\tDelete all index video with no valid manifest or old PersonalData\n" +
