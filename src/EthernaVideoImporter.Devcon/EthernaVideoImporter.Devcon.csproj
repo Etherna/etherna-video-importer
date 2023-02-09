@@ -37,8 +37,4 @@
     <Folder Include="FFmpeg\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\EthernaVideoImporterLibrary\EthernaVideoImporterLibrary.csproj" />
-  </ItemGroup>
-
 </Project>
