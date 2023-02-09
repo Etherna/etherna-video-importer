@@ -70,7 +70,7 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
 
             // Calculate batch deep.
             var batchDeep = 17;
-            while ((2^ batchDeep * 4) < totalSize)
+            while (Math.Pow(2, batchDeep) * 4 * 1000 < totalSize)
             {
                 batchDeep++;
                 if (batchDeep > 64)

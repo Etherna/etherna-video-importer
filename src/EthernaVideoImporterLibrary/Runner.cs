@@ -66,6 +66,7 @@ namespace Etherna.EthernaVideoImporterLibrary
             string tmpFolderFullPath)
         {
             // Read from files md.
+            Console.WriteLine($"Generate data info from {sourceUri}");
             var allVideoMinimalInfos = await videoParseServices.ToVideoDataMinimalInfoDtosAsync(sourceUri).ConfigureAwait(false);
             List<VideoData> allVideoDataInfos = new();
 
@@ -214,6 +215,8 @@ namespace Etherna.EthernaVideoImporterLibrary
                         Console.ResetColor();
                     }
                 }
+
+                Console.WriteLine($"Done.");
             }
 
             // Delete old video.

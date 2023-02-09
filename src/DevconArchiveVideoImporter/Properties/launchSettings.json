@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "DevconArchiveVideoParser": {
+      "commandName": "Project",
+      "commandLineArgs": "-md C:\\tmp\\devcon_video -c -d -f -p -ff C:\\sources_fede\\etherna\\devcon-archive-video-importer\\src\\DevconArchiveVideoImporter\\bin\\Debug\\net7.0"
+      //"commandLineArgs": "-h"
+    }
+  }
+}

@@ -155,7 +155,7 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
                 videoData.Description,
                 videoData.VideoDataResolutions.First().Duration,
                  $"720p",
-                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.Importer, VideoId = videoData.YoutubeId! }),
+                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.DevconImporter, VideoId = videoData.YoutubeId! }),
                  new MetadataImageInput(
                      videoManifestDto.Thumbnail.AspectRatio,
                      videoManifestDto.Thumbnail.Blurhash,
@@ -309,7 +309,7 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
                 videoData.Description,
                 videoData.VideoDataResolutions.First().Duration,
                  $"{videoData.VideoDataResolutions.First().Resolution}",
-                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.Importer, VideoId = videoData.YoutubeId! }),
+                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.DevconImporter, VideoId = videoData.YoutubeId! }),
                  swarmImageRaw,
                  videoData.Title,
                  videoData.VideoDataResolutions.Select(vr => new SourceDto

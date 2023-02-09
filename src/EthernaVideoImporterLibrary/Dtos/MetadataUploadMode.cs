@@ -2,7 +2,8 @@
 {
     public enum MetadataUploadMode
     {
-        Importer,
+        DevconImporter,
+        EthernaImporter,
         WebApp
     }
 }

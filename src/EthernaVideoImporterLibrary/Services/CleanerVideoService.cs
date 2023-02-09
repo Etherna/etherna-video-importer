@@ -29,6 +29,7 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
             if (allVideoDataInfos == null)
                 return;
 
+            Console.WriteLine($"Start cleaner invalid video");
             // Get video indexed
             var importedVideos = await ethernaUserClientsAdapter.GetAllUserVideoAsync(userEthAddr).ConfigureAwait(false);
             var videoIds = importedVideos.Select(
@@ -63,6 +64,8 @@ namespace Etherna.EthernaVideoImporterLibrary.Services
 
         public async Task RunOldDeleterAsync()
         {
+            Console.WriteLine($"Start deleter old video");
+
             var videos = await ethernaUserClientsAdapter.GetAllUserVideoAsync(userEthAddr).ConfigureAwait(false);
             foreach (var video in videos)
             {
