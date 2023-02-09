@@ -20,34 +20,34 @@ namespace Etherna.VideoImporter.Core
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoParseServices videoParseServices;
 
-        // Constractor.
+        // Constructor.
         public Runner(
             ICleanerVideoService cleanerVideoService,
             IEthernaUserClientsAdapter ethernaClientService,
             ILinkReporterService linkReporterService,
             IVideoDownloaderService videoDownloaderService,
-            IVideoUploaderService videoUploaderService,
-            IVideoParseServices videoParseServices)
+            IVideoParseServices videoParseServices,
+            IVideoUploaderService videoUploaderService)
         {
-            if (videoParseServices is null)
-                throw new ArgumentNullException(nameof(videoParseServices));
-            if (linkReporterService is null)
-                throw new ArgumentNullException(nameof(linkReporterService));
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
             if (ethernaClientService is null)
                 throw new ArgumentNullException(nameof(ethernaClientService));
+            if (linkReporterService is null)
+                throw new ArgumentNullException(nameof(linkReporterService));
             if (videoDownloaderService is null)
                 throw new ArgumentNullException(nameof(videoDownloaderService));
+            if (videoParseServices is null)
+                throw new ArgumentNullException(nameof(videoParseServices));
             if (videoUploaderService is null)
                 throw new ArgumentNullException(nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
-            this.linkReporterService = linkReporterService;
             this.ethernaClientService = ethernaClientService;
+            this.linkReporterService = linkReporterService;
             this.videoDownloaderService = videoDownloaderService;
-            this.videoUploaderService = videoUploaderService;
             this.videoParseServices = videoParseServices;
+            this.videoUploaderService = videoUploaderService;
         }
 
         // Public methods.
@@ -60,19 +60,19 @@ namespace Etherna.VideoImporter.Core
             string userEthAddr,
             string tmpFolderFullPath)
         {
-            // Read from files md.
-            Console.WriteLine($"Generate data info from {sourceUri}");
+            // Get video info.
+            Console.WriteLine($"Get video info from {sourceUri}");
             var allVideoMinimalInfos = await videoParseServices.ToVideoDataMinimalInfoDtosAsync(sourceUri).ConfigureAwait(false);
             List<VideoData> allVideoDataInfos = new();
 
-            // User video imported
+            // Get info from index.
             var importedVideos = await ethernaClientService.GetAllUserVideoAsync(userEthAddr).ConfigureAwait(false);
+            var indexParams = await ethernaClientService.GetSystemParametersAsync().ConfigureAwait(false);
 
             // Import each video.
-            var indexParams = await ethernaClientService.GetSystemParametersAsync().ConfigureAwait(false);
-            var videoCount = 0;
             var totalVideo = allVideoMinimalInfos.Count();
-            foreach (var videoMinimal in allVideoMinimalInfos)
+
+            foreach (var (videoMinimal, i) in allVideoMinimalInfos.Select((vi, i) => (vi, i)))
             {
                 try
                 {
@@ -88,7 +88,7 @@ namespace Etherna.VideoImporter.Core
                     allVideoDataInfos.Add(video);
 
                     Console.WriteLine("===============================");
-                    Console.WriteLine($"Start processing video #{++videoCount} of #{totalVideo}");
+                    Console.WriteLine($"Start processing video #{i} of #{totalVideo}");
                     Console.WriteLine($"Title: {video.Title}");
 
                     // Find index video Id.
@@ -183,13 +183,13 @@ namespace Etherna.VideoImporter.Core
 
                     // Import completed.
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"#{videoCount} Video imported successfully");
+                    Console.WriteLine($"#{i} Video imported successfully");
                     Console.ResetColor();
                 }
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error:{ex.Message} \n#{videoCount} Video unable to import\n");
+                    Console.WriteLine($"Error:{ex.Message} \n#{i} Video unable to import\n");
                     Console.ResetColor();
                 }
                 finally
@@ -214,17 +214,12 @@ namespace Etherna.VideoImporter.Core
                 Console.WriteLine($"Done.");
             }
 
-            // Delete old video.
+            // Clean up user channel on Etherna index.
             if (deleteOldVideo)
-            {
                 await cleanerVideoService.RunOldDeleterAsync().ConfigureAwait(false);
-            }
 
-            // User video.
             if (deleteVideosFromOtherSources)
-            {
                 await cleanerVideoService.RunCleanerAsync(allVideoDataInfos).ConfigureAwait(false);
-            }
         }
     }
 }

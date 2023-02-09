@@ -4,6 +4,7 @@ using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Core.Utilities;
+using Etherna.VideoImporter.Devcon.Services;
 using System;
 using System.Globalization;
 using System.IO;
@@ -131,8 +132,8 @@ namespace Etherna.VideoImporter.Devcon
                 ethernaClientService,
                 new LinkReporterService(),
                 videoDownloaderService,
-                videoUploaderService,
-                new YouTubeChannelVideoParserServices());
+                new MdVideoParserService(),
+                videoUploaderService);
             await runner.RunAsync(
                 mdSourceFolderPath,
                 offerVideos,

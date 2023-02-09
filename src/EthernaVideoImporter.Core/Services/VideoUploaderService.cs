@@ -20,7 +20,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly BeeNodeClient beeNodeClient;
         private readonly EthernaUserClientsAdapter ethernaClientService;
         private readonly HttpClient httpClient;
-        private readonly bool includeTrackAudio;
+        private readonly bool includeAudioTrack;
         private readonly int ttlPostageStamp;
         private readonly string userEthAddr;
 
@@ -36,7 +36,7 @@ namespace Etherna.VideoImporter.Core.Services
             EthernaUserClientsAdapter ethernaClientService,
             string userEthAddr,
             HttpClient httpClient,
-            bool includeTrackAudio,
+            bool includeAudioTrack,
             int ttlPostageStamp)
         {
             if (beeNodeClient is null)
@@ -48,7 +48,7 @@ namespace Etherna.VideoImporter.Core.Services
             this.ethernaClientService = ethernaClientService;
             this.userEthAddr = userEthAddr;
             this.httpClient = httpClient;
-            this.includeTrackAudio = includeTrackAudio;
+            this.includeAudioTrack = includeAudioTrack;
             this.ttlPostageStamp = ttlPostageStamp;
         }
 

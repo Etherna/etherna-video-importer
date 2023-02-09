@@ -1,14 +1,16 @@
 ﻿using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
-    internal sealed class MdVideoParserService
+    internal sealed class MdVideoParserService : IVideoParseServices
     {
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
@@ -17,7 +19,7 @@ namespace Etherna.VideoImporter.Devcon.Services
         public static readonly string[] _keywordNames = { "IMAGE", "IMAGEURL", "EDITION", "TITLE", "DESCRIPTION", "YOUTUBEURL", "IPFSHASH", "DURATION", "EXPERTISE", "TYPE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "ETHERNAINDEX", "ETHERNAPERMALINK", "SOURCEID" };
 
         // Methods.
-        public static IEnumerable<VideoDataMinimalInfo> ToVideoDataMinimalInfoDtos(string folderRootPath)
+        public Task<IEnumerable<VideoDataMinimalInfo>> ToVideoDataMinimalInfoDtosAsync(string folderRootPath)
         {
             var videoDataInfoDtos = new List<VideoDataMinimalInfo>();
             var files = Directory.GetFiles(folderRootPath, "*.md", SearchOption.AllDirectories);
@@ -37,9 +39,9 @@ namespace Etherna.VideoImporter.Devcon.Services
                         continue;
 
                     var lineParse = FormatLineForJson(
-                                                line.Replace("edition", "OrderIndex", StringComparison.InvariantCultureIgnoreCase),
-                                                keyFound,
-                                                null);
+                        line.Replace("edition", "OrderIndex", StringComparison.InvariantCultureIgnoreCase),
+                        keyFound,
+                        null);
                     keyFound = true;
                     itemConvertedToJson.Append(lineParse);
                 }
@@ -52,13 +54,12 @@ namespace Etherna.VideoImporter.Devcon.Services
                     videoDataMinimalInfoDto.Uri = sourceFile;
                     videoDataInfoDtos.Add(videoDataMinimalInfoDto);
                 }
-
             }
 
-            return videoDataInfoDtos.OrderBy(item => item.OrderIndex);
+            return Task.FromResult<IEnumerable<VideoDataMinimalInfo>>(videoDataInfoDtos.OrderBy(item => item.OrderIndex));
         }
 
-        public static VideoData? ToVideoDataDtos(string uri)
+        public Task<VideoData?> ToVideoDataDtosAsync(string uri)
         {
             var itemConvertedToJson = new StringBuilder();
             var markerLine = 0;
@@ -109,7 +110,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 }
             }
 
-            return videoDataInfoDto;
+            return Task.FromResult(videoDataInfoDto);
         }
 
         // Helper.
