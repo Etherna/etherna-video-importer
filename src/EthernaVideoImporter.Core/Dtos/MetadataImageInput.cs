@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Etherna.EthernaVideoImporterLibrary.Dtos
+namespace Etherna.VideoImporter.Core.Dtos
 {
     public sealed class MetadataImageInput
     {

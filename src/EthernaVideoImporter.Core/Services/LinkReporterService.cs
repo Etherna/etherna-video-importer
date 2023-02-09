@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporterLibrary.Services
+namespace Etherna.VideoImporter.Core.Services
 {
     public sealed class LinkReporterService : ILinkReporterService
     {

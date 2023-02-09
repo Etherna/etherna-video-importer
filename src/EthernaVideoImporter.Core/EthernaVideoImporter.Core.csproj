@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>Etherna.EthernaVideoImporterLibrary</RootNamespace>
+    <RootNamespace>Etherna.VideoImporter.Core</RootNamespace>
 
     <Authors>Etherna Sagl</Authors>
     <Description>A .Net console for upload video on Etherna</Description>

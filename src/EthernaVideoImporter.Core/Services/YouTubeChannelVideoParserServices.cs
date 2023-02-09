@@ -1,10 +1,10 @@
-﻿using Etherna.EthernaVideoImporterLibrary.Models;
+﻿using Etherna.VideoImporter.Core.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 
-namespace Etherna.EthernaVideoImporterLibrary.Services
+namespace Etherna.VideoImporter.Core.Services
 {
     public sealed class YouTubeChannelVideoParserServices : IVideoParseServices
     {

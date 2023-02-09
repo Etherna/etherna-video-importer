@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporterLibrary.SSO
+namespace Etherna.VideoImporter.Core.SSO
 {
     public class SystemBrowser : IBrowser
     {

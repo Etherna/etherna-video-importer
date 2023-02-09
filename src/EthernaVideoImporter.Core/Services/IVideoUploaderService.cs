@@ -1,8 +1,8 @@
-﻿using Etherna.EthernaVideoImporterLibrary.Models;
-using Etherna.ServicesClient.Clients.Index;
+﻿using Etherna.ServicesClient.Clients.Index;
+using Etherna.VideoImporter.Core.Models;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporterLibrary.Services
+namespace Etherna.VideoImporter.Core.Services
 {
     /// <summary>
     /// Uploader services

@@ -1,10 +1,10 @@
-﻿using Etherna.EthernaVideoImporterLibrary.Utilities;
+﻿using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace Etherna.EthernaVideoImporterLibrary.Models
+namespace Etherna.VideoImporter.Core.Models
 {
     public class VideoData
     {

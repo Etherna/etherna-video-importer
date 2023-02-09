@@ -1,19 +1,14 @@
-﻿using Etherna.BeeNet;
-using Etherna.EthernaVideoImporterLibrary.Dtos;
-using Etherna.EthernaVideoImporterLibrary.Models;
-using Etherna.EthernaVideoImporterLibrary.Services;
-using Etherna.EthernaVideoImporterLibrary.SSO;
-using Etherna.EthernaVideoImporterLibrary.Utilities;
-using Etherna.ServicesClient;
+﻿using Etherna.VideoImporter.Core.Dtos;
+using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
-using YoutubeExplode;
 
-namespace Etherna.EthernaVideoImporterLibrary
+namespace Etherna.VideoImporter.Core
 {
     public class Runner
     {

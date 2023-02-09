@@ -1,9 +1,9 @@
-﻿using Etherna.EthernaVideoImporterLibrary.Utilities;
+﻿using Etherna.VideoImporter.Core.Utilities;
 using IdentityModel.OidcClient;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporterLibrary.SSO
+namespace Etherna.VideoImporter.Core.SSO
 {
     public static class SignServices
     {

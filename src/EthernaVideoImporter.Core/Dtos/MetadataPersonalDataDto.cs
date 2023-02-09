@@ -1,4 +1,4 @@
-﻿namespace Etherna.EthernaVideoImporterLibrary.Dtos
+﻿namespace Etherna.VideoImporter.Core.Dtos
 {
     public class MetadataPersonalDataDto
     {

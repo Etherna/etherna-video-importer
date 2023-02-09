@@ -1,13 +1,12 @@
-﻿using Etherna.BeeNet;
-using Etherna.EthernaVideoImporterLibrary.Dtos;
-using Etherna.EthernaVideoImporterLibrary.Models;
-using Etherna.EthernaVideoImporterLibrary.Utilities;
+﻿using Etherna.VideoImporter.Core.Dtos;
+using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporterLibrary.Services
+namespace Etherna.VideoImporter.Core.Services
 {
     public sealed class CleanerVideoService : ICleanerVideoService
     {

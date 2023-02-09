@@ -1,12 +1,12 @@
-﻿using Etherna.EthernaVideoImporterLibrary.Models;
-using Etherna.ServicesClient;
+﻿using Etherna.ServicesClient;
 using Etherna.ServicesClient.Clients.Index;
+using Etherna.VideoImporter.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporterLibrary.Services
+namespace Etherna.VideoImporter.Core.Services
 {
     public class EthernaUserClientsAdapter : IEthernaUserClientsAdapter
     {

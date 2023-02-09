@@ -1,11 +1,11 @@
-﻿using Etherna.EthernaVideoImporterLibrary.Services;
+﻿using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter.Services
+namespace Etherna.VideoImporter.Devcon.Services
 {
     public sealed class DevconLinkReporterService : ILinkReporterService
     {

@@ -1,8 +1,8 @@
-﻿using Etherna.EthernaVideoImporterLibrary.Models;
+﻿using Etherna.VideoImporter.Core.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporterLibrary.Services
+namespace Etherna.VideoImporter.Core.Services
 {
     public interface ICleanerVideoService
     {

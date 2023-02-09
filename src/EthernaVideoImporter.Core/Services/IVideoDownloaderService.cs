@@ -1,7 +1,7 @@
-﻿using Etherna.EthernaVideoImporterLibrary.Models;
+﻿using Etherna.VideoImporter.Core.Models;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporterLibrary.Services
+namespace Etherna.VideoImporter.Core.Services
 {
     /// <summary>
     /// Downloader services

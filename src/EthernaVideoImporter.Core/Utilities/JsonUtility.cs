@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Etherna.EthernaVideoImporterLibrary.Utilities
+namespace Etherna.VideoImporter.Core.Utilities
 {
     public static class JsonUtility
     {

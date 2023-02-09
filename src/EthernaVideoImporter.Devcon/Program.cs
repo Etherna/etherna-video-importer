@@ -1,9 +1,9 @@
 ﻿using Etherna.BeeNet;
-using Etherna.EthernaVideoImporterLibrary;
-using Etherna.EthernaVideoImporterLibrary.Services;
-using Etherna.EthernaVideoImporterLibrary.SSO;
-using Etherna.EthernaVideoImporterLibrary.Utilities;
 using Etherna.ServicesClient;
+using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.SSO;
+using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Globalization;
 using System.IO;
@@ -11,7 +11,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.EthernaVideoImporter
+namespace Etherna.VideoImporter.Devcon
 {
     internal static class Program
     {
