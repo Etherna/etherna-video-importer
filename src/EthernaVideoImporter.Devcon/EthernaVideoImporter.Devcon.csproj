@@ -34,10 +34,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="FFmpeg\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\EthernaVideoImporter.Core\EthernaVideoImporter.Core.csproj" />
   </ItemGroup>
 

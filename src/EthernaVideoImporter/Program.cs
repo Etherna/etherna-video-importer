@@ -17,15 +17,16 @@ namespace Etherna.VideoImporter
     {
         // Consts.
         private const int DefaultTTLPostageStamp = 365;
+        private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "Etherna Video Importer help:\n\n" +
             "-yc\tYoutube channel url\n" +
             "-yv\tYoutube single video url\n" +
             "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
-            "-d\tDelete old videos that are no longer in channel\n" +
-            "-c\tDelete all index video with no valid manifest or old PersonalData\n" +
-            "-ff\tPath FFmpeg (default dir: FFmpeg\\)\n" +
+            "-d\tRemove old videos that are no longer in source channel\n" +
+            "-c\tRemove present videos not uploaded with this tool from channel\n" +
+            $"-ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
             $"-t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "\n" +
             "-h\tPrint help\n";
@@ -35,14 +36,14 @@ namespace Etherna.VideoImporter
             // Parse arguments.
             string? youtubeChannelUrl = null;
             string? youtubeVideoUrl = null;
-            string? ffMpegFolderPath = null;
+            string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
             int ttlPostageStamp = DefaultTTLPostageStamp;
-            bool offerVideo = false;
-            bool pinVideo = false;
-            bool deleteOldVideo = false;
-            bool deleteInvalidVideo = false;
-            bool includeTrackAudio = false;
+            bool offerVideos = false;
+            bool pinVideos = false;
+            bool deleteSourceRemovedVideos = false;
+            bool deleteVideosFromOtherSources = false;
+            bool includeAudioTrack = false;
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
@@ -50,46 +51,46 @@ namespace Etherna.VideoImporter
                     case "-yc": youtubeChannelUrl = args[++i]; break;
                     case "-yv": youtubeVideoUrl = args[++i]; break;
                     case "-ff": ffMpegFolderPath = args[++i]; break;
-                    case "-f": offerVideo = true; break;
-                    case "-p": pinVideo = true; break;
-                    case "-d": deleteOldVideo = true; break;
-                    case "-c": deleteInvalidVideo = true; break;
+                    case "-f": offerVideos = true; break;
+                    case "-p": pinVideos = true; break;
+                    case "-d": deleteSourceRemovedVideos = true; break;
+                    case "-c": deleteVideosFromOtherSources = true; break;
                     case "-t": ttlPostageStampStr = args[++i]; break;
                     case "-h": Console.Write(HelpText); return;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
-            if (ffMpegFolderPath is not null &&
-                !Directory.Exists(ffMpegFolderPath))
+
+            // Input validation.
+            //FFmpeg dir
+            if (!Directory.Exists(ffMpegFolderPath))
             {
-                Console.WriteLine($"Path FFmpeg not found ({ffMpegFolderPath})");
+                Console.WriteLine($"FFmpeg not found at ({ffMpegFolderPath})");
                 return;
             }
-            ffMpegFolderPath ??= "FFmpeg\\";
 
+            //ttl postage batch
             if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
-                Int32.TryParse(ttlPostageStampStr, CultureInfo.CurrentCulture, out ttlPostageStamp))
+                int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
             {
-                Console.WriteLine($"Invalid value for TTL Postage Stamp, will be set default value");
-                ttlPostageStamp = DefaultTTLPostageStamp;
+                Console.WriteLine($"Invalid value for TTL Postage Stamp");
+                return;
             }
 
-            // Request missing params.
+            //sources
             var sourceParam = 0;
             sourceParam += string.IsNullOrWhiteSpace(youtubeChannelUrl) ? 0 : 1;
             sourceParam += string.IsNullOrWhiteSpace(youtubeVideoUrl) ? 0 : 1;
             switch (sourceParam)
             {
                 case 0:
-                    Console.WriteLine("Missing require param (one of: -ch or -yt)");
+                    Console.WriteLine("Missing required source param (one of: -ch or -yt)");
                     return;
                 case > 1:
-                    Console.WriteLine("Only one of require param (one of: -ch or -yt)");
+                    Console.WriteLine("Select only one source param (one of: -ch or -yt)");
                     return;
             }
-
             var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
-
 
             // Check tmp folder.
             const string tmpFolder = "tmpData";
@@ -121,20 +122,20 @@ namespace Etherna.VideoImporter
                 new Uri(CommonConst.SSO_AUTHORITY),
                 () => httpClient);
             var ethernaClientService = new EthernaUserClientsAdapter(ethernaUserClients);
-            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath, includeTrackAudio);
+            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath, includeAudioTrack);
             using var beeNodeClient = new BeeNodeClient(
                 CommonConst.ETHERNA_GATEWAY,
                 CommonConst.BEENODE_GATEWAYPORT,
                 null,
                 CommonConst.BEENODE_GATEWAYVERSION,
-                CommonConst.BEENODE_DEBUGAVERSION,
+                CommonConst.BEENODE_DEBUGVERSION,
                 httpClient);
             var videoUploaderService = new VideoUploaderService(
                 beeNodeClient,
                 ethernaClientService,
                 userEthAddr,
                 httpClient,
-                includeTrackAudio,
+                includeAudioTrack,
                 ttlPostageStamp);
 
             // Call runner.
@@ -147,13 +148,12 @@ namespace Etherna.VideoImporter
                 new YouTubeChannelVideoParserServices());
             await runner.RunAsync(
                 sourceUri,
-                offerVideo,
-                pinVideo,
-                deleteOldVideo,
-                deleteInvalidVideo,
+                offerVideos,
+                pinVideos,
+                deleteSourceRemovedVideos,
+                deleteVideosFromOtherSources,
                 userEthAddr,
                 tmpFolderFullPath).ConfigureAwait(false);
-
         }
     }
 }

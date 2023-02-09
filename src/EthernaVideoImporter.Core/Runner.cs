@@ -56,7 +56,7 @@ namespace Etherna.VideoImporter.Core
             bool offerVideo, 
             bool pinVideo, 
             bool deleteOldVideo,
-            bool deleteInvalidVideo,
+            bool deleteVideosFromOtherSources,
             string userEthAddr,
             string tmpFolderFullPath)
         {
@@ -221,7 +221,7 @@ namespace Etherna.VideoImporter.Core
             }
 
             // User video.
-            if (deleteInvalidVideo)
+            if (deleteVideosFromOtherSources)
             {
                 await cleanerVideoService.RunCleanerAsync(allVideoDataInfos).ConfigureAwait(false);
             }

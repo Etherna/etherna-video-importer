@@ -17,14 +17,15 @@ namespace Etherna.VideoImporter.Devcon
     {
         // Consts.
         private const int DefaultTTLPostageStamp = 365;
+        private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "Etherna Video Importer for Devcon Archive help:\n\n" +
             "-md\tSource folder path with *.md files to import\n" +
             "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
-            "-d\tDelete old videos that are no longer in the .MD files\n" +
-            "-c\tDelete all index video with no valid manifest or old PersonalData\n" +
-            "-ff\tPath FFmpeg (default dir: FFmpeg\\)\n" +
+            "-d\tRemove old videos that are no longer in the .MD files\n" +
+            "-c\tRemove present videos not uploaded with this tool from channel\n" +
+            $"-ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
             $"-t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "\n" +
             "-h\tPrint help\n";
@@ -32,52 +33,51 @@ namespace Etherna.VideoImporter.Devcon
         static async Task Main(string[] args)
         {
             // Parse arguments.
-            string? sourceFolderPath = null;
-            string? ffMpegFolderPath = null;
+            string? mdSourceFolderPath = null;
+            string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
             int ttlPostageStamp = DefaultTTLPostageStamp;
-            bool offerVideo = false;
-            bool pinVideo = false;
-            bool deleteOldVideo = false;
-            bool deleteInvalidVideo = false;
-            bool includeTrackAudio = false;
+            bool offerVideos = false;
+            bool pinVideos = false;
+            bool deleteSourceRemovedVideos = false;
+            bool deleteVideosFromOtherSources = false;
+            bool includeAudioTrack = false;
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
                 {
-                    case "-md": sourceFolderPath = args[++i]; break;
+                    case "-md": mdSourceFolderPath = args[++i]; break;
                     case "-ff": ffMpegFolderPath = args[++i]; break;
-                    case "-f": offerVideo = true; break;
-                    case "-p": pinVideo = true; break;
-                    case "-d": deleteOldVideo = true; break;
-                    case "-c": deleteInvalidVideo = true; break;
+                    case "-f": offerVideos = true; break;
+                    case "-p": pinVideos = true; break;
+                    case "-d": deleteSourceRemovedVideos = true; break;
+                    case "-c": deleteVideosFromOtherSources = true; break;
                     case "-t": ttlPostageStampStr = args[++i]; break;
                     case "-h": Console.Write(HelpText); return;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
 
-            // FFMPeg dir.
-            if (ffMpegFolderPath is not null &&
-                !Directory.Exists(ffMpegFolderPath))
+            // Input validation.
+            //FFmpeg dir
+            if (!Directory.Exists(ffMpegFolderPath))
             {
-                Console.WriteLine($"Path FFmpeg not found ({ffMpegFolderPath})");
+                Console.WriteLine($"FFmpeg not found at ({ffMpegFolderPath})");
                 return;
             }
-            ffMpegFolderPath ??= "FFmpeg\\";
 
-            // TTL Postage batch.
+            //ttl postage batch
             if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
-                Int32.TryParse(ttlPostageStampStr, CultureInfo.CurrentCulture, out ttlPostageStamp))
+                int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
             {
-                Console.WriteLine($"Invalid value for TTL Postage Stamp, will be set default value");
-                ttlPostageStamp = DefaultTTLPostageStamp;
+                Console.WriteLine($"Invalid value for TTL Postage Stamp");
+                return;
             }
 
-            // Request missing params.
+            // Interactive mode for missing params.
             Console.WriteLine();
             Console.WriteLine("Source folder path with *.md files to import:");
-            sourceFolderPath = ReadStringIfEmpty(sourceFolderPath);
+            mdSourceFolderPath = ReadStringIfEmpty(mdSourceFolderPath);
 
             // Check tmp folder.
             const string tmpFolder = "tmpData";
@@ -109,20 +109,20 @@ namespace Etherna.VideoImporter.Devcon
                 new Uri(CommonConst.SSO_AUTHORITY),
                 () => httpClient);
             var ethernaClientService = new EthernaUserClientsAdapter(ethernaUserClients);
-            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath, includeTrackAudio);
+            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath, includeAudioTrack);
             using var beeNodeClient = new BeeNodeClient(
                 CommonConst.ETHERNA_GATEWAY,
                 CommonConst.BEENODE_GATEWAYPORT,
                 null,
                 CommonConst.BEENODE_GATEWAYVERSION,
-                CommonConst.BEENODE_DEBUGAVERSION,
+                CommonConst.BEENODE_DEBUGVERSION,
                 httpClient);
             var videoUploaderService = new VideoUploaderService(
                 beeNodeClient,
                 ethernaClientService,
                 userEthAddr,
                 httpClient,
-                includeTrackAudio,
+                includeAudioTrack,
                 ttlPostageStamp);
 
             // Call runner.
@@ -134,11 +134,11 @@ namespace Etherna.VideoImporter.Devcon
                 videoUploaderService,
                 new YouTubeChannelVideoParserServices());
             await runner.RunAsync(
-                sourceFolderPath,
-                offerVideo,
-                pinVideo,
-                deleteOldVideo,
-                deleteInvalidVideo,
+                mdSourceFolderPath,
+                offerVideos,
+                pinVideos,
+                deleteSourceRemovedVideos,
+                deleteVideosFromOtherSources,
                 userEthAddr,
                 tmpFolderFullPath).ConfigureAwait(false);
         }
