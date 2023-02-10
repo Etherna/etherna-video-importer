@@ -4,7 +4,7 @@ using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Core.Utilities;
-using Etherna.VideoImporter.Services;
+using Etherna.VideoImporter.Devcon.Services;
 using System;
 using System.Globalization;
 using System.IO;
@@ -12,7 +12,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.VideoImporter
+namespace Etherna.VideoImporter.Devcon
 {
     internal static class Program
     {
@@ -20,12 +20,11 @@ namespace Etherna.VideoImporter
         private const int DefaultTTLPostageStamp = 365;
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
-            "Etherna Video Importer help:\n\n" +
-            "-yc\tYoutube channel url\n" +
-            "-yv\tYoutube single video url\n" +
+            "Etherna Video Importer for Devcon Archive help:\n\n" +
+            "-md\tSource folder path with *.md files to import\n" +
             "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
-            "-d\tRemove old videos that are no longer in source channel\n" +
+            "-d\tRemove old videos that are no longer in the .MD files\n" +
             "-c\tRemove present videos not uploaded with this tool from channel\n" +
             $"-ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
             $"-t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
@@ -35,8 +34,7 @@ namespace Etherna.VideoImporter
         static async Task Main(string[] args)
         {
             // Parse arguments.
-            string? youtubeChannelUrl = null;
-            string? youtubeVideoUrl = null;
+            string? mdSourceFolderPath = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
             int ttlPostageStamp = DefaultTTLPostageStamp;
@@ -49,8 +47,7 @@ namespace Etherna.VideoImporter
             {
                 switch (args[i])
                 {
-                    case "-yc": youtubeChannelUrl = args[++i]; break;
-                    case "-yv": youtubeVideoUrl = args[++i]; break;
+                    case "-md": mdSourceFolderPath = args[++i]; break;
                     case "-ff": ffMpegFolderPath = args[++i]; break;
                     case "-f": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
@@ -78,20 +75,10 @@ namespace Etherna.VideoImporter
                 return;
             }
 
-            //sources
-            var sourceParam = 0;
-            sourceParam += string.IsNullOrWhiteSpace(youtubeChannelUrl) ? 0 : 1;
-            sourceParam += string.IsNullOrWhiteSpace(youtubeVideoUrl) ? 0 : 1;
-            switch (sourceParam)
-            {
-                case 0:
-                    Console.WriteLine("Missing required source param (one of: -ch or -yt)");
-                    return;
-                case > 1:
-                    Console.WriteLine("Select only one source param (one of: -ch or -yt)");
-                    return;
-            }
-            var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
+            // Interactive mode for missing params.
+            Console.WriteLine();
+            Console.WriteLine("Source folder path with *.md files to import:");
+            mdSourceFolderPath = ReadStringIfEmpty(mdSourceFolderPath);
 
             // Check tmp folder.
             const string tmpFolder = "tmpData";
@@ -145,10 +132,10 @@ namespace Etherna.VideoImporter
                 ethernaClientService,
                 new LinkReporterService(),
                 videoDownloaderService,
-                new YouTubeChannelVideoParserServices(),
+                new MdVideoParserService(),
                 videoUploaderService);
             await runner.RunAsync(
-                sourceUri,
+                mdSourceFolderPath,
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,
@@ -156,5 +143,23 @@ namespace Etherna.VideoImporter
                 userEthAddr,
                 tmpFolderFullPath).ConfigureAwait(false);
         }
+
+        // Private helpers.
+        private static string ReadStringIfEmpty(string? strValue)
+        {
+            if (string.IsNullOrWhiteSpace(strValue))
+            {
+                while (string.IsNullOrWhiteSpace(strValue))
+                {
+                    strValue = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(strValue))
+                        Console.WriteLine("*Empty string not allowed*");
+                }
+            }
+            else Console.WriteLine(strValue);
+
+            return strValue;
+        }
+
     }
 }

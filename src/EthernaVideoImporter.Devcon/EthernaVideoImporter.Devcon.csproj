@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>Etherna.VideoImporter</RootNamespace>
+    <RootNamespace>Etherna.VideoImporter.Devcon</RootNamespace>
 
     <Authors>Etherna Sagl</Authors>
     <Description>A .Net console for upload video on Etherna</Description>
@@ -36,5 +36,5 @@
   <ItemGroup>
     <ProjectReference Include="..\EthernaVideoImporter.Core\EthernaVideoImporter.Core.csproj" />
   </ItemGroup>
-  
+
 </Project>
