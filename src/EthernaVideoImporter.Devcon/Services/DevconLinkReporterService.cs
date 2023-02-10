@@ -13,24 +13,14 @@ namespace Etherna.VideoImporter.Devcon.Services
         private const string EthernaIndexPrefix = "ethernaIndex:";
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
 
-        private readonly string sourceUri;
-
-        // Constructors.
-        public DevconLinkReporterService(string sourceUri)
-        {
-            if (string.IsNullOrWhiteSpace(sourceUri))
-                throw new ArgumentNullException(nameof(sourceUri));
-
-            this.sourceUri = sourceUri;
-        }
-
         // Methods.
         public async Task SetEthernaFieldsAsync(
+            string destinationUri,
             string ethernaIndex,
             string ethernaPermalink)
         {
             // Reaad all line.
-            var lines = File.ReadLines(sourceUri).ToList();
+            var lines = File.ReadLines(destinationUri).ToList();
 
             // Set ethernaIndex.
             var index = GetLineNumber(lines, EthernaIndexPrefix);
@@ -49,7 +39,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaPermalinkLine);
 
             // Save file.
-            await File.WriteAllLinesAsync(sourceUri, lines).ConfigureAwait(false);
+            await File.WriteAllLinesAsync(destinationUri, lines).ConfigureAwait(false);
         }
 
         // Helpers.

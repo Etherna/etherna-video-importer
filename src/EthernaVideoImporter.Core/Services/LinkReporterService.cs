@@ -11,6 +11,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Methods.
         public Task SetEthernaFieldsAsync(
+            string destinationUri,
             string ethernaIndex,
             string ethernaPermalink)
         {

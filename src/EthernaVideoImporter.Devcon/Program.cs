@@ -130,7 +130,7 @@ namespace Etherna.VideoImporter.Devcon
             var runner = new Runner(
                 new CleanerVideoService(ethernaClientService, userEthAddr),
                 ethernaClientService,
-                new LinkReporterService(),
+                new DevconLinkReporterService(),
                 videoDownloaderService,
                 new MdVideoParserService(),
                 videoUploaderService);

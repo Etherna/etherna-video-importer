@@ -178,6 +178,7 @@ namespace Etherna.VideoImporter.Core
                     // Save MD file with etherna values.
                     Console.WriteLine($"Save etherna values in file {video.MdFilepath}\n");
                     await linkReporterService.SetEthernaFieldsAsync(
+                        video.MdFilepath!,
                         video.EthernaIndex!,
                         video.EthernaPermalink!).ConfigureAwait(false);
 
