@@ -57,8 +57,7 @@ namespace Etherna.VideoImporter.Core
             bool pinVideo, 
             bool deleteOldVideo,
             bool deleteVideosFromOtherSources,
-            string userEthAddr,
-            string tmpFolderFullPath)
+            string userEthAddr)
         {
             // Get video info.
             Console.WriteLine($"Get video info from {sourceUri}");
@@ -191,24 +190,6 @@ namespace Etherna.VideoImporter.Core
                     Console.ForegroundColor = ConsoleColor.DarkRed;
                     Console.WriteLine($"Error:{ex.Message} \n#{i} Video unable to import\n");
                     Console.ResetColor();
-                }
-                finally
-                {
-                    try
-                    {
-                        // Clear tmp folder.
-                        var di = new DirectoryInfo(tmpFolderFullPath);
-                        foreach (var file in di.GetFiles().OrderBy(file => file.CreationTime))
-                            file.Delete();
-                        foreach (var dir in di.GetDirectories().OrderBy(file => file.CreationTime))
-                            dir.Delete(true);
-                    }
-                    catch
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Warning: Unable to clear some file insede of {tmpFolderFullPath} please remove manually\n");
-                        Console.ResetColor();
-                    }
                 }
 
                 Console.WriteLine($"Done.");

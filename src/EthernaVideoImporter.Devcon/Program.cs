@@ -80,12 +80,6 @@ namespace Etherna.VideoImporter.Devcon
             Console.WriteLine("Source folder path with *.md files to import:");
             mdSourceFolderPath = ReadStringIfEmpty(mdSourceFolderPath);
 
-            // Check tmp folder.
-            const string tmpFolder = "tmpData";
-            if (!Directory.Exists(tmpFolder))
-                Directory.CreateDirectory(tmpFolder);
-            var tmpFolderFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, tmpFolder);
-
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO().ConfigureAwait(false);
             if (authResult.IsError)
@@ -110,7 +104,7 @@ namespace Etherna.VideoImporter.Devcon
                 new Uri(CommonConst.SSO_AUTHORITY),
                 () => httpClient);
             var ethernaClientService = new EthernaUserClientsAdapter(ethernaUserClients);
-            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath, includeAudioTrack);
+            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, includeAudioTrack);
             using var beeNodeClient = new BeeNodeClient(
                 CommonConst.ETHERNA_GATEWAY,
                 CommonConst.BEENODE_GATEWAYPORT,
@@ -140,8 +134,7 @@ namespace Etherna.VideoImporter.Devcon
                 pinVideos,
                 deleteSourceRemovedVideos,
                 deleteVideosFromOtherSources,
-                userEthAddr,
-                tmpFolderFullPath).ConfigureAwait(false);
+                userEthAddr).ConfigureAwait(false);
         }
 
         // Private helpers.
