@@ -1,4 +1,19 @@
-﻿using Etherna.VideoImporter.Core.Dtos;
+﻿//   Copyright 2022-present Etherna Sagl
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+using Etherna.ServicesClient.Clients.Index;
+using Etherna.VideoImporter.Core.Dtos;
 using Etherna.VideoImporter.Core.Models;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -14,7 +29,7 @@ namespace Etherna.VideoImporter.Core
     {
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
-        private readonly IEthernaUserClientsAdapter ethernaClientService;
+        private readonly IUserIndexClient ethernaIndexClient;
         private readonly ILinkReporterService linkReporterService;
         private readonly IVideoDownloaderService videoDownloaderService;
         private readonly IVideoUploaderService videoUploaderService;
@@ -23,7 +38,7 @@ namespace Etherna.VideoImporter.Core
         // Constructor.
         public Runner(
             ICleanerVideoService cleanerVideoService,
-            IEthernaUserClientsAdapter ethernaClientService,
+            IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoDownloaderService videoDownloaderService,
             IVideoParseServices videoParseServices,
@@ -31,8 +46,6 @@ namespace Etherna.VideoImporter.Core
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
-            if (ethernaClientService is null)
-                throw new ArgumentNullException(nameof(ethernaClientService));
             if (linkReporterService is null)
                 throw new ArgumentNullException(nameof(linkReporterService));
             if (videoDownloaderService is null)
@@ -43,7 +56,7 @@ namespace Etherna.VideoImporter.Core
                 throw new ArgumentNullException(nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
-            this.ethernaClientService = ethernaClientService;
+            this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
             this.videoDownloaderService = videoDownloaderService;
             this.videoParseServices = videoParseServices;
@@ -57,8 +70,7 @@ namespace Etherna.VideoImporter.Core
             bool pinVideo, 
             bool deleteOldVideo,
             bool deleteVideosFromOtherSources,
-            string userEthAddr,
-            string tmpFolderFullPath)
+            string userEthAddr)
         {
             // Get video info.
             Console.WriteLine($"Get video info from {sourceUri}");
@@ -66,8 +78,8 @@ namespace Etherna.VideoImporter.Core
             List<VideoData> allVideoDataInfos = new();
 
             // Get info from index.
-            var importedVideos = await ethernaClientService.GetAllUserVideoAsync(userEthAddr).ConfigureAwait(false);
-            var indexParams = await ethernaClientService.GetSystemParametersAsync().ConfigureAwait(false);
+            var importedVideos = await GetAllUserVideoAsync(userEthAddr).ConfigureAwait(false);
+            var indexParams = await ethernaIndexClient.SystemClient.ParametersAsync().ConfigureAwait(false);
 
             // Import each video.
             var totalVideo = allVideoMinimalInfos.Count();
@@ -103,7 +115,17 @@ namespace Etherna.VideoImporter.Core
                         ?.IndexVideoId;
 
                     // Check last valid manifest, if exist.
-                    var lastValidManifest = await ethernaClientService.GetLastValidManifestAsync(indexVideoId).ConfigureAwait(false);
+                    VideoManifestDto? lastValidManifest = null;
+                    if (!string.IsNullOrWhiteSpace(indexVideoId))
+                    {
+                        try
+                        {
+                            var videoDto = await ethernaIndexClient.VideosClient.VideosGetAsync(indexVideoId).ConfigureAwait(false);
+                            lastValidManifest = videoDto.LastValidManifest;
+                        }
+                        catch (IndexApiException ex) when (ex.StatusCode == 404) { }
+                    }
+
                     if (lastValidManifest is not null)
                     {
                         // Check if manifest contain the same url of current md file.
@@ -172,7 +194,7 @@ namespace Etherna.VideoImporter.Core
                     {
                         // Change metadata info.
                         var hashMetadataReference = await videoUploaderService.UploadMetadataAsync(lastValidManifest, video, pinVideo).ConfigureAwait(false);
-                        await ethernaClientService.UpsertManifestToIndex(hashMetadataReference, video).ConfigureAwait(false);
+                        await UpsertManifestToIndex(hashMetadataReference, video).ConfigureAwait(false);
                     }
 
                     // Save MD file with etherna values.
@@ -193,34 +215,67 @@ namespace Etherna.VideoImporter.Core
                     Console.WriteLine($"Error:{ex.Message} \n#{i} Video unable to import\n");
                     Console.ResetColor();
                 }
-                finally
-                {
-                    try
-                    {
-                        // Clear tmp folder.
-                        var di = new DirectoryInfo(tmpFolderFullPath);
-                        foreach (var file in di.GetFiles().OrderBy(file => file.CreationTime))
-                            file.Delete();
-                        foreach (var dir in di.GetDirectories().OrderBy(file => file.CreationTime))
-                            dir.Delete(true);
-                    }
-                    catch
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Warning: Unable to clear some file insede of {tmpFolderFullPath} please remove manually\n");
-                        Console.ResetColor();
-                    }
-                }
 
                 Console.WriteLine($"Done.");
             }
 
             // Clean up user channel on Etherna index.
             if (deleteOldVideo)
-                await cleanerVideoService.RunOldDeleterAsync().ConfigureAwait(false);
+                await cleanerVideoService.RunOldDeleterAsync(importedVideos).ConfigureAwait(false);
 
             if (deleteVideosFromOtherSources)
-                await cleanerVideoService.RunCleanerAsync(allVideoDataInfos).ConfigureAwait(false);
+                await cleanerVideoService.RunCleanerAsync(allVideoDataInfos, importedVideos).ConfigureAwait(false);
+        }
+
+        // Helpers.
+        public async Task<IEnumerable<VideoDto>> GetAllUserVideoAsync(string userAddress)
+        {
+            var elements = new List<VideoDto>();
+            const int MaxForPage = 100;
+
+            for (var currentPage = 0; true; currentPage++)
+            {
+                var result = await ethernaIndexClient.UsersClient.Videos2Async(userAddress, currentPage, MaxForPage).ConfigureAwait(false);
+
+                if (result?.Elements is null ||
+                    !result.Elements.Any())
+                    return elements;
+
+                elements.AddRange(result.Elements);
+            }
+        }
+
+        private async Task<string> UpsertManifestToIndex(
+            string hashReferenceMetadata,
+            VideoData videoData)
+        {
+            if (videoData is null)
+                throw new ArgumentNullException(nameof(videoData));
+
+            if (!string.IsNullOrEmpty(videoData.IndexVideoId))
+            {
+                // Update manifest index.
+                Console.WriteLine($"Update Index: {videoData!.IndexVideoId}\t{hashReferenceMetadata}");
+
+                await ethernaIndexClient.VideosClient.VideosPutAsync(videoData.IndexVideoId!, hashReferenceMetadata).ConfigureAwait(false);
+
+                return videoData.IndexVideoId!;
+            }
+            else
+            {
+                // Create new manifest index.
+                Console.WriteLine($"Create Index: {hashReferenceMetadata}");
+
+                var videoCreateInput = new VideoCreateInput
+                {
+                    ManifestHash = hashReferenceMetadata,
+                };
+                var indexVideoId = await ethernaIndexClient.VideosClient.VideosPostAsync(videoCreateInput).ConfigureAwait(false);
+
+                videoData.SetEthernaIndex(indexVideoId);
+
+                return indexVideoId;
+            }
         }
     }
 }

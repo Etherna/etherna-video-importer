@@ -1,4 +1,18 @@
-﻿using Etherna.BeeNet;
+﻿//   Copyright 2022-present Etherna Sagl
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+using Etherna.BeeNet;
 using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
@@ -93,12 +107,6 @@ namespace Etherna.VideoImporter
             }
             var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
 
-            // Check tmp folder.
-            const string tmpFolder = "tmpData";
-            if (!Directory.Exists(tmpFolder))
-                Directory.CreateDirectory(tmpFolder);
-            var tmpFolderFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, tmpFolder);
-
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO().ConfigureAwait(false);
             if (authResult.IsError)
@@ -122,8 +130,7 @@ namespace Etherna.VideoImporter
                 new Uri(CommonConst.ETHERNA_INDEX),
                 new Uri(CommonConst.SSO_AUTHORITY),
                 () => httpClient);
-            var ethernaClientService = new EthernaUserClientsAdapter(ethernaUserClients);
-            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath, includeAudioTrack);
+            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, includeAudioTrack);
             using var beeNodeClient = new BeeNodeClient(
                 CommonConst.ETHERNA_GATEWAY,
                 CommonConst.BEENODE_GATEWAYPORT,
@@ -133,7 +140,8 @@ namespace Etherna.VideoImporter
                 httpClient);
             var videoUploaderService = new VideoUploaderService(
                 beeNodeClient,
-                ethernaClientService,
+                ethernaUserClients.GatewayClient,
+                ethernaUserClients.IndexClient,
                 userEthAddr,
                 httpClient,
                 includeAudioTrack,
@@ -141,8 +149,8 @@ namespace Etherna.VideoImporter
 
             // Call runner.
             var runner = new Runner(
-                new CleanerVideoService(ethernaClientService, userEthAddr),
-                ethernaClientService,
+                new CleanerVideoService(ethernaUserClients.IndexClient),
+                ethernaUserClients.IndexClient,
                 new LinkReporterService(),
                 videoDownloaderService,
                 new YouTubeChannelVideoParserServices(),
@@ -153,8 +161,7 @@ namespace Etherna.VideoImporter
                 pinVideos,
                 deleteSourceRemovedVideos,
                 deleteVideosFromOtherSources,
-                userEthAddr,
-                tmpFolderFullPath).ConfigureAwait(false);
+                userEthAddr).ConfigureAwait(false);
         }
     }
 }
