@@ -107,12 +107,6 @@ namespace Etherna.VideoImporter
             }
             var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
 
-            // Check tmp folder.
-            const string tmpFolder = "tmpData";
-            if (!Directory.Exists(tmpFolder))
-                Directory.CreateDirectory(tmpFolder);
-            var tmpFolderFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, tmpFolder);
-
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO().ConfigureAwait(false);
             if (authResult.IsError)
@@ -137,7 +131,7 @@ namespace Etherna.VideoImporter
                 new Uri(CommonConst.SSO_AUTHORITY),
                 () => httpClient);
             var ethernaClientService = new EthernaUserClientsAdapter(ethernaUserClients);
-            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, tmpFolderFullPath, includeAudioTrack);
+            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, includeAudioTrack);
             using var beeNodeClient = new BeeNodeClient(
                 CommonConst.ETHERNA_GATEWAY,
                 CommonConst.BEENODE_GATEWAYPORT,
@@ -167,8 +161,7 @@ namespace Etherna.VideoImporter
                 pinVideos,
                 deleteSourceRemovedVideos,
                 deleteVideosFromOtherSources,
-                userEthAddr,
-                tmpFolderFullPath).ConfigureAwait(false);
+                userEthAddr).ConfigureAwait(false);
         }
     }
 }

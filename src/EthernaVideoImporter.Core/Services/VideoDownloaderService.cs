@@ -36,19 +36,18 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly string ffMpegFolderPath;
         private readonly bool includeTrackAudio;
-        private readonly string tmpFolder;
+        private readonly DirectoryInfo tempDirectory;
         private readonly HttpClient client = new();
         private readonly YoutubeClient youTubeClient = new();
 
         // Constractor.
         public VideoDownloaderService(
             string ffMpegFolderPath,
-            string tmpFolder,
             bool includeTrackAudio)
         {
             this.ffMpegFolderPath = ffMpegFolderPath;
-            this.tmpFolder = tmpFolder;
             this.includeTrackAudio = includeTrackAudio;
+            tempDirectory = Directory.CreateTempSubdirectory();
         }
 
         // Public methods.
@@ -164,7 +163,7 @@ namespace Etherna.VideoImporter.Core.Services
             var filename = $"{videoTitle}.audio.{audioStream.Container}";
             var videoDataResolution = new VideoDataResolution(
                 audioStream.Bitrate.BitsPerSecond,
-                Path.Combine(tmpFolder, filename),
+                Path.Combine(tempDirectory.FullName, filename),
                 videoName,
                 "0p");
             if (videoManifest.Duration is null)
@@ -216,7 +215,7 @@ namespace Etherna.VideoImporter.Core.Services
             var filename = audioStreamForMuxInfo is null ? $"{videoName}.{videoStreamInfo.Container}" : $"{videoName}.muxed.{videoStreamInfo.Container}";
             var videoDataResolution = new VideoDataResolution(
                 videoStreamInfo.Bitrate.BitsPerSecond,
-                Path.Combine(tmpFolder, filename),
+                Path.Combine(tempDirectory.FullName, filename),
                 videoName,
                 videoStreamInfo.VideoQuality.Label);
             if (videoManifest.Duration is null)
@@ -282,7 +281,7 @@ namespace Etherna.VideoImporter.Core.Services
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
-            string filePath = $"{tmpFolder}/{videoManifest.Id}_{videoHeight}.jpg";
+            string filePath = Path.Combine(tempDirectory.FullName, $"{videoManifest.Id}_{videoHeight}.jpg");
             var i = 0;
             while (i < MAX_RETRY)
                 try
