@@ -1,4 +1,4 @@
-﻿//   Copyright 2021-present Etherna Sagl
+﻿//   Copyright 2022-present Etherna Sagl
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
