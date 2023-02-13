@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
+using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Dtos;
 using Etherna.VideoImporter.Core.Models;
@@ -30,24 +31,28 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public sealed class VideoUploaderService : IVideoUploaderService
     {
+        // Const.
+        private readonly TimeSpan BATCH_CHECK_TIME = new(0, 0, 0, 10);
+        private readonly TimeSpan BATCH_TIMEOUT_TIME = new(0, 0, 7, 0);
+        private const int BLOCK_TIME = 5;
+        private const int MAX_RETRY = 3;
+        private const int WAITING_PROPAGATION_BATCH_SECONDS = 5000; // ms.
+        private const int WAITING_PROPAGATION_BATCH_RETRY = 50; // retry.
+
         // Fields.
         private readonly BeeNodeClient beeNodeClient;
-        private readonly EthernaUserClientsAdapter ethernaClientService;
+        private readonly IUserGatewayClient ethernaGatewayClient;
+        private readonly IUserIndexClient ethernaIndexClient;
         private readonly HttpClient httpClient;
         private readonly bool includeAudioTrack;
         private readonly int ttlPostageStamp;
         private readonly string userEthAddr;
 
-
-        // Const.
-        private readonly TimeSpan BATCH_CHECK_TIME = new(0, 0, 0, 10);
-        private readonly TimeSpan BATCH_TIMEOUT_TIME = new(0, 0, 7, 0);
-        private const int MAX_RETRY = 3;
-
         // Constractor.
         public VideoUploaderService(
             BeeNodeClient beeNodeClient,
-            EthernaUserClientsAdapter ethernaClientService,
+            IUserGatewayClient ethernaGatewayClient,
+            IUserIndexClient ethernaIndexClient,
             string userEthAddr,
             HttpClient httpClient,
             bool includeAudioTrack,
@@ -55,11 +60,10 @@ namespace Etherna.VideoImporter.Core.Services
         {
             if (beeNodeClient is null)
                 throw new ArgumentNullException(nameof(beeNodeClient));
-            if (ethernaClientService is null)
-                throw new ArgumentNullException(nameof(ethernaClientService));
 
             this.beeNodeClient = beeNodeClient;
-            this.ethernaClientService = ethernaClientService;
+            this.ethernaGatewayClient = ethernaGatewayClient;
+            this.ethernaIndexClient = ethernaIndexClient;
             this.userEthAddr = userEthAddr;
             this.httpClient = httpClient;
             this.includeAudioTrack = includeAudioTrack;
@@ -79,7 +83,7 @@ namespace Etherna.VideoImporter.Core.Services
             // Create new batch.
             Console.WriteLine("Create batch...");
 
-            var batchReferenceId = await ethernaClientService.CreateBatchAsync(videoData, ttlPostageStamp).ConfigureAwait(false);
+            var batchReferenceId = await CreateBatchAsync(videoData, ttlPostageStamp).ConfigureAwait(false);
 
             // Check and wait until created batchId is avaiable.
             Console.WriteLine("Waiting for batch ready...");
@@ -105,7 +109,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Check and wait until created batch is usable.
             timeWaited = 0;
-            bool batchUsable;
+            bool batchUsable = false;
             do
             {
                 // Timeout throw exception.
@@ -118,7 +122,21 @@ namespace Etherna.VideoImporter.Core.Services
 
                 // Waiting for batch ready.
                 await Task.Delay((int)BATCH_CHECK_TIME.TotalMilliseconds).ConfigureAwait(false);
-                batchUsable = await ethernaClientService.IsBatchUsableAsync(batchId).ConfigureAwait(false);
+
+                //waiting propagation time on bee
+                for (int i = 0; i <= WAITING_PROPAGATION_BATCH_RETRY; i++)
+                {
+                    if (i == WAITING_PROPAGATION_BATCH_RETRY)
+                        throw new InvalidOperationException($"Some error during get batch status");
+
+                    try
+                    {
+                        batchUsable = (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId).ConfigureAwait(false)).Usable;
+                        break;
+                    }
+                    catch { await Task.Delay(WAITING_PROPAGATION_BATCH_SECONDS).ConfigureAwait(false); }
+                }
+
                 timeWaited += BATCH_CHECK_TIME.TotalSeconds;
             } while (!batchUsable);
 
@@ -128,12 +146,14 @@ namespace Etherna.VideoImporter.Core.Services
                 // Upload video.
                 var videoReference = await UploadFileVideoAsync(pinVideo, specificVideoResolution, batchId).ConfigureAwait(false);
                 specificVideoResolution.SetUploadedVideoReference(videoReference);
-                if (offerVideo)
-                    await ethernaClientService.OfferResourceAsync(specificVideoResolution.UploadedVideoReference!).ConfigureAwait(false);
+
+                if (offerVideo && specificVideoResolution.UploadedVideoReference is not null)
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(specificVideoResolution.UploadedVideoReference).ConfigureAwait(false);
 
                 await UploadThumbnailAsync(pinVideo, specificVideoResolution, batchId).ConfigureAwait(false);
-                //if (offerVideo)
-                await ethernaClientService.OfferResourceAsync(specificVideoResolution.UploadedThumbnailReference!).ConfigureAwait(false);
+
+                if (offerVideo && specificVideoResolution.UploadedThumbnailReference is not null)
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(specificVideoResolution.UploadedThumbnailReference).ConfigureAwait(false);
             }
 
             // Upload metadata.
@@ -141,15 +161,15 @@ namespace Etherna.VideoImporter.Core.Services
                 videoData,
                 batchId,
                 pinVideo).ConfigureAwait(false);
-            //if (offerVideo)
-            await ethernaClientService.OfferResourceAsync(hashMetadataReference).ConfigureAwait(false);
+
+            if (offerVideo)
+                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(hashMetadataReference).ConfigureAwait(false);
 
             // Sync Index.
             Console.WriteLine("Video indexing in progress...");
-            await ethernaClientService.UpsertManifestToIndex(
+            await UpsertManifestToIndex(
                 hashMetadataReference,
-                videoData)
-                .ConfigureAwait(false);
+                videoData).ConfigureAwait(false);
         }
 
         public async Task<string> UploadMetadataAsync(
@@ -230,7 +250,31 @@ namespace Etherna.VideoImporter.Core.Services
             return hashMetadataReference;
         }
 
-        // Private methods.
+        // Helpers.
+        private async Task<string> CreateBatchAsync(
+            VideoData videoData,
+            int ttlPostageStamp)
+        {
+            if (videoData is null)
+                throw new ArgumentNullException(nameof(videoData));
+
+            // Size of all video to upload.
+            var totalSize = videoData.VideoDataResolutions.Sum(v => v.Size);
+
+            // Calculate batch deep.
+            var batchDeep = 17;
+            while (Math.Pow(2, batchDeep) * 4 * 1000 < totalSize)
+            {
+                batchDeep++;
+                if (batchDeep > 64)
+                    throw new InvalidOperationException("Batch deep exceeds the maximum");
+            }
+
+            var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync().ConfigureAwait(false);
+            var amount = (long)new TimeSpan(ttlPostageStamp * 24, 0, 0).TotalSeconds * chainState.CurrentPrice / BLOCK_TIME;
+            return await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount).ConfigureAwait(false);
+        }
+
         private async Task<string> GetBatchIdFromReference(string referenceId)
         {
             var httpResponse = await httpClient.GetAsync(new Uri($"https://gateway.etherna.io/api/v0.3/System/postageBatchRef/{referenceId}")).ConfigureAwait(false);
@@ -336,6 +380,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             return await UploadMetadataAsync(metadataVideo, videoData, swarmPin).ConfigureAwait(false);
         }
+
         private async Task UploadThumbnailAsync(
             bool pinVideo,
             VideoDataResolution videoData,
@@ -363,6 +408,39 @@ namespace Etherna.VideoImporter.Core.Services
                 }
                 catch { await Task.Delay(3500).ConfigureAwait(false); }
             throw new InvalidOperationException("Some error during upload of thumbnail");
+        }
+
+        private async Task<string> UpsertManifestToIndex(
+            string hashReferenceMetadata,
+            VideoData videoData)
+        {
+            if (videoData is null)
+                throw new ArgumentNullException(nameof(videoData));
+
+            if (!string.IsNullOrEmpty(videoData.IndexVideoId))
+            {
+                // Update manifest index.
+                Console.WriteLine($"Update Index: {videoData!.IndexVideoId}\t{hashReferenceMetadata}");
+
+                await ethernaIndexClient.VideosClient.VideosPutAsync(videoData.IndexVideoId!, hashReferenceMetadata).ConfigureAwait(false);
+
+                return videoData.IndexVideoId!;
+            }
+            else
+            {
+                // Create new manifest index.
+                Console.WriteLine($"Create Index: {hashReferenceMetadata}");
+
+                var videoCreateInput = new VideoCreateInput
+                {
+                    ManifestHash = hashReferenceMetadata,
+                };
+                var indexVideoId = await ethernaIndexClient.VideosClient.VideosPostAsync(videoCreateInput).ConfigureAwait(false);
+
+                videoData.SetEthernaIndex(indexVideoId);
+
+                return indexVideoId;
+            }
         }
     }
 }
