@@ -51,8 +51,8 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Public methods.
-        public async Task<VideoData> StartDownloadAsync(
-            VideoData videoData)
+        public async Task<VideoMetadata> StartDownloadAsync(
+            VideoMetadata videoData)
         {
             if (string.IsNullOrWhiteSpace(videoData?.YoutubeUrl))
                 throw new InvalidOperationException("Invalid YoutubeUrl");
@@ -80,7 +80,7 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Private Methods.
-        private async Task<List<VideoDataResolution>> DownloadAllResolutionAsync(VideoData videoData)
+        private async Task<List<VideoDataResolution>> DownloadAllResolutionAsync(VideoMetadata videoData)
         {
             if (videoData is null)
                 throw new ArgumentNullException(nameof(videoData));

@@ -17,7 +17,6 @@ using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
-using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Devcon.Services;
 using System;
 using System.Globalization;
@@ -140,10 +139,9 @@ namespace Etherna.VideoImporter.Devcon
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),
                 videoDownloaderService,
-                new MdVideoParserService(),
+                new MdVideoProvider(mdSourceFolderPath),
                 videoUploaderService);
             await runner.RunAsync(
-                mdSourceFolderPath,
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,

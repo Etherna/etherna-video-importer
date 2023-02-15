@@ -26,6 +26,6 @@ namespace Etherna.VideoImporter.Core.Services
         /// Start download from youtube url.
         /// </summary>
         /// <param name="videoData">video data</param>
-        Task<VideoData> StartDownloadAsync(VideoData videoData);
+        Task<VideoMetadata> StartDownloadAsync(VideoMetadata videoData);
     }
 }

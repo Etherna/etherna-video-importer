@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,17 +19,15 @@ using System.Web;
 
 namespace Etherna.VideoImporter.Core.Models
 {
-    public class VideoData
+    public class VideoMetadata
     {
         // Properties from file MD.
         public string Id { get; set; } = default!;
         public string? MdFilepath { get; set; }
         public string Description { get; set; } = default!;
-        public int Edition { get; set; }
         public string? EthernaIndex { get; set; }
         public string? EthernaPermalink { get; set; }
         public string Title { get; set; } = default!;
-        public string? Type { get; set; }
         public string? YoutubeUrl { get; set; }
 
         // Properties from VideoSource.
@@ -38,7 +35,7 @@ namespace Etherna.VideoImporter.Core.Models
         public ICollection<VideoDataResolution> VideoDataResolutions { get; set; } = default!;
 #pragma warning restore CA2227 // Collection properties should be read only
 
-        // Properties composed.
+        // Properties.
         public string? YoutubeId
         {
             get
