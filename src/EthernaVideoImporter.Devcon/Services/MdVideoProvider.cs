@@ -24,110 +24,89 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
-    internal sealed class MdVideoParserService : IVideoParseServices
+    internal sealed class MdVideoProvider : IVideoProvider
     {
-        // Fields.
-        public static readonly string[] _keywordForArrayString = Array.Empty<string>();
+        // Consts.
         public static readonly string[] _keywordSkips = { "IMAGE", "IMAGEURL", "IPFSHASH", "EXPERTISE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "SOURCEID" };
-        public static readonly string[] _keywordMinimal = { "SOURCEID", "EDITION" };
         public static readonly string[] _keywordNames = { "IMAGE", "IMAGEURL", "EDITION", "TITLE", "DESCRIPTION", "YOUTUBEURL", "IPFSHASH", "DURATION", "EXPERTISE", "TYPE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "ETHERNAINDEX", "ETHERNAPERMALINK", "SOURCEID" };
 
-        // Methods.
-        public Task<IEnumerable<VideoDataMinimalInfo>> ToVideoDataMinimalInfoDtosAsync(string folderRootPath)
+        // Fields.
+        public static readonly string[] _keywordForArrayString = Array.Empty<string>();
+        private readonly string mdFolderRootPath;
+
+        // Constructor.
+        public MdVideoProvider(string mdFolderRootPath)
         {
-            var videoDataInfoDtos = new List<VideoDataMinimalInfo>();
-            var files = Directory.GetFiles(folderRootPath, "*.md", SearchOption.AllDirectories);
+            this.mdFolderRootPath = mdFolderRootPath;
+        }
 
-            Console.WriteLine($"Total files: {files.Length}");
+        // Methods.
+        public Task<IEnumerable<VideoMetadata>> GetVideosMetadataAsync()
+        {
+            var mdFilesPaths = Directory.GetFiles(mdFolderRootPath, "*.md", SearchOption.AllDirectories);
 
-            foreach (var sourceFile in files)
+            Console.WriteLine($"Total files: {mdFilesPaths.Length}");
+
+            var videosMetadata = new List<VideoMetadata>();
+            foreach (var mdFilePath in mdFilesPaths)
             {
-                var itemConvertedToJson = new StringBuilder();
-                bool keyFound = false; ;
-                foreach (var line in File.ReadLines(sourceFile))
+                var mdConvertedToJson = new StringBuilder();
+                var markerLine = 0;
+                var keyFound = 0;
+                var descriptionExtraRows = new List<string>();
+                VideoMetadata? videoDataInfoDto = null;
+                foreach (var line in File.ReadLines(mdFilePath))
                 {
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
-                    if (!_keywordMinimal.Any(keyToAccept =>
-                        line.StartsWith(keyToAccept, StringComparison.InvariantCultureIgnoreCase)))
+                    if (_keywordSkips.Any(keyToSkip =>
+                        line.StartsWith(keyToSkip, StringComparison.InvariantCultureIgnoreCase)))
                         continue;
 
-                    var lineParse = FormatLineForJson(
-                        line.Replace("edition", "OrderIndex", StringComparison.InvariantCultureIgnoreCase),
-                        keyFound,
-                        null);
-                    keyFound = true;
-                    itemConvertedToJson.Append(lineParse);
-                }
-
-                var videoDataMinimalInfoDto = JsonSerializer.Deserialize<VideoDataMinimalInfo>(
-                                    $"{{{itemConvertedToJson}}}",
-                                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-                if (videoDataMinimalInfoDto is not null)
-                {
-                    videoDataMinimalInfoDto.Uri = sourceFile;
-                    videoDataInfoDtos.Add(videoDataMinimalInfoDto);
-                }
-            }
-
-            return Task.FromResult<IEnumerable<VideoDataMinimalInfo>>(videoDataInfoDtos.OrderBy(item => item.OrderIndex));
-        }
-
-        public Task<VideoData?> ToVideoDataDtosAsync(string uri)
-        {
-            var itemConvertedToJson = new StringBuilder();
-            var markerLine = 0;
-            var keyFound = 0;
-            var descriptionExtraRows = new List<string>();
-            VideoData? videoDataInfoDto = null;
-            foreach (var line in File.ReadLines(uri))
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-                if (_keywordSkips.Any(keyToSkip =>
-                    line.StartsWith(keyToSkip, StringComparison.InvariantCultureIgnoreCase)))
-                    continue;
-
-                if (line == "---")
-                {
-                    markerLine++;
-
-                    if (markerLine == 1)
-                        itemConvertedToJson.AppendLine("{");
-                    else if (markerLine == 2)
+                    if (line == "---")
                     {
-                        itemConvertedToJson.AppendLine("}");
-                        try
-                        {
-                            videoDataInfoDto = JsonSerializer.Deserialize<VideoData>(
-                                itemConvertedToJson.ToString(),
-                                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-                            videoDataInfoDto?.SetData(
-                                    uri!.Replace(uri, "", StringComparison.InvariantCultureIgnoreCase),
-                                    uri);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"{ex.Message} \n Unable to parse file: {uri}");
-                        }
+                        markerLine++;
 
-                        markerLine = 0;
-                        keyFound = 0;
-                        itemConvertedToJson = new StringBuilder();
-                        videoDataInfoDto?.AddDescription(descriptionExtraRows);
+                        if (markerLine == 1)
+                            mdConvertedToJson.AppendLine("{");
+                        else if (markerLine == 2)
+                        {
+                            mdConvertedToJson.AppendLine("}");
+                            try
+                            {
+                                videoDataInfoDto = JsonSerializer.Deserialize<VideoMetadata>(
+                                    mdConvertedToJson.ToString(),
+                                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                                videoDataInfoDto?.SetData(
+                                    mdFilePath!.Replace(mdFilePath, "", StringComparison.InvariantCultureIgnoreCase),
+                                    mdFilePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"{ex.Message} \n Unable to parse file: {mdFilePath}");
+                            }
+
+                            markerLine = 0;
+                            keyFound = 0;
+                            mdConvertedToJson = new StringBuilder();
+                            videoDataInfoDto?.AddDescription(descriptionExtraRows);
+                        }
+                    }
+                    else
+                    {
+                        keyFound++;
+                        mdConvertedToJson.AppendLine(FormatLineForJson(line, keyFound > 1, descriptionExtraRows));
                     }
                 }
-                else
-                {
-                    keyFound++;
-                    itemConvertedToJson.AppendLine(FormatLineForJson(line, keyFound > 1, descriptionExtraRows));
-                }
+
+                if (videoDataInfoDto is not null)
+                    videosMetadata.Add(videoDataInfoDto);
             }
 
-            return Task.FromResult(videoDataInfoDto);
+            return Task.FromResult<IEnumerable<VideoMetadata>>(videosMetadata);
         }
 
-        // Helper.
+        // Helpers.
         private static string FormatLineForJson(string line, bool havePreviusRow, List<string>? descriptionExtraRows)
         {
             if (string.IsNullOrWhiteSpace(line))

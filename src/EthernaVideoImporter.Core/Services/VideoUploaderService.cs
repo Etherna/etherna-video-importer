@@ -72,7 +72,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Public methods.
         public async Task UploadVideoAsync(
-            VideoData videoData,
+            VideoMetadata videoData,
             bool pinVideo,
             bool offerVideo)
         {
@@ -174,7 +174,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         public async Task<string> UploadMetadataAsync(
             VideoManifestDto videoManifestDto,
-            VideoData videoData,
+            VideoMetadata videoData,
             bool pinVideo)
         {
             if (videoManifestDto is null)
@@ -205,7 +205,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         public async Task<string> UploadMetadataAsync(
             MetadataManifestInsertInput videoManifestDto,
-            VideoData videoData,
+            VideoMetadata videoData,
             bool swarmPin)
         {
             if (videoManifestDto is null)
@@ -252,7 +252,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Helpers.
         private async Task<string> CreateBatchAsync(
-            VideoData videoData,
+            VideoMetadata videoData,
             int ttlPostageStamp)
         {
             if (videoData is null)
@@ -310,7 +310,7 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         private async Task<string> UploadMetadataAsync(
-            VideoData videoData,
+            VideoMetadata videoData,
             string batchId,
             bool swarmPin)
         {
@@ -412,7 +412,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         private async Task<string> UpsertManifestToIndex(
             string hashReferenceMetadata,
-            VideoData videoData)
+            VideoMetadata videoData)
         {
             if (videoData is null)
                 throw new ArgumentNullException(nameof(videoData));

@@ -30,7 +30,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="pinVideo">pin video</param>
         /// <param name="offerVideo">free video</param>
         public Task UploadVideoAsync(
-            VideoData videoData,
+            VideoMetadata videoData,
             bool pinVideo,
             bool offerVideo);
 
@@ -42,7 +42,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="pinVideo">free video</param>
         Task<string> UploadMetadataAsync(
             VideoManifestDto videoManifestDto,
-            VideoData videoData,
+            VideoMetadata videoData,
             bool pinVideo);
     }
 }

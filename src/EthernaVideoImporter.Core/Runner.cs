@@ -19,7 +19,6 @@ using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -33,7 +32,7 @@ namespace Etherna.VideoImporter.Core
         private readonly ILinkReporterService linkReporterService;
         private readonly IVideoDownloaderService videoDownloaderService;
         private readonly IVideoUploaderService videoUploaderService;
-        private readonly IVideoParseServices videoParseServices;
+        private readonly IVideoProvider videoProvider;
 
         // Constructor.
         public Runner(
@@ -41,7 +40,7 @@ namespace Etherna.VideoImporter.Core
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoDownloaderService videoDownloaderService,
-            IVideoParseServices videoParseServices,
+            IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
             if (cleanerVideoService is null)
@@ -50,8 +49,8 @@ namespace Etherna.VideoImporter.Core
                 throw new ArgumentNullException(nameof(linkReporterService));
             if (videoDownloaderService is null)
                 throw new ArgumentNullException(nameof(videoDownloaderService));
-            if (videoParseServices is null)
-                throw new ArgumentNullException(nameof(videoParseServices));
+            if (videoProvider is null)
+                throw new ArgumentNullException(nameof(videoProvider));
             if (videoUploaderService is null)
                 throw new ArgumentNullException(nameof(videoUploaderService));
 
@@ -59,46 +58,32 @@ namespace Etherna.VideoImporter.Core
             this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
             this.videoDownloaderService = videoDownloaderService;
-            this.videoParseServices = videoParseServices;
+            this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
 
         // Public methods.
         public async Task RunAsync(
-            string sourceUri,
             bool offerVideo, 
             bool pinVideo, 
             bool deleteOldVideo,
             bool deleteVideosFromOtherSources,
             string userEthAddr)
         {
-            // Get video info.
-            Console.WriteLine($"Get video info from {sourceUri}");
-            var allVideoMinimalInfos = await videoParseServices.ToVideoDataMinimalInfoDtosAsync(sourceUri).ConfigureAwait(false);
-            List<VideoData> allVideoDataInfos = new();
-
             // Get info from index.
             var importedVideos = await GetAllUserVideoAsync(userEthAddr).ConfigureAwait(false);
             var indexParams = await ethernaIndexClient.SystemClient.ParametersAsync().ConfigureAwait(false);
 
-            // Import each video.
-            var totalVideo = allVideoMinimalInfos.Count();
+            // Get video info.
+            Console.WriteLine("Get videos metadata");
+            var videosMetadata = await videoProvider.GetVideosMetadataAsync().ConfigureAwait(false);
 
-            foreach (var (videoMinimal, i) in allVideoMinimalInfos.Select((vi, i) => (vi, i)))
+            // Import each video.
+            var totalVideo = videosMetadata.Count();
+            foreach (var (video, i) in videosMetadata.Select((vi, i) => (vi, i)))
             {
                 try
                 {
-                    // Take all video info.
-                    var video = await videoParseServices.ToVideoDataDtosAsync(videoMinimal.Uri).ConfigureAwait(false);
-                    if (video is null)
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Error: Unable to get data from {videoMinimal.Uri}");
-                        Console.ResetColor();
-                        continue;
-                    }
-                    allVideoDataInfos.Add(video);
-
                     Console.WriteLine("===============================");
                     Console.WriteLine($"Start processing video #{i} of #{totalVideo}");
                     Console.WriteLine($"Title: {video.Title}");
@@ -224,7 +209,7 @@ namespace Etherna.VideoImporter.Core
                 await cleanerVideoService.RunOldDeleterAsync(importedVideos).ConfigureAwait(false);
 
             if (deleteVideosFromOtherSources)
-                await cleanerVideoService.RunCleanerAsync(allVideoDataInfos, importedVideos).ConfigureAwait(false);
+                await cleanerVideoService.RunCleanerAsync(videosMetadata, importedVideos).ConfigureAwait(false);
         }
 
         // Helpers.
@@ -247,7 +232,7 @@ namespace Etherna.VideoImporter.Core
 
         private async Task<string> UpsertManifestToIndex(
             string hashReferenceMetadata,
-            VideoData videoData)
+            VideoMetadata videoData)
         {
             if (videoData is null)
                 throw new ArgumentNullException(nameof(videoData));

@@ -38,12 +38,9 @@ namespace Etherna.VideoImporter.Core.Services
 
         [SuppressMessage("Performance", "CA1851:Possible multiple enumerations of 'IEnumerable' collection", Justification = "Temporary. Remove with next refactoring")]
         public async Task RunCleanerAsync(
-            IEnumerable<VideoData> allVideoDataInfos,
+            IEnumerable<VideoMetadata> allVideosMetadata,
             IEnumerable<VideoDto> importedVideos)
         {
-            if (allVideoDataInfos == null)
-                return;
-
             Console.WriteLine($"Start cleaner invalid video");
 
             // Get indexed videos.
@@ -52,7 +49,7 @@ namespace Etherna.VideoImporter.Core.Services
                 .Where(v => !string.IsNullOrWhiteSpace(v));
 
             // Get video indexed but not in repository files.
-            var removableIds = videoIds.Except(allVideoDataInfos.Select(repVideo => repVideo.YoutubeId).ToList());
+            var removableIds = videoIds.Except(allVideosMetadata.Select(repVideo => repVideo.YoutubeId).ToList());
             foreach (var videoId in removableIds)
             {
                 try
