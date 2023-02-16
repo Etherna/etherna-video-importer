@@ -13,8 +13,7 @@
 //   limitations under the License.
 
 using Etherna.ServicesClient.Clients.Index;
-using Etherna.VideoImporter.Core.Dtos;
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.ManifestDtos;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using System;
@@ -24,31 +23,29 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core
 {
-    public class Runner
+    public class EthernaVideoImporter
     {
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly ILinkReporterService linkReporterService;
-        private readonly IVideoDownloaderService videoDownloaderService;
+        private readonly Action<string> printLogLineAction;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
         // Constructor.
-        public Runner(
+        public EthernaVideoImporter(
             ICleanerVideoService cleanerVideoService,
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
-            IVideoDownloaderService videoDownloaderService,
             IVideoProvider videoProvider,
-            IVideoUploaderService videoUploaderService)
+            IVideoUploaderService videoUploaderService,
+            Action<string>? printLogLineAction)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
             if (linkReporterService is null)
                 throw new ArgumentNullException(nameof(linkReporterService));
-            if (videoDownloaderService is null)
-                throw new ArgumentNullException(nameof(videoDownloaderService));
             if (videoProvider is null)
                 throw new ArgumentNullException(nameof(videoProvider));
             if (videoUploaderService is null)
@@ -57,45 +54,45 @@ namespace Etherna.VideoImporter.Core
             this.cleanerVideoService = cleanerVideoService;
             this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
-            this.videoDownloaderService = videoDownloaderService;
+            this.printLogLineAction = printLogLineAction ?? new Action<string>(_ => { });
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
 
         // Public methods.
         public async Task RunAsync(
-            bool offerVideo, 
-            bool pinVideo, 
-            bool deleteOldVideo,
-            bool deleteVideosFromOtherSources,
-            string userEthAddr)
+            string userEthAddress,
+            bool offerVideos,
+            bool pinVideos,
+            bool deleteVideosRemovedFromSource,
+            bool deleteVideosNotFromThisTool)
         {
-            // Get info from index.
-            var importedVideos = await GetAllUserVideoAsync(userEthAddr).ConfigureAwait(false);
-            var indexParams = await ethernaIndexClient.SystemClient.ParametersAsync().ConfigureAwait(false);
+            // Get information from Etherna index.
+            var userVideosOnIndex = await GetUserVideosOnIndexAsync(userEthAddress).ConfigureAwait(false);
+            var ethernaIndexParameters = await ethernaIndexClient.SystemClient.ParametersAsync().ConfigureAwait(false);
 
             // Get video info.
-            Console.WriteLine("Get videos metadata");
+            printLogLineAction("Get videos metadata");
             var videosMetadata = await videoProvider.GetVideosMetadataAsync().ConfigureAwait(false);
 
             // Import each video.
             var totalVideo = videosMetadata.Count();
-            foreach (var (video, i) in videosMetadata.Select((vi, i) => (vi, i)))
+            foreach (var (metadata, i) in videosMetadata.Select((vi, i) => (vi, i)))
             {
                 try
                 {
                     Console.WriteLine("===============================");
                     Console.WriteLine($"Start processing video #{i} of #{totalVideo}");
-                    Console.WriteLine($"Title: {video.Title}");
+                    Console.WriteLine($"Title: {metadata.Title}");
 
                     // Find index video Id.
-                    var indexVideoId = importedVideos.Select(videoData =>
+                    var indexVideoId = userVideosOnIndex.Select(videoData =>
                         new
                         {
                             IndexVideoId = videoData.Id,
                             PersonalData = JsonUtility.FromJson<MetadataPersonalDataDto>(videoData?.LastValidManifest?.PersonalData)
                         })
-                        .Where(v => v?.PersonalData?.VideoId == video.YoutubeId)
+                        .Where(v => v?.PersonalData?.VideoId == metadata.Id)
                         .FirstOrDefault()
                         ?.IndexVideoId;
 
@@ -116,11 +113,11 @@ namespace Etherna.VideoImporter.Core
                         // Check if manifest contain the same url of current md file.
                         var personalData = JsonUtility.FromJson<MetadataPersonalDataDto>(lastValidManifest.PersonalData ?? "{}");
                         if (personalData is not null &&
-                            personalData.VideoId == video.YoutubeId)
+                            personalData.VideoId == metadata.Id)
                         {
                             // When YoutubeId is already uploaded, check for any change in metadata.
-                            if (video.Title == lastValidManifest.Title &&
-                                video.Description == lastValidManifest.Description)
+                            if (metadata.Title == lastValidManifest.Title &&
+                                metadata.Description == lastValidManifest.Description)
                             {
                                 // No change in any fields.
                                 Console.WriteLine($"Video already on etherna");
@@ -129,42 +126,41 @@ namespace Etherna.VideoImporter.Core
                             else
                             {
                                 // Edit manifest data fields.
-                                lastValidManifest.Description = video.Description ?? "";
-                                lastValidManifest.Title = video.Title ?? "";
+                                lastValidManifest.Description = metadata.Description ?? "";
+                                lastValidManifest.Title = metadata.Title ?? "";
                             }
                         }
                         else
                         {
                             // Youtube video changed.
-                            video.ResetEthernaData(); // Reset all data otherwise instead of create new index will be update.
+                            metadata.ResetEthernaLinks(); // Reset all data otherwise instead of create new index will be update.
                             lastValidManifest = null; // Set null for restart all process like a first time.
                         }
                     }
 
                     // Data validation.
-                    if (video.Title!.Length > indexParams.VideoTitleMaxLength)
+                    if (metadata.Title!.Length > ethernaIndexParameters.VideoTitleMaxLength)
                     {
                         Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Error: Title too long, max: {indexParams.VideoTitleMaxLength}\n");
+                        Console.WriteLine($"Error: Title too long, max: {ethernaIndexParameters.VideoTitleMaxLength}\n");
                         Console.ResetColor();
                         continue;
                     }
-                    if (video.Description!.Length > indexParams.VideoDescriptionMaxLength)
+                    if (metadata.Description!.Length > ethernaIndexParameters.VideoDescriptionMaxLength)
                     {
                         Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Error: Description too long, max: {indexParams.VideoDescriptionMaxLength}\n");
+                        Console.WriteLine($"Error: Description too long, max: {ethernaIndexParameters.VideoDescriptionMaxLength}\n");
                         Console.ResetColor();
                         continue;
                     }
-                    Console.WriteLine($"Source Video: {video.YoutubeUrl}");
+                    Console.WriteLine($"Source Video: {metadata.Id}");
 
                     if (lastValidManifest is null)
                     {
                         // Download from source.
-                        var videoData = await videoDownloaderService.StartDownloadAsync(video).ConfigureAwait(false);
+                        var video = await videoProvider.GetVideoAsync(metadata).ConfigureAwait(false);
 
-                        if (videoData?.VideoDataResolutions is null ||
-                            videoData.VideoDataResolutions.Count <= 0)
+                        if (video.EncodedVideoFiles.Any())
                         {
                             Console.ForegroundColor = ConsoleColor.DarkRed;
                             Console.WriteLine($"Error: video for download not found\n");
@@ -173,21 +169,40 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Upload on bee node.
-                        await videoUploaderService.UploadVideoAsync(videoData, pinVideo, offerVideo).ConfigureAwait(false);
+                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos).ConfigureAwait(false);
                     }
                     else
                     {
                         // Change metadata info.
-                        var hashMetadataReference = await videoUploaderService.UploadMetadataAsync(lastValidManifest, video, pinVideo).ConfigureAwait(false);
-                        await UpsertManifestToIndex(hashMetadataReference, video).ConfigureAwait(false);
+                        var hashMetadataReference = await videoUploaderService.UploadMetadataAsync(lastValidManifest, metadata, pinVideos).ConfigureAwait(false);
+                        if (!string.IsNullOrEmpty(metadata.EthernaIndexId))
+                        {
+                            // Update manifest index.
+                            Console.WriteLine($"Update Index: {metadata.EthernaIndexId}\t{hashMetadataReference}");
+
+                            await ethernaIndexClient.VideosClient.VideosPutAsync(metadata.EthernaIndexId!, hashMetadataReference).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            // Create new manifest index.
+                            Console.WriteLine($"Create Index: {hashMetadataReference}");
+
+                            var videoCreateInput = new VideoCreateInput
+                            {
+                                ManifestHash = hashMetadataReference,
+                            };
+                            var indexVideoId = await ethernaIndexClient.VideosClient.VideosPostAsync(videoCreateInput).ConfigureAwait(false);
+
+                            metadata.EthernaIndexId = indexVideoId;
+                        }
                     }
 
                     // Save MD file with etherna values.
-                    Console.WriteLine($"Save etherna values in file {video.MdFilepath}\n");
+                    Console.WriteLine($"Save etherna values in file {metadata.MdFilePath}\n");
                     await linkReporterService.SetEthernaFieldsAsync(
-                        video.MdFilepath!,
-                        video.EthernaIndex!,
-                        video.EthernaPermalink!).ConfigureAwait(false);
+                        metadata.MdFilePath!,
+                        metadata.EthernaIndex!,
+                        metadata.EthernaPermalink!).ConfigureAwait(false);
 
                     // Import completed.
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
@@ -205,62 +220,30 @@ namespace Etherna.VideoImporter.Core
             }
 
             // Clean up user channel on Etherna index.
-            if (deleteOldVideo)
-                await cleanerVideoService.RunOldDeleterAsync(importedVideos).ConfigureAwait(false);
+            if (deleteVideosRemovedFromSource)
+                await cleanerVideoService.RunOldDeleterAsync(userVideosOnIndex).ConfigureAwait(false);
 
-            if (deleteVideosFromOtherSources)
-                await cleanerVideoService.RunCleanerAsync(videosMetadata, importedVideos).ConfigureAwait(false);
+            if (deleteVideosNotFromThisTool)
+                await cleanerVideoService.RunCleanerAsync(videosMetadata, userVideosOnIndex).ConfigureAwait(false);
         }
 
         // Helpers.
-        public async Task<IEnumerable<VideoDto>> GetAllUserVideoAsync(string userAddress)
+        public async Task<IEnumerable<VideoDto>> GetUserVideosOnIndexAsync(string userAddress)
         {
-            var elements = new List<VideoDto>();
+            var videos = new List<VideoDto>();
             const int MaxForPage = 100;
 
-            for (var currentPage = 0; true; currentPage++)
+            VideoDtoPaginatedEnumerableDto? page = null;
+            do
             {
-                var result = await ethernaIndexClient.UsersClient.Videos2Async(userAddress, currentPage, MaxForPage).ConfigureAwait(false);
+                page = await ethernaIndexClient.UsersClient.Videos2Async(
+                    userAddress,
+                    page is null ? 0 : page.CurrentPage + 1,
+                    MaxForPage).ConfigureAwait(false);
+                videos.AddRange(page.Elements);
+            } while (page.Elements.Any());
 
-                if (result?.Elements is null ||
-                    !result.Elements.Any())
-                    return elements;
-
-                elements.AddRange(result.Elements);
-            }
-        }
-
-        private async Task<string> UpsertManifestToIndex(
-            string hashReferenceMetadata,
-            VideoMetadata videoData)
-        {
-            if (videoData is null)
-                throw new ArgumentNullException(nameof(videoData));
-
-            if (!string.IsNullOrEmpty(videoData.IndexVideoId))
-            {
-                // Update manifest index.
-                Console.WriteLine($"Update Index: {videoData!.IndexVideoId}\t{hashReferenceMetadata}");
-
-                await ethernaIndexClient.VideosClient.VideosPutAsync(videoData.IndexVideoId!, hashReferenceMetadata).ConfigureAwait(false);
-
-                return videoData.IndexVideoId!;
-            }
-            else
-            {
-                // Create new manifest index.
-                Console.WriteLine($"Create Index: {hashReferenceMetadata}");
-
-                var videoCreateInput = new VideoCreateInput
-                {
-                    ManifestHash = hashReferenceMetadata,
-                };
-                var indexVideoId = await ethernaIndexClient.VideosClient.VideosPostAsync(videoCreateInput).ConfigureAwait(false);
-
-                videoData.SetEthernaIndex(indexVideoId);
-
-                return indexVideoId;
-            }
+            return videos;
         }
     }
 }

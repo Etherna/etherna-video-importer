@@ -13,7 +13,7 @@
 //   limitations under the License.
 
 using Etherna.ServicesClient.Clients.Index;
-using Etherna.VideoImporter.Core.Dtos;
+using Etherna.VideoImporter.Core.ManifestDtos;
 using Etherna.VideoImporter.Core.Models;
 using Etherna.VideoImporter.Core.Utilities;
 using System;
@@ -38,7 +38,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         [SuppressMessage("Performance", "CA1851:Possible multiple enumerations of 'IEnumerable' collection", Justification = "Temporary. Remove with next refactoring")]
         public async Task RunCleanerAsync(
-            IEnumerable<VideoMetadata> allVideosMetadata,
+            IEnumerable<VideoMetadataBase> allVideosMetadata,
             IEnumerable<VideoDto> importedVideos)
         {
             Console.WriteLine($"Start cleaner invalid video");
@@ -49,7 +49,7 @@ namespace Etherna.VideoImporter.Core.Services
                 .Where(v => !string.IsNullOrWhiteSpace(v));
 
             // Get video indexed but not in repository files.
-            var removableIds = videoIds.Except(allVideosMetadata.Select(repVideo => repVideo.YoutubeId).ToList());
+            var removableIds = videoIds.Except(allVideosMetadata.Select(repVideo => repVideo.Id).ToList());
             foreach (var videoId in removableIds)
             {
                 try

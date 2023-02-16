@@ -12,12 +12,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.VideoImporter.Core.Dtos
+namespace Etherna.VideoImporter.Core.Models
 {
-    public enum MetadataUploadMode
+    public abstract class VideoMetadataBase
     {
-        DevconImporter,
-        EthernaImporter,
-        WebApp
+        // Constructor.
+        protected VideoMetadataBase(
+            string description,
+            string title)
+        {
+            Description = description;
+            Title = title;
+        }
+
+        // Properties.
+        public abstract string Id { get; }
+        public string Description { get; }
+        public string Title { get; }
     }
 }

@@ -26,11 +26,11 @@ namespace Etherna.VideoImporter.Core.Services
         /// <summary>
         /// Start to upload all video data (manifest, video with all avaiable resolutions, thumbnail, index).
         /// </summary>
-        /// <param name="videoData">all video data</param>
+        /// <param name="video">video data</param>
         /// <param name="pinVideo">pin video</param>
         /// <param name="offerVideo">free video</param>
         public Task UploadVideoAsync(
-            VideoMetadata videoData,
+            Video video,
             bool pinVideo,
             bool offerVideo);
 
@@ -38,11 +38,11 @@ namespace Etherna.VideoImporter.Core.Services
         /// Update metadata and index.
         /// </summary>
         /// <param name="videoManifestDto">manifest data</param>
-        /// <param name="videoData">video data</param>
+        /// <param name="video">video data</param>
         /// <param name="pinVideo">free video</param>
         Task<string> UploadMetadataAsync(
             VideoManifestDto videoManifestDto,
-            VideoMetadata videoData,
+            Video video,
             bool pinVideo);
     }
 }

@@ -20,6 +20,8 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IVideoProvider
     {
-        Task<IEnumerable<VideoMetadata>> GetVideosMetadataAsync();
+        Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata);
+
+        Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync();
     }
 }

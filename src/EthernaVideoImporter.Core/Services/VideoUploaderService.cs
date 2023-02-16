@@ -16,7 +16,7 @@ using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
 using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
-using Etherna.VideoImporter.Core.Dtos;
+using Etherna.VideoImporter.Core.ManifestDtos;
 using Etherna.VideoImporter.Core.Models;
 using Etherna.VideoImporter.Core.Utilities;
 using SkiaSharp;
@@ -72,18 +72,19 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Public methods.
         public async Task UploadVideoAsync(
-            VideoMetadata videoData,
+            Video video,
             bool pinVideo,
             bool offerVideo)
         {
-            if (videoData?.VideoDataResolutions is null ||
-                videoData.VideoDataResolutions.Count <= 0)
-                return;
+            if (video is null)
+                throw new ArgumentNullException(nameof(video));
+            if (!video.EncodedVideoFiles.Any())
+                throw new ArgumentException("Must exists at least an encoded video file", nameof(video));
 
             // Create new batch.
             Console.WriteLine("Create batch...");
 
-            var batchReferenceId = await CreateBatchAsync(videoData, ttlPostageStamp).ConfigureAwait(false);
+            var batchReferenceId = await CreateBatchAsync(video, ttlPostageStamp).ConfigureAwait(false);
 
             // Check and wait until created batchId is avaiable.
             Console.WriteLine("Waiting for batch ready...");
@@ -140,25 +141,27 @@ namespace Etherna.VideoImporter.Core.Services
                 timeWaited += BATCH_CHECK_TIME.TotalSeconds;
             } while (!batchUsable);
 
-            // Upload video reoslutions.
-            foreach (var specificVideoResolution in videoData.VideoDataResolutions)
+            // Upload video file.
+            foreach (var encodedVideoFile in video.EncodedVideoFiles)
             {
                 // Upload video.
-                var videoReference = await UploadFileVideoAsync(pinVideo, specificVideoResolution, batchId).ConfigureAwait(false);
-                specificVideoResolution.SetUploadedVideoReference(videoReference);
+                var videoReference = await UploadFileVideoAsync(pinVideo, encodedVideoFile, batchId).ConfigureAwait(false);
+                encodedVideoFile.UploadedVideoReference = videoReference;
 
-                if (offerVideo && specificVideoResolution.UploadedVideoReference is not null)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(specificVideoResolution.UploadedVideoReference).ConfigureAwait(false);
-
-                await UploadThumbnailAsync(pinVideo, specificVideoResolution, batchId).ConfigureAwait(false);
-
-                if (offerVideo && specificVideoResolution.UploadedThumbnailReference is not null)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(specificVideoResolution.UploadedThumbnailReference).ConfigureAwait(false);
+                if (offerVideo && encodedVideoFile.UploadedVideoReference is not null)
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedVideoFile.UploadedVideoReference).ConfigureAwait(false);
             }
+
+            // Upload thumbnail.
+
+            await UploadThumbnailAsync(pinVideo, video, batchId).ConfigureAwait(false);
+
+            if (offerVideo && video.UploadedThumbnailReference is not null)
+                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.UploadedThumbnailReference).ConfigureAwait(false);
 
             // Upload metadata.
             var hashMetadataReference = await UploadMetadataAsync(
-                videoData,
+                video,
                 batchId,
                 pinVideo).ConfigureAwait(false);
 
@@ -169,49 +172,49 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine("Video indexing in progress...");
             await UpsertManifestToIndex(
                 hashMetadataReference,
-                videoData).ConfigureAwait(false);
+                video).ConfigureAwait(false);
         }
 
         public async Task<string> UploadMetadataAsync(
             VideoManifestDto videoManifestDto,
-            VideoMetadata videoData,
+            Video video,
             bool pinVideo)
         {
             if (videoManifestDto is null)
                 throw new ArgumentNullException(nameof(videoManifestDto));
-            if (videoData is null)
-                throw new ArgumentNullException(nameof(videoData));
+            if (video is null)
+                throw new ArgumentNullException(nameof(video));
 
-            var metadataManifestInsertInput = new MetadataManifestInsertInput(
+            var metadataManifestInsertInput = new ManifestVideoDto(
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 userEthAddr,
                 videoManifestDto.BatchId,
-                videoData.Description,
-                videoData.VideoDataResolutions.First().Duration,
+                video.Metadata.Description,
+                video.EncodedVideoFiles.First().Duration,
                  $"720p",
-                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.DevconImporter, VideoId = videoData.YoutubeId! }),
-                 new MetadataImageInput(
+                 JsonUtility.ToJson(new MetadataPersonalDataDto { VideoId = video.Metadata.Id! }),
+                 new ManifestImageDto(
                      videoManifestDto.Thumbnail.AspectRatio,
                      videoManifestDto.Thumbnail.Blurhash,
                      videoManifestDto.Thumbnail.Sources),
-                 videoData.Title,
-                 videoManifestDto.Sources);
+                 video.Metadata.Title,
+                 videoManifestDto.Sources.Select(s => new ManifestVideoSourceDto(s)));
 
             return await UploadMetadataAsync(
                 metadataManifestInsertInput,
-                videoData,
+                video,
                 pinVideo).ConfigureAwait(false);
         }
 
         public async Task<string> UploadMetadataAsync(
-            MetadataManifestInsertInput videoManifestDto,
-            VideoMetadata videoData,
+            ManifestVideoDto videoManifestDto,
+            Video video,
             bool swarmPin)
         {
             if (videoManifestDto is null)
                 throw new ArgumentNullException(nameof(videoManifestDto));
-            if (videoData is null)
-                throw new ArgumentNullException(nameof(videoData));
+            if (video is null)
+                throw new ArgumentNullException(nameof(video));
 
             var tmpMetadata = Path.GetTempFileName();
             var hashMetadataReference = "";
@@ -239,7 +242,7 @@ namespace Etherna.VideoImporter.Core.Services
                 if (string.IsNullOrWhiteSpace(hashMetadataReference))
                     throw new InvalidOperationException("Some error during upload of metadata");
 
-                videoData.SetEthernaPermalink(hashMetadataReference);
+                video.EthernaPermalinkId = hashMetadataReference;
             }
             finally
             {
@@ -252,14 +255,14 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Helpers.
         private async Task<string> CreateBatchAsync(
-            VideoMetadata videoData,
+            Video video,
             int ttlPostageStamp)
         {
-            if (videoData is null)
-                throw new ArgumentNullException(nameof(videoData));
+            if (video is null)
+                throw new ArgumentNullException(nameof(video));
 
             // Size of all video to upload.
-            var totalSize = videoData.VideoDataResolutions.Sum(v => v.Size);
+            var totalSize = video.EncodedVideoFiles.Sum(v => v.Size);
 
             // Calculate batch deep.
             var batchDeep = 17;
@@ -287,7 +290,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         private async Task<string> UploadFileVideoAsync(
             bool pinVideo,
-            VideoDataResolution videoUploadDataItem,
+            EncodedVideoFile videoUploadDataItem,
             string batchId)
         {
             Console.WriteLine($"Uploading video {videoUploadDataItem.Resolution} in progress...");
@@ -310,25 +313,22 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         private async Task<string> UploadMetadataAsync(
-            VideoMetadata videoData,
+            Video video,
             string batchId,
             bool swarmPin)
         {
-            if (videoData is null)
-                throw new ArgumentNullException(nameof(videoData));
-            if (string.IsNullOrWhiteSpace(videoData.Title))
+            if (string.IsNullOrWhiteSpace(video.Metadata.Title))
                 throw new InvalidOperationException("Title not defined");
-            if (string.IsNullOrWhiteSpace(videoData.Description))
+            if (string.IsNullOrWhiteSpace(video.Metadata.Description))
                 throw new InvalidOperationException("Description not defined");
 
             // Get all Thumbnails.
             Dictionary<string, string> thumbnailReferences = new();
             var thumbnailBestResolution = 0;
             string? downloadedThumbnailPathBestResolution = null;
-            foreach (var video in videoData.VideoDataResolutions)
+
+            if (!string.IsNullOrWhiteSpace(video.DownloadedThumbnailPath))
             {
-                if (string.IsNullOrWhiteSpace(video.DownloadedThumbnailPath))
-                    continue;
 
                 using var input = File.OpenRead(video.DownloadedThumbnailPath);
                 using var inputStream = new SKManagedStream(input);
@@ -346,44 +346,38 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             }
 
-            MetadataImageInput? swarmImageRaw = null;
+            ManifestImageDto? swarmImageRaw = null;
             if (!string.IsNullOrWhiteSpace(downloadedThumbnailPathBestResolution))
             {
-                using var input = File.OpenRead(videoData.VideoDataResolutions.OrderByDescending(video => video.Size).First().DownloadedThumbnailPath!);
+                using var input = File.OpenRead(video.DownloadedThumbnailPath!);
                 using var inputStream = new SKManagedStream(input);
                 using var sourceImage = SKBitmap.Decode(inputStream);
                 var hash = Blurhash.SkiaSharp.Blurhasher.Encode(sourceImage, 4, 4);
-                swarmImageRaw = new MetadataImageInput(
+                swarmImageRaw = new ManifestImageDto(
                     (float)sourceImage.Width / (float)sourceImage.Height,
                     hash,
                     thumbnailReferences);
             }
 
             // Manifest.
-            var metadataVideo = new MetadataManifestInsertInput(
+            var metadataVideo = new ManifestVideoDto(
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 userEthAddr,
                 batchId,
-                videoData.Description,
-                videoData.VideoDataResolutions.First().Duration,
-                 $"{videoData.VideoDataResolutions.First().Resolution}",
-                 JsonUtility.ToJson(new MetadataPersonalDataDto { Mode = MetadataUploadMode.DevconImporter, VideoId = videoData.YoutubeId! }),
+                video.Metadata.Description,
+                video.EncodedVideoFiles.First().Duration,
+                 $"{video.EncodedVideoFiles.First().Resolution}",
+                 JsonUtility.ToJson(new MetadataPersonalDataDto { VideoId = video.Metadata.Id }),
                  swarmImageRaw,
-                 videoData.Title,
-                 videoData.VideoDataResolutions.Select(vr => new SourceDto
-                 {
-                     Bitrate = vr.Bitrate,
-                     Quality = vr.Resolution,
-                     Reference = vr.UploadedVideoReference!,
-                     Size = vr.Size
-                 }).ToList());
+                 video.Metadata.Title,
+                 video.EncodedVideoFiles.Select(vf => new ManifestVideoSourceDto(vf)).ToList());
 
-            return await UploadMetadataAsync(metadataVideo, videoData, swarmPin).ConfigureAwait(false);
+            return await UploadMetadataAsync(metadataVideo, video, swarmPin).ConfigureAwait(false);
         }
 
         private async Task UploadThumbnailAsync(
             bool pinVideo,
-            VideoDataResolution videoData,
+            Video video,
             string batchId)
         {
             Console.WriteLine("Uploading thumbnail in progress...");
@@ -394,16 +388,16 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     i++;
                     var fileThumbnailParameterInput = new FileParameterInput(
-                        File.OpenRead(videoData.DownloadedThumbnailPath!),
-                        Path.GetFileName(videoData.DownloadedThumbnailPath!),
-                        MimeTypes.GetMimeType(Path.GetFileName(videoData.DownloadedThumbnailPath!)));
+                        File.OpenRead(video.DownloadedThumbnailPath!),
+                        Path.GetFileName(video.DownloadedThumbnailPath!),
+                        MimeTypes.GetMimeType(Path.GetFileName(video.DownloadedThumbnailPath!)));
 
                     var thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                         batchId,
                         files: new List<FileParameterInput> { fileThumbnailParameterInput },
                         swarmPin: pinVideo).ConfigureAwait(false);
 
-                    videoData.SetUploadedThumbnailReference(thumbnailReference);
+                    video.UploadedThumbnailReference = thumbnailReference;
                     return;
                 }
                 catch { await Task.Delay(3500).ConfigureAwait(false); }
@@ -412,19 +406,19 @@ namespace Etherna.VideoImporter.Core.Services
 
         private async Task<string> UpsertManifestToIndex(
             string hashReferenceMetadata,
-            VideoMetadata videoData)
+            Video video)
         {
-            if (videoData is null)
-                throw new ArgumentNullException(nameof(videoData));
+            if (video is null)
+                throw new ArgumentNullException(nameof(video));
 
-            if (!string.IsNullOrEmpty(videoData.IndexVideoId))
+            if (!string.IsNullOrEmpty(video.EthernaIndexId))
             {
                 // Update manifest index.
-                Console.WriteLine($"Update Index: {videoData!.IndexVideoId}\t{hashReferenceMetadata}");
+                Console.WriteLine($"Update Index: {video!.EthernaIndexId}\t{hashReferenceMetadata}");
 
-                await ethernaIndexClient.VideosClient.VideosPutAsync(videoData.IndexVideoId!, hashReferenceMetadata).ConfigureAwait(false);
+                await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId!, hashReferenceMetadata).ConfigureAwait(false);
 
-                return videoData.IndexVideoId!;
+                return video.EthernaIndexId!;
             }
             else
             {
@@ -437,7 +431,7 @@ namespace Etherna.VideoImporter.Core.Services
                 };
                 var indexVideoId = await ethernaIndexClient.VideosClient.VideosPostAsync(videoCreateInput).ConfigureAwait(false);
 
-                videoData.SetEthernaIndex(indexVideoId);
+                video.EthernaIndexId = indexVideoId;
 
                 return indexVideoId;
             }

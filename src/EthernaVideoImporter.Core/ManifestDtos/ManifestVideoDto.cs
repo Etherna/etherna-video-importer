@@ -12,15 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Index;
 using System.Collections.Generic;
 
-namespace Etherna.VideoImporter.Core.Dtos
+namespace Etherna.VideoImporter.Core.ManifestDtos
 {
-    public sealed class MetadataManifestInsertInput
+    internal sealed class ManifestVideoDto
     {
         // Constructors.
-        public MetadataManifestInsertInput(
+        public ManifestVideoDto(
             long createdAt,
             string ownerAddress,
             string? batchId,
@@ -28,9 +27,9 @@ namespace Etherna.VideoImporter.Core.Dtos
             long? duration,
             string? originalQuality,
             string? personalData,
-            MetadataImageInput? thumbnail,
+            ManifestImageDto? thumbnail,
             string? title,
-            ICollection<SourceDto> sources)
+            IEnumerable<ManifestVideoSourceDto> sources)
         {
             CreatedAt = createdAt;
             OwnerAddress = ownerAddress;
@@ -42,7 +41,7 @@ namespace Etherna.VideoImporter.Core.Dtos
             PersonalData = personalData;
             Thumbnail = thumbnail;
             Title = title;
-            Sources = sources ?? new List<SourceDto>();
+            Sources = sources;
         }
 
         // Properties.
@@ -55,9 +54,9 @@ namespace Etherna.VideoImporter.Core.Dtos
         public string OwnerAddress { get; }
         public string? PersonalData { get; }
         public long? UpdatedAt { get; }
-        public string V { get; } = "1.1";
-        public ICollection<SourceDto> Sources { get; }
-        public MetadataImageInput? Thumbnail { get; }
+        public IEnumerable<ManifestVideoSourceDto> Sources { get; }
+        public ManifestImageDto? Thumbnail { get; }
         public string? Title { get; }
+        public string V { get; } = "1.1";
     }
 }

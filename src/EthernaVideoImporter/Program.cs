@@ -129,7 +129,6 @@ namespace Etherna.VideoImporter
                 new Uri(CommonConst.ETHERNA_INDEX),
                 new Uri(CommonConst.SSO_AUTHORITY),
                 () => httpClient);
-            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, includeAudioTrack);
             using var beeNodeClient = new BeeNodeClient(
                 CommonConst.ETHERNA_GATEWAY,
                 CommonConst.BEENODE_GATEWAYPORT,
@@ -147,19 +146,20 @@ namespace Etherna.VideoImporter
                 ttlPostageStamp);
 
             // Call runner.
-            var runner = new Runner(
+            var importer = new EthernaVideoImporter(
                 new CleanerVideoService(ethernaUserClients.IndexClient),
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),
-                videoDownloaderService,
-                new YouTubeChannelVideoProvider(sourceUri),
-                videoUploaderService);
-            await runner.RunAsync(
+                new YouTubeChannelVideoProvider(sourceUri, ffMpegFolderPath),
+                videoUploaderService,
+                Console.WriteLine);
+
+            await importer.RunAsync(
+                userEthAddr,
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,
-                deleteVideosFromOtherSources,
-                userEthAddr).ConfigureAwait(false);
+                deleteVideosFromOtherSources).ConfigureAwait(false);
         }
     }
 }

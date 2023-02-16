@@ -16,10 +16,10 @@ using System;
 
 namespace Etherna.VideoImporter.Core.Models
 {
-    public class VideoDataResolution
+    public class EncodedVideoFile
     {
         // Constructors.
-        public VideoDataResolution(
+        public EncodedVideoFile(
             long audioBitrate,
             string downloadedFilePath,
             string name,
@@ -37,12 +37,10 @@ namespace Etherna.VideoImporter.Core.Models
         public int Duration { get; protected set; } // Seconds.
         public string? DownloadedFileName { get; protected set; }
         public string DownloadedFilePath { get; protected set; }
-        public string? DownloadedThumbnailPath { get; protected set; }
-        public string? UploadedThumbnailReference { get; protected set; }
-        public string? UploadedVideoReference { get; protected set; }
         public string Name { get; protected set; }
         public string Resolution { get; protected set; }
         public long Size { get; protected set; } // Bytes.
+        public string? UploadedVideoReference { get; set; }
 
         // Methods.
         public void SetVideoInfo(
@@ -54,21 +52,6 @@ namespace Etherna.VideoImporter.Core.Models
             Size = fileSize;
             Duration = duration;
             Bitrate = (int)Math.Ceiling((double)fileSize * 8 / duration);
-        }
-
-        public void SetDownloadThumbnail(string? downloadedThumbnailPath)
-        {
-            DownloadedThumbnailPath = downloadedThumbnailPath;
-        }
-
-        public void SetUploadedThumbnailReference(string uploadedThumbnailReference)
-        {
-            UploadedThumbnailReference = uploadedThumbnailReference;
-        }
-
-        public void SetUploadedVideoReference(string uploadedVideoReference)
-        {
-            UploadedVideoReference = uploadedVideoReference;
         }
     }
 }

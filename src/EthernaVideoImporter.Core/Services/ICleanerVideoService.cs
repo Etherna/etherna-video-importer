@@ -22,7 +22,7 @@ namespace Etherna.VideoImporter.Core.Services
     public interface ICleanerVideoService
     {
         Task RunCleanerAsync(
-            IEnumerable<VideoMetadata> allVideosMetadata,
+            IEnumerable<VideoMetadataBase> allVideosMetadata,
             IEnumerable<VideoDto> importedVideos);
 
         Task RunOldDeleterAsync(
