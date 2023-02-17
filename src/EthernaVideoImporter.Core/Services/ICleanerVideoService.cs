@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -23,9 +22,9 @@ namespace Etherna.VideoImporter.Core.Services
     {
         Task RunCleanerAsync(
             IEnumerable<VideoMetadataBase> allVideosMetadata,
-            IEnumerable<VideoDto> importedVideos);
+            IEnumerable<IndexedVideo> importedVideos);
 
         Task RunOldDeleterAsync(
-            IEnumerable<VideoDto> videos);
+            IEnumerable<IndexedVideo> videos);
     }
 }

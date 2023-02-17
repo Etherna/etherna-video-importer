@@ -14,12 +14,12 @@
 
 using System.Collections.Generic;
 
-namespace Etherna.VideoImporter.Core.ManifestDtos
+namespace Etherna.VideoImporter.Core.Dtos
 {
-    internal sealed class ManifestVideoDto
+    public sealed class ManifestDto
     {
         // Constructors.
-        public ManifestVideoDto(
+        public ManifestDto(
             long createdAt,
             string ownerAddress,
             string? batchId,
@@ -27,7 +27,7 @@ namespace Etherna.VideoImporter.Core.ManifestDtos
             long? duration,
             string? originalQuality,
             string? personalData,
-            ManifestImageDto? thumbnail,
+            ManifestThumbnailDto? thumbnail,
             string? title,
             IEnumerable<ManifestVideoSourceDto> sources)
         {
@@ -55,7 +55,7 @@ namespace Etherna.VideoImporter.Core.ManifestDtos
         public string? PersonalData { get; }
         public long? UpdatedAt { get; }
         public IEnumerable<ManifestVideoSourceDto> Sources { get; }
-        public ManifestImageDto? Thumbnail { get; }
+        public ManifestThumbnailDto? Thumbnail { get; }
         public string? Title { get; }
         public string V { get; } = "1.1";
     }

@@ -14,12 +14,12 @@
 
 using System.Collections.Generic;
 
-namespace Etherna.VideoImporter.Core.ManifestDtos
+namespace Etherna.VideoImporter.Core.Dtos
 {
-    public sealed class ManifestImageDto
+    public sealed class ManifestThumbnailDto
     {
         // Constructors.
-        public ManifestImageDto(
+        public ManifestThumbnailDto(
             float aspectRatio,
             string blurhash,
             IDictionary<string, string> sources)

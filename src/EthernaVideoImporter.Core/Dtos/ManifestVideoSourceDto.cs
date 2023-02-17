@@ -2,9 +2,9 @@
 using Etherna.VideoImporter.Core.Models;
 using System;
 
-namespace Etherna.VideoImporter.Core.ManifestDtos
+namespace Etherna.VideoImporter.Core.Dtos
 {
-    internal sealed class ManifestVideoSourceDto
+    public sealed class ManifestVideoSourceDto
     {
         public ManifestVideoSourceDto(SourceDto source)
         {
@@ -19,6 +19,9 @@ namespace Etherna.VideoImporter.Core.ManifestDtos
 
         public ManifestVideoSourceDto(EncodedVideoFile videoFile)
         {
+            if (videoFile is null)
+                throw new ArgumentNullException(nameof(videoFile));
+
             Bitrate = videoFile.Bitrate;
             Quality = videoFile.Resolution;
             Reference = videoFile.UploadedVideoReference ?? throw new InvalidOperationException();

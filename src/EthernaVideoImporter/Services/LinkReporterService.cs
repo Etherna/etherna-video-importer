@@ -12,11 +12,25 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.VideoImporter.Core.ManifestDtos
+using Etherna.VideoImporter.Core.Services;
+using System.Threading.Tasks;
+
+namespace Etherna.VideoImporter.Services
 {
-    public class MetadataPersonalDataDto
+    public sealed class LinkReporterService : ILinkReporterService
     {
-        public string ClientName => "EthernaImporter";
-        public string VideoId { get; set; } = default!;
+        // Constructors.
+        public LinkReporterService()
+        {
+        }
+
+        // Methods.
+        public Task SetEthernaReferencesAsync(
+            string sourceVideoId,
+            string ethernaIndexId,
+            string ethernaPermalinkHash)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

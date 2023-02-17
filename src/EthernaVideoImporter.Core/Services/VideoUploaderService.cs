@@ -16,15 +16,15 @@ using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
 using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
-using Etherna.VideoImporter.Core.ManifestDtos;
+using Etherna.VideoImporter.Core.Dtos;
 using Etherna.VideoImporter.Core.Models;
-using Etherna.VideoImporter.Core.Utilities;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -185,15 +185,15 @@ namespace Etherna.VideoImporter.Core.Services
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
 
-            var metadataManifestInsertInput = new ManifestVideoDto(
+            var metadataManifestInsertInput = new ManifestDto(
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 userEthAddr,
                 videoManifestDto.BatchId,
                 video.Metadata.Description,
                 video.EncodedVideoFiles.First().Duration,
                  $"720p",
-                 JsonUtility.ToJson(new MetadataPersonalDataDto { VideoId = video.Metadata.Id! }),
-                 new ManifestImageDto(
+                 JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id!)),
+                 new ManifestThumbnailDto(
                      videoManifestDto.Thumbnail.AspectRatio,
                      videoManifestDto.Thumbnail.Blurhash,
                      videoManifestDto.Thumbnail.Sources),
@@ -207,7 +207,7 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         public async Task<string> UploadMetadataAsync(
-            ManifestVideoDto videoManifestDto,
+            ManifestDto videoManifestDto,
             Video video,
             bool swarmPin)
         {
@@ -220,7 +220,7 @@ namespace Etherna.VideoImporter.Core.Services
             var hashMetadataReference = "";
             try
             {
-                await File.WriteAllTextAsync(tmpMetadata, JsonUtility.ToJson(videoManifestDto)).ConfigureAwait(false);
+                await File.WriteAllTextAsync(tmpMetadata, JsonSerializer.Serialize(videoManifestDto)).ConfigureAwait(false);
 
                 var i = 0;
                 while (i < MAX_RETRY &&
@@ -242,7 +242,7 @@ namespace Etherna.VideoImporter.Core.Services
                 if (string.IsNullOrWhiteSpace(hashMetadataReference))
                     throw new InvalidOperationException("Some error during upload of metadata");
 
-                video.EthernaPermalinkId = hashMetadataReference;
+                video.EthernaPermalinkHash = hashMetadataReference;
             }
             finally
             {
@@ -346,28 +346,28 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             }
 
-            ManifestImageDto? swarmImageRaw = null;
+            ManifestThumbnailDto? swarmImageRaw = null;
             if (!string.IsNullOrWhiteSpace(downloadedThumbnailPathBestResolution))
             {
                 using var input = File.OpenRead(video.DownloadedThumbnailPath!);
                 using var inputStream = new SKManagedStream(input);
                 using var sourceImage = SKBitmap.Decode(inputStream);
                 var hash = Blurhash.SkiaSharp.Blurhasher.Encode(sourceImage, 4, 4);
-                swarmImageRaw = new ManifestImageDto(
+                swarmImageRaw = new ManifestThumbnailDto(
                     (float)sourceImage.Width / (float)sourceImage.Height,
                     hash,
                     thumbnailReferences);
             }
 
             // Manifest.
-            var metadataVideo = new ManifestVideoDto(
+            var metadataVideo = new ManifestDto(
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 userEthAddr,
                 batchId,
                 video.Metadata.Description,
                 video.EncodedVideoFiles.First().Duration,
                  $"{video.EncodedVideoFiles.First().Resolution}",
-                 JsonUtility.ToJson(new MetadataPersonalDataDto { VideoId = video.Metadata.Id }),
+                 JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id)),
                  swarmImageRaw,
                  video.Metadata.Title,
                  video.EncodedVideoFiles.Select(vf => new ManifestVideoSourceDto(vf)).ToList());

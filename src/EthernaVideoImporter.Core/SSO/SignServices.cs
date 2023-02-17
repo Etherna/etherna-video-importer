@@ -29,8 +29,8 @@ namespace Etherna.VideoImporter.Core.SSO
 
             var options = new OidcClientOptions
             {
-                Authority = CommonConst.SSO_AUTHORITY,
-                ClientId = CommonConst.SSO_CLIENT_ID,
+                Authority = CommonConsts.SSO_AUTHORITY,
+                ClientId = CommonConsts.SSO_CLIENT_ID,
                 RedirectUri = redirectUri,
                 Scope = "openid profile offline_access ether_accounts userApi.gateway userApi.index",
                 FilterClaims = false,
