@@ -48,7 +48,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly int ttlPostageStamp;
         private readonly string userEthAddr;
 
-        // Constractor.
+        // Constructor.
         public VideoUploaderService(
             BeeNodeClient beeNodeClient,
             IUserGatewayClient ethernaGatewayClient,
@@ -268,18 +268,20 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Manifest.
             var metadataVideo = new ManifestDto(
-                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                userEthAddr,
-                batchId,
+                video.Metadata.Title,
                 video.Metadata.Description,
+                $"{video.EncodedVideoFiles.First().Resolution}",
+                userEthAddr,
                 video.EncodedVideoFiles.First().Duration,
-                 $"{video.EncodedVideoFiles.First().Resolution}",
-                 JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id)),
-                 swarmImageRaw,
-                 video.Metadata.Title,
-                 video.EncodedVideoFiles.Select(vf => new ManifestVideoSourceDto(vf)).ToList());
+                swarmImageRaw!,
+                video.EncodedVideoFiles.Select(vf => new ManifestVideoSourceDto(vf)).ToList(),
+                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                null,
+                batchId,
+                JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id)));
 
-            var hashMetadataReference = await UploadMetadataAsync(metadataVideo, video, pinVideo).ConfigureAwait(false);
+            var hashMetadataReference = await UploadVideoManifestAsync(metadataVideo, pinVideo).ConfigureAwait(false);
+            video.EthernaPermalinkHash = hashMetadataReference;
 
             if (offerVideo)
                 await ethernaGatewayClient.ResourcesClient.OffersPostAsync(hashMetadataReference).ConfigureAwait(false);
@@ -308,52 +310,18 @@ namespace Etherna.VideoImporter.Core.Services
             }
         }
 
-        public async Task<string> UploadMetadataAsync(
-            VideoManifestDto videoManifestDto,
-            Video video,
-            bool pinVideo)
+        public async Task<string> UploadVideoManifestAsync(
+            ManifestDto videoManifest,
+            bool pinManifest)
         {
-            if (videoManifestDto is null)
-                throw new ArgumentNullException(nameof(videoManifestDto));
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
-
-            var metadataManifestInsertInput = new ManifestDto(
-                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                userEthAddr,
-                videoManifestDto.BatchId,
-                video.Metadata.Description,
-                video.EncodedVideoFiles.First().Duration,
-                 $"720p",
-                 JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id!)),
-                 new ManifestThumbnailDto(
-                     videoManifestDto.Thumbnail.AspectRatio,
-                     videoManifestDto.Thumbnail.Blurhash,
-                     videoManifestDto.Thumbnail.Sources),
-                 video.Metadata.Title,
-                 videoManifestDto.Sources.Select(s => new ManifestVideoSourceDto(s)));
-
-            return await UploadMetadataAsync(
-                metadataManifestInsertInput,
-                video,
-                pinVideo).ConfigureAwait(false);
-        }
-
-        public async Task<string> UploadMetadataAsync(
-            ManifestDto videoManifestDto,
-            Video video,
-            bool swarmPin)
-        {
-            if (videoManifestDto is null)
-                throw new ArgumentNullException(nameof(videoManifestDto));
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
+            if (videoManifest is null)
+                throw new ArgumentNullException(nameof(videoManifest));
 
             var tmpMetadata = Path.GetTempFileName();
             var hashMetadataReference = "";
             try
             {
-                await File.WriteAllTextAsync(tmpMetadata, JsonSerializer.Serialize(videoManifestDto)).ConfigureAwait(false);
+                await File.WriteAllTextAsync(tmpMetadata, JsonSerializer.Serialize(videoManifest)).ConfigureAwait(false);
 
                 var i = 0;
                 while (i < MAX_RETRY &&
@@ -367,15 +335,13 @@ namespace Etherna.VideoImporter.Core.Services
                             Path.GetFileName("metadata.json"),
                             MimeTypes.GetMimeType("application/json"));
                         hashMetadataReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
-                            videoManifestDto.BatchId!,
+                            videoManifest.BatchId,
                             files: new List<FileParameterInput> { fileParameterInput },
-                            swarmPin: swarmPin).ConfigureAwait(false);
+                            swarmPin: pinManifest).ConfigureAwait(false);
                     }
                     catch { await Task.Delay(3500).ConfigureAwait(false); }
                 if (string.IsNullOrWhiteSpace(hashMetadataReference))
                     throw new InvalidOperationException("Some error during upload of metadata");
-
-                video.EthernaPermalinkHash = hashMetadataReference;
             }
             finally
             {

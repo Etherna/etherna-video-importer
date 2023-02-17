@@ -13,11 +13,13 @@
 //   limitations under the License.
 
 using Etherna.ServicesClient.Clients.Index;
+using Etherna.VideoImporter.Core.Dtos;
 using Etherna.VideoImporter.Core.Models;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core
@@ -101,8 +103,9 @@ namespace Etherna.VideoImporter.Core
                     {
                         Console.WriteLine("Video already uploaded on Etherna");
 
-                        // Verify if manifest needs to be updated with new data.
+                        // Verify if manifest needs to be updated with new metadata.
                         updatedIndexId = alreadyPresentVideo.IndexId;
+
                         if (alreadyPresentVideo.IsEqualTo(sourceMetadata))
                         {
                             updatedPermalinkHash = alreadyPresentVideo.LastValidManifest!.Hash;
@@ -111,21 +114,31 @@ namespace Etherna.VideoImporter.Core
                         {
                             Console.WriteLine($"Metadata has changed, update the video manifest");
 
+                            var updatedManifest = new ManifestDto(
+                                sourceMetadata.Title,
+                                sourceMetadata.Description,
+                                alreadyPresentVideo.LastValidManifest!.OriginalQuality,
+                                userEthAddress,
+                                alreadyPresentVideo.LastValidManifest.Duration,
+                                new ManifestThumbnailDto(
+                                    alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
+                                    alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
+                                    alreadyPresentVideo.LastValidManifest.Thumbnail.Sources),
+                                alreadyPresentVideo.LastValidManifest.Sources.Select(s => new ManifestVideoSourceDto(s)),
+                                alreadyPresentVideo.CreationDateTime.ToUnixTimeMilliseconds(), //this should be retrieved from manifest. See: https://etherna.atlassian.net/browse/EVI-60
+                                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                                alreadyPresentVideo.LastValidManifest.BatchId,
+                                JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(sourceMetadata.Id!)));
 
-                            // <REVIEW>
-
-                            // Change metadata info.
-                            updatedPermalinkHash = await videoUploaderService.UploadMetadataAsync(
-                                alreadyPresentVideo.LastValidManifest,
-                                sourceMetadata,
+                            // Upload new manifest.
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(
+                                updatedManifest,
                                 pinVideos).ConfigureAwait(false);
 
-                            // Update manifest index.
-                            Console.WriteLine($"Update Index: {sourceMetadata.EthernaIndexId}\t{updatedPermalinkHash}");
-
-                            await ethernaIndexClient.VideosClient.VideosPutAsync(sourceMetadata.EthernaIndexId!, updatedPermalinkHash).ConfigureAwait(false);
-
-                            // </REVIEW>
+                            // Update on index.
+                            await ethernaIndexClient.VideosClient.VideosPutAsync(
+                                alreadyPresentVideo.IndexId,
+                                updatedPermalinkHash).ConfigureAwait(false);
                         }
                     }
                     else //try to upload new video on Etherna

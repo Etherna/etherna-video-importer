@@ -20,43 +20,44 @@ namespace Etherna.VideoImporter.Core.Dtos
     {
         // Constructors.
         public ManifestDto(
-            long createdAt,
+            string title,
+            string description,
+            string originalQuality,
             string ownerAddress,
-            string? batchId,
-            string? description,
-            long? duration,
-            string? originalQuality,
-            string? personalData,
-            ManifestThumbnailDto? thumbnail,
-            string? title,
-            IEnumerable<ManifestVideoSourceDto> sources)
+            long duration,
+            ManifestThumbnailDto thumbnail,
+            IEnumerable<ManifestVideoSourceDto> sources,
+            long createdAt,
+            long? updatedAt,
+            string batchId,
+            string? personalData)
         {
-            CreatedAt = createdAt;
-            OwnerAddress = ownerAddress;
-            BatchId = batchId;
-            Description = description;
-            Duration = duration;
-            Hash = "";
-            OriginalQuality = originalQuality;
-            PersonalData = personalData;
-            Thumbnail = thumbnail;
             Title = title;
+            Description = description;
+            OriginalQuality = originalQuality;
+            OwnerAddress = ownerAddress;
+            Duration = duration;
+            Thumbnail = thumbnail;
             Sources = sources;
+            CreatedAt = createdAt;
+            UpdatedAt = updatedAt;
+            BatchId = batchId;
+            PersonalData = personalData;
         }
 
         // Properties.
-        public long CreatedAt { get; }
-        public string? BatchId { get; }
-        public string? Description { get; }
-        public long? Duration { get; }
-        public string Hash { get; }
-        public string? OriginalQuality { get; }
+        //public string Id { get; }
+        public string Title { get; }
+        public string Description { get; }
+        public string OriginalQuality { get; }
         public string OwnerAddress { get; }
-        public string? PersonalData { get; }
-        public long? UpdatedAt { get; }
+        public long Duration { get; }
+        public ManifestThumbnailDto Thumbnail { get; }
         public IEnumerable<ManifestVideoSourceDto> Sources { get; }
-        public ManifestThumbnailDto? Thumbnail { get; }
-        public string? Title { get; }
-        public string V { get; } = "1.1";
+        public long CreatedAt { get; }
+        public long? UpdatedAt { get; }
+        public string BatchId { get; }
+        public string? PersonalData { get; }
+        public string V => "1.2";
     }
 }
