@@ -1,39 +1,30 @@
 ﻿using Etherna.VideoImporter.Core.Models;
-using System;
-using System.Linq;
-using System.Web;
 
 namespace Etherna.VideoImporter.Devcon.Models
 {
     public class MdFileVideoMetadata : VideoMetadataBase
     {
+        // Constructor.
         public MdFileVideoMetadata(
             string description,
             string title,
             string mdFilePath,
-            string youtubeUrl)
+            string youtubeUrl,
+            string? ethernaIndexUrl,
+            string? ethernaPermalinkUrl)
             : base(description, title)
         {
+            EthernaIndexUrl = ethernaIndexUrl;
+            EthernaPermalinkUrl = ethernaPermalinkUrl;
             MdFilePath = mdFilePath;
             YoutubeUrl = youtubeUrl;
         }
 
         // Properties.
         public override string Id => MdFilePath;
+        public string? EthernaIndexUrl { get; set; }
+        public string? EthernaPermalinkUrl { get; set; }
         public string MdFilePath { get; set; }
-        public string YoutubeId
-        {
-            get
-            {
-                var uri = new Uri(YoutubeUrl);
-                var query = HttpUtility.ParseQueryString(uri.Query);
-
-                if (query.AllKeys.Contains("v"))
-                    return query["v"]!;
-
-                return uri.Segments.Last();
-            }
-        }
         public string YoutubeUrl { get; set; }
     }
 }
