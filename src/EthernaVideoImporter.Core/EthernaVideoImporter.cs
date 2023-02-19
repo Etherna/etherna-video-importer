@@ -162,10 +162,10 @@ namespace Etherna.VideoImporter.Core
                         // Get and encode video from source.
                         var video = await videoProvider.GetVideoAsync(sourceMetadata).ConfigureAwait(false);
 
-                        if (!video.EncodedVideoFiles.Any())
+                        if (!video.EncodedFiles.Any())
                         {
                             Console.ForegroundColor = ConsoleColor.DarkRed;
-                            Console.WriteLine($"Error: can't get valid video stream from source\n");
+                            Console.WriteLine($"Error: can't get valid stream from source\n");
                             Console.ResetColor();
                             continue;
                         }

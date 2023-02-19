@@ -14,6 +14,8 @@
 
 using Etherna.VideoImporter.Core.Models;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Devcon.MdDto;
+using Etherna.VideoImporter.Devcon.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -32,29 +34,41 @@ namespace Etherna.VideoImporter.Devcon.Services
 
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
+        private readonly string ffMpegFolderPath;
         private readonly string mdFolderRootPath;
 
         // Constructor.
-        public MdVideoProvider(string mdFolderRootPath)
+        public MdVideoProvider(
+            string mdFolderRootPath,
+            string ffMpegFolderPath)
         {
             this.mdFolderRootPath = mdFolderRootPath;
+            this.ffMpegFolderPath = ffMpegFolderPath;
         }
 
+        // Properties.
+        public string SourceName => mdFolderRootPath;
+
         // Methods.
-        public Task<IEnumerable<VideoMetadata>> GetVideosMetadataAsync()
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             var mdFilesPaths = Directory.GetFiles(mdFolderRootPath, "*.md", SearchOption.AllDirectories);
 
             Console.WriteLine($"Total files: {mdFilesPaths.Length}");
 
-            var videosMetadata = new List<VideoMetadata>();
+            var videosMetadata = new List<ArchiveMdFileDto>();
             foreach (var mdFilePath in mdFilesPaths)
             {
                 var mdConvertedToJson = new StringBuilder();
                 var markerLine = 0;
                 var keyFound = 0;
                 var descriptionExtraRows = new List<string>();
-                VideoMetadata? videoDataInfoDto = null;
+                ArchiveMdFileDto? videoDataInfoDto = null;
                 foreach (var line in File.ReadLines(mdFilePath))
                 {
                     if (string.IsNullOrWhiteSpace(line))
@@ -74,12 +88,11 @@ namespace Etherna.VideoImporter.Devcon.Services
                             mdConvertedToJson.AppendLine("}");
                             try
                             {
-                                videoDataInfoDto = JsonSerializer.Deserialize<VideoMetadata>(
+                                videoDataInfoDto = JsonSerializer.Deserialize<ArchiveMdFileDto>(
                                     mdConvertedToJson.ToString(),
-                                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-                                videoDataInfoDto?.SetData(
-                                    mdFilePath!.Replace(mdFilePath, "", StringComparison.InvariantCultureIgnoreCase),
-                                    mdFilePath);
+                                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
+
+                                videoDataInfoDto.MdFilePath = mdFilePath;
                             }
                             catch (Exception ex)
                             {
@@ -103,7 +116,14 @@ namespace Etherna.VideoImporter.Devcon.Services
                     videosMetadata.Add(videoDataInfoDto);
             }
 
-            return Task.FromResult<IEnumerable<VideoMetadata>>(videosMetadata);
+            return Task.FromResult<IEnumerable<VideoMetadataBase>>(videosMetadata.Select(
+                m => new MdFileVideoMetadata(
+                    m.Description,
+                    m.Title,
+                    m.MdFilePath,
+                    m.YoutubeUrl,
+                    m.EthernaIndex,
+                    m.EthernaPermalink)));
         }
 
         // Helpers.

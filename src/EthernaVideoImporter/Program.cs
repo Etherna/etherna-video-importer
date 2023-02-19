@@ -76,10 +76,11 @@ namespace Etherna.VideoImporter
             }
 
             // Input validation.
-            //FFmpeg dir
-            if (!Directory.Exists(ffMpegFolderPath))
+            //FFmpeg
+            var ffMpegBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFMpegBinaryName);
+            if (!File.Exists(ffMpegBinaryPath))
             {
-                Console.WriteLine($"FFmpeg not found at ({ffMpegFolderPath})");
+                Console.WriteLine($"FFmpeg not found at ({ffMpegBinaryPath})");
                 return;
             }
 
@@ -150,7 +151,7 @@ namespace Etherna.VideoImporter
                 new CleanerVideoService(ethernaUserClients.IndexClient),
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),
-                new YouTubeChannelVideoProvider(sourceUri, ffMpegFolderPath),
+                new YouTubeChannelVideoProvider(sourceUri, ffMpegBinaryPath),
                 videoUploaderService);
 
             await importer.RunAsync(

@@ -23,9 +23,9 @@ namespace Etherna.VideoImporter.Core.Dtos
                 throw new ArgumentNullException(nameof(videoFile));
 
             Bitrate = videoFile.Bitrate;
-            Quality = videoFile.Resolution;
-            Reference = videoFile.UploadedVideoReference ?? throw new InvalidOperationException();
-            Size = videoFile.Size;
+            Quality = videoFile.VideoQualityLabel;
+            Reference = videoFile.UploadedHashReference ?? throw new InvalidOperationException();
+            Size = videoFile.ByteSize;
         }
 
         public int? Bitrate { get; }

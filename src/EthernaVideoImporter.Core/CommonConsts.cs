@@ -14,6 +14,8 @@
 
 using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
+using System;
+using System.Runtime.InteropServices;
 
 namespace Etherna.VideoImporter.Core
 {
@@ -25,6 +27,20 @@ namespace Etherna.VideoImporter.Core
         public const string ETHERNA_CREDIT = "https://credit.etherna.io/";
         public const string ETHERNA_INDEX = "https://index.etherna.io/";
         public const string ETHERNA_GATEWAY = "https://gateway.etherna.io/";
+        public static string FFMpegBinaryName
+        {
+            get
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    return "ffmpeg.exe";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    return "ffmpeg";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    return "ffmpeg";
+
+                throw new InvalidOperationException("OS not supported");
+            }
+        }
         public const string SSO_AUTHORITY = "https://sso.etherna.io/";
         public const string SSO_CLIENT_ID = "ethernaVideoImporterId";
         public const string PREFIX_ETHERNA_INDEX = "https://etherna.io/embed/";

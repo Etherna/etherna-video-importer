@@ -78,14 +78,14 @@ namespace Etherna.VideoImporter.Core.Services
         {
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
-            if (!video.EncodedVideoFiles.Any())
-                throw new ArgumentException("Must exists at least an encoded video file", nameof(video));
+            if (!video.EncodedFiles.Any())
+                throw new ArgumentException("Must exists at least an encoded file", nameof(video));
 
             // Create new batch.
             Console.WriteLine("Create batch...");
 
             // Size of all video to upload.
-            var totalSize = video.EncodedVideoFiles.Sum(v => v.Size);
+            var totalSize = video.EncodedFiles.Sum(v => v.ByteSize);
 
             // Calculate batch deep.
             var batchDeep = 17;
@@ -161,10 +161,15 @@ namespace Etherna.VideoImporter.Core.Services
             } while (!batchUsable);
 
             // Upload video file.
-            foreach (var encodedVideoFile in video.EncodedVideoFiles)
+            foreach (var encodedFile in video.EncodedFiles)
             {
                 // Upload video.
-                Console.WriteLine($"Uploading video {encodedVideoFile.Resolution} in progress...");
+                Console.WriteLine(encodedFile switch
+                {
+                    EncodedAudioFile _ => "Uploading audio track in progress...",
+                    EncodedVideoFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
+                    _ => throw new InvalidOperationException()
+                });
                 var k = 0;
                 while (k <= MAX_RETRY)
                 {
@@ -175,11 +180,11 @@ namespace Etherna.VideoImporter.Core.Services
                     {
                         k++;
                         var fileParameterInput = new FileParameterInput(
-                            File.OpenRead(encodedVideoFile.DownloadedFilePath!),
-                            Path.GetFileName(encodedVideoFile.DownloadedFilePath!),
-                            MimeTypes.GetMimeType(Path.GetFileName(encodedVideoFile.DownloadedFilePath!)));
+                            File.OpenRead(encodedFile.DownloadedFilePath!),
+                            Path.GetFileName(encodedFile.DownloadedFilePath!),
+                            MimeTypes.GetMimeType(Path.GetFileName(encodedFile.DownloadedFilePath!)));
 
-                        encodedVideoFile.UploadedVideoReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                        encodedFile.UploadedHashReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                             batchId,
                             files: new List<FileParameterInput> { fileParameterInput },
                             swarmPin: pinVideo).ConfigureAwait(false);
@@ -188,8 +193,8 @@ namespace Etherna.VideoImporter.Core.Services
                     catch { await Task.Delay(3500).ConfigureAwait(false); }
                 }
 
-                if (offerVideo && encodedVideoFile.UploadedVideoReference is not null)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedVideoFile.UploadedVideoReference).ConfigureAwait(false);
+                if (offerVideo && encodedFile.UploadedHashReference is not null)
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference).ConfigureAwait(false);
             }
 
             // Upload thumbnail.
@@ -270,11 +275,11 @@ namespace Etherna.VideoImporter.Core.Services
             var metadataVideo = new ManifestDto(
                 video.Metadata.Title,
                 video.Metadata.Description,
-                $"{video.EncodedVideoFiles.First().Resolution}",
+                $"{video.EncodedFiles.OfType<EncodedVideoFile>().First().VideoQualityLabel}",
                 userEthAddr,
-                video.EncodedVideoFiles.First().Duration,
+                (long)video.EncodedFiles.First().Duration.TotalSeconds,
                 swarmImageRaw!,
-                video.EncodedVideoFiles.Select(vf => new ManifestVideoSourceDto(vf)).ToList(),
+                video.EncodedFiles.OfType<EncodedVideoFile>().Select(vf => new ManifestVideoSourceDto(vf)).ToList(),
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 null,
                 batchId,
