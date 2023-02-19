@@ -34,7 +34,7 @@ namespace Etherna.VideoImporter.Devcon
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "Etherna Video Importer for Devcon Archive help:\n\n" +
-            "-md\tSource folder path with *.md files to import\n" +
+            "md\tSource folder path with *.md files to import\n" +
             "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
             "-d\tRemove old videos that are no longer in the .MD files\n" +
@@ -56,11 +56,27 @@ namespace Etherna.VideoImporter.Devcon
             bool deleteSourceRemovedVideos = false;
             bool deleteVideosFromOtherSources = false;
             bool includeAudioTrack = false;
-            for (int i = 0; i < args.Length; i++)
+
+            // Get MD path.
+            if (args.Length < 2 ||
+                args[0] != "md")
+            {
+                Console.WriteLine("Missing source MD directory path");
+                throw new ArgumentException("Missing mandatory data");
+            }
+            if (string.IsNullOrWhiteSpace(args[1]) ||
+                Directory.Exists(args[1]))
+            {
+                Console.WriteLine("Not found MD directory path");
+                throw new ArgumentException("Not found MD directory path");
+            }
+            mdSourceFolderPath = args[1];
+
+            // Get params.
+            for (int i = 2; i < args.Length; i++)
             {
                 switch (args[i])
                 {
-                    case "-md": mdSourceFolderPath = args[++i]; break;
                     case "-ff": ffMpegFolderPath = args[++i]; break;
                     case "-f": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
@@ -87,12 +103,7 @@ namespace Etherna.VideoImporter.Devcon
                 Console.WriteLine($"Invalid value for TTL Postage Stamp");
                 return;
             }
-
-            // Interactive mode for missing params.
-            Console.WriteLine();
-            Console.WriteLine("Source folder path with *.md files to import:");
-            mdSourceFolderPath = ReadStringIfEmpty(mdSourceFolderPath);
-
+            
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO().ConfigureAwait(false);
             if (authResult.IsError)

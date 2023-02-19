@@ -34,8 +34,7 @@ namespace Etherna.VideoImporter
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "Etherna Video Importer help:\n\n" +
-            "-yc\tYoutube channel url\n" +
-            "-yv\tYoutube single video url\n" +
+            "[ytvideo|ytchannel] <sourceUri>\tYoutube channel or video url\n" +
             "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
             "-d\tRemove old videos that are no longer in source channel\n" +
@@ -58,6 +57,24 @@ namespace Etherna.VideoImporter
             bool deleteSourceRemovedVideos = false;
             bool deleteVideosFromOtherSources = false;
             bool includeAudioTrack = false;
+
+            // Get MD path.
+            if (args.Length < 2)
+            {
+                Console.WriteLine("Missing source video uri");
+                throw new ArgumentException("Missing mandatory data");
+            }
+            if (args[0] == "ytvideo")
+                youtubeVideoUrl = args[1];
+            else if (args[0] == "ytchannel")
+                youtubeChannelUrl = args[1];
+            else
+            {
+                Console.WriteLine("Invalid argument");
+                throw new ArgumentException("Invalid argument");
+            }
+
+            // Get params.
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
