@@ -11,24 +11,22 @@ namespace Etherna.VideoImporter.Core.Dtos
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            Bitrate = source.Bitrate;
             Quality = source.Quality;
             Reference = source.Reference;
             Size = source.Size;
         }
 
-        public ManifestVideoSourceDto(EncodedVideoFile videoFile)
+        public ManifestVideoSourceDto(VideoFile videoFile)
         {
             if (videoFile is null)
                 throw new ArgumentNullException(nameof(videoFile));
 
-            Bitrate = videoFile.Bitrate;
             Quality = videoFile.VideoQualityLabel;
             Reference = videoFile.UploadedHashReference ?? throw new InvalidOperationException();
             Size = videoFile.ByteSize;
         }
 
-        public int? Bitrate { get; }
+        public int Bitrate => 420; //fake place holder, will be removed on manifest 2.0
         public string Quality { get; }
         public string Reference { get; }
         public long Size { get; }

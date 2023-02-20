@@ -16,25 +16,13 @@ using System;
 
 namespace Etherna.VideoImporter.Core.Models
 {
-    public abstract class EncodedFileBase
+    public class AudioFile : FileBase
     {
         // Constructors.
-        protected EncodedFileBase(
+        public AudioFile(
             string downloadedFilePath,
-            long byteSize,
-            TimeSpan duration)
-        {
-            Bitrate = (int)Math.Ceiling(byteSize * 8 / duration.TotalSeconds);
-            ByteSize = byteSize;
-            DownloadedFilePath = downloadedFilePath;
-            Duration = duration;
-        }
-
-        // Properties.
-        public int Bitrate { get; }
-        public long ByteSize { get; }
-        public string DownloadedFilePath { get; }
-        public TimeSpan Duration { get; }
-        public string? UploadedHashReference { get; set; }
+            long byteSize)
+            : base(downloadedFilePath, byteSize)
+        { }
     }
 }

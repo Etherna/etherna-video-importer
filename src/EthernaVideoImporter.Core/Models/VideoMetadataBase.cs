@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System;
+
 namespace Etherna.VideoImporter.Core.Models
 {
     public abstract class VideoMetadataBase
@@ -28,6 +30,7 @@ namespace Etherna.VideoImporter.Core.Models
         // Properties.
         public abstract string Id { get; }
         public string Description { get; }
+        public abstract TimeSpan Duration { get; }
         public string Title { get; }
     }
 }

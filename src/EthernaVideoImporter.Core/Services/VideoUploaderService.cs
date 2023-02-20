@@ -166,8 +166,8 @@ namespace Etherna.VideoImporter.Core.Services
                 // Upload video.
                 Console.WriteLine(encodedFile switch
                 {
-                    EncodedAudioFile _ => "Uploading audio track in progress...",
-                    EncodedVideoFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
+                    AudioFile _ => "Uploading audio track in progress...",
+                    VideoFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
                     _ => throw new InvalidOperationException()
                 });
                 var k = 0;
@@ -198,35 +198,38 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Upload thumbnail.
-            Console.WriteLine("Uploading thumbnail in progress...");
-
-            var j = 0;
-            while (j <= MAX_RETRY)
+            if (video.ThumbnailFile is not null)
             {
-                if (j == MAX_RETRY)
-                    throw new InvalidOperationException("Some error during upload of thumbnail");
+                Console.WriteLine("Uploading thumbnail in progress...");
 
-                try
+                var j = 0;
+                while (j <= MAX_RETRY)
                 {
-                    j++;
-                    var fileThumbnailParameterInput = new FileParameterInput(
-                        File.OpenRead(video.DownloadedThumbnailPath!),
-                        Path.GetFileName(video.DownloadedThumbnailPath!),
-                        MimeTypes.GetMimeType(Path.GetFileName(video.DownloadedThumbnailPath!)));
+                    if (j == MAX_RETRY)
+                        throw new InvalidOperationException("Some error during upload of thumbnail");
 
-                    var thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
-                        batchId,
-                        files: new List<FileParameterInput> { fileThumbnailParameterInput },
-                        swarmPin: pinVideo).ConfigureAwait(false);
+                    try
+                    {
+                        j++;
+                        var fileThumbnailParameterInput = new FileParameterInput(
+                            File.OpenRead(video.ThumbnailFile.DownloadedFilePath),
+                            Path.GetFileName(video.ThumbnailFile.DownloadedFilePath),
+                            MimeTypes.GetMimeType(Path.GetFileName(video.ThumbnailFile.DownloadedFilePath)));
 
-                    video.UploadedThumbnailReference = thumbnailReference;
-                    break;
+                        var thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                            batchId,
+                            files: new List<FileParameterInput> { fileThumbnailParameterInput },
+                            swarmPin: pinVideo).ConfigureAwait(false);
+
+                        video.ThumbnailFile.UploadedHashReference = thumbnailReference;
+                        break;
+                    }
+                    catch { await Task.Delay(3500).ConfigureAwait(false); }
                 }
-                catch { await Task.Delay(3500).ConfigureAwait(false); }
-            }
 
-            if (offerVideo && video.UploadedThumbnailReference is not null)
-                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.UploadedThumbnailReference).ConfigureAwait(false);
+                if (offerVideo && video.ThumbnailFile.UploadedHashReference is not null)
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference).ConfigureAwait(false);
+            }
 
             // Upload metadata.
             if (string.IsNullOrWhiteSpace(video.Metadata.Title))
@@ -239,21 +242,21 @@ namespace Etherna.VideoImporter.Core.Services
             var thumbnailBestResolution = 0;
             string? downloadedThumbnailPathBestResolution = null;
 
-            if (!string.IsNullOrWhiteSpace(video.DownloadedThumbnailPath))
+            if (!string.IsNullOrWhiteSpace(video.ThumbnailFile?.DownloadedFilePath))
             {
 
-                using var input = File.OpenRead(video.DownloadedThumbnailPath);
+                using var input = File.OpenRead(video.ThumbnailFile.DownloadedFilePath);
                 using var inputStream = new SKManagedStream(input);
                 using var sourceImage = SKBitmap.Decode(inputStream);
 
                 var keyResolution = $"{sourceImage.Width}w";
                 if (!thumbnailReferences.ContainsKey(keyResolution))
                 {
-                    thumbnailReferences.Add(keyResolution, video.UploadedThumbnailReference!);
+                    thumbnailReferences.Add(keyResolution, video.ThumbnailFile.UploadedHashReference!);
                     if (sourceImage.Width > thumbnailBestResolution)
                     {
                         thumbnailBestResolution = sourceImage.Width;
-                        downloadedThumbnailPathBestResolution = video.DownloadedThumbnailPath;
+                        downloadedThumbnailPathBestResolution = video.ThumbnailFile.DownloadedFilePath;
                     }
                 }
             }
@@ -261,7 +264,7 @@ namespace Etherna.VideoImporter.Core.Services
             ManifestThumbnailDto? swarmImageRaw = null;
             if (!string.IsNullOrWhiteSpace(downloadedThumbnailPathBestResolution))
             {
-                using var input = File.OpenRead(video.DownloadedThumbnailPath!);
+                using var input = File.OpenRead(video.ThumbnailFile!.DownloadedFilePath!);
                 using var inputStream = new SKManagedStream(input);
                 using var sourceImage = SKBitmap.Decode(inputStream);
                 var hash = Blurhash.SkiaSharp.Blurhasher.Encode(sourceImage, 4, 4);
@@ -275,11 +278,11 @@ namespace Etherna.VideoImporter.Core.Services
             var metadataVideo = new ManifestDto(
                 video.Metadata.Title,
                 video.Metadata.Description,
-                $"{video.EncodedFiles.OfType<EncodedVideoFile>().First().VideoQualityLabel}",
+                $"{video.EncodedFiles.OfType<VideoFile>().First().VideoQualityLabel}",
                 userEthAddr,
-                (long)video.EncodedFiles.First().Duration.TotalSeconds,
+                (long)video.Metadata.Duration.TotalSeconds,
                 swarmImageRaw!,
-                video.EncodedFiles.OfType<EncodedVideoFile>().Select(vf => new ManifestVideoSourceDto(vf)).ToList(),
+                video.EncodedFiles.OfType<VideoFile>().Select(vf => new ManifestVideoSourceDto(vf)).ToList(),
                 DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 null,
                 batchId,

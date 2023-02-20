@@ -7,20 +7,19 @@ namespace Etherna.VideoImporter.Core.Models
         // Constructor.
         public Video(
             VideoMetadataBase metadata,
-            IEnumerable<EncodedFileBase> encodedFiles,
-            string downloadedThumbnailPath)
+            IEnumerable<FileBase> encodedFiles,
+            ThumbnailFile? thumbnailFile)
         {
             EncodedFiles = encodedFiles;
-            DownloadedThumbnailPath = downloadedThumbnailPath;
             Metadata = metadata;
+            ThumbnailFile = thumbnailFile;
         }
 
         // Properties.
-        public string DownloadedThumbnailPath { get; }
-        public IEnumerable<EncodedFileBase> EncodedFiles { get; }
+        public IEnumerable<FileBase> EncodedFiles { get; }
         public string? EthernaIndexId { get; set; }
         public string? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
-        public string? UploadedThumbnailReference { get; set; }
+        public ThumbnailFile? ThumbnailFile { get; }
     }
 }

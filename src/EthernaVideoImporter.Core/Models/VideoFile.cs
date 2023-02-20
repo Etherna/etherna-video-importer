@@ -12,19 +12,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
-
 namespace Etherna.VideoImporter.Core.Models
 {
-    public class EncodedVideoFile : EncodedFileBase
+    public class VideoFile : FileBase
     {
         // Constructors.
-        public EncodedVideoFile(
+        public VideoFile(
             string downloadedFilePath,
             string videoQualityLabel,
-            long byteSize,
-            TimeSpan duration)
-            : base(downloadedFilePath, byteSize, duration)
+            long byteSize)
+            : base(downloadedFilePath, byteSize)
         {
             VideoQualityLabel = videoQualityLabel;
         }
