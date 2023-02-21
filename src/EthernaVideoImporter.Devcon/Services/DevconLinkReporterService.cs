@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
@@ -28,17 +29,20 @@ namespace Etherna.VideoImporter.Devcon.Services
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
 
         // Methods.
-        public async Task SetEthernaFieldsAsync(
-            string destinationUri,
-            string ethernaIndex,
-            string ethernaPermalink)
+        public async Task SetEthernaReferencesAsync(
+            string sourceVideoId,
+            string ethernaIndexId,
+            string ethernaPermalinkHash)
         {
+            var ethernaIndexUrl = CommonConsts.PREFIX_ETHERNA_INDEX + ethernaIndexId;
+            var ethernaPermalinkUrl = CommonConsts.PREFIX_ETHERNA_PERMALINK + ethernaPermalinkHash;
+
             // Reaad all line.
-            var lines = File.ReadLines(destinationUri).ToList();
+            var lines = File.ReadLines(sourceVideoId).ToList();
 
             // Set ethernaIndex.
             var index = GetLineNumber(lines, EthernaIndexPrefix);
-            var ethernaIndexLine = $"{EthernaIndexPrefix} \"{ethernaIndex}\"";
+            var ethernaIndexLine = $"{EthernaIndexPrefix} \"{ethernaIndexUrl}\"";
             if (index >= 0)
                 lines[index] = ethernaIndexLine;
             else
@@ -46,14 +50,14 @@ namespace Etherna.VideoImporter.Devcon.Services
 
             // Set ethernaPermalink.
             index = GetLineNumber(lines, EthernaPermalinkPrefix);
-            var ethernaPermalinkLine = $"{EthernaPermalinkPrefix} \"{ethernaPermalink}\"";
+            var ethernaPermalinkLine = $"{EthernaPermalinkPrefix} \"{ethernaPermalinkUrl}\"";
             if (index >= 0)
                 lines[index] = ethernaPermalinkLine;
             else
                 lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaPermalinkLine);
 
             // Save file.
-            await File.WriteAllLinesAsync(destinationUri, lines).ConfigureAwait(false);
+            await File.WriteAllLinesAsync(sourceVideoId, lines).ConfigureAwait(false);
         }
 
         // Helpers.

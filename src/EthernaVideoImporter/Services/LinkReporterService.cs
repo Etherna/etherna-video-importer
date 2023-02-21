@@ -12,9 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Services;
 using System.Threading.Tasks;
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Services
 {
     public sealed class LinkReporterService : ILinkReporterService
     {
@@ -24,10 +25,10 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Methods.
-        public Task SetEthernaFieldsAsync(
-            string destinationUri,
-            string ethernaIndex,
-            string ethernaPermalink)
+        public Task SetEthernaReferencesAsync(
+            string sourceVideoId,
+            string ethernaIndexId,
+            string ethernaPermalinkHash)
         {
             return Task.CompletedTask;
         }

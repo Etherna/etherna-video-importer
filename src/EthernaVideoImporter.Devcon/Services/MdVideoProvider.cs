@@ -14,6 +14,9 @@
 
 using Etherna.VideoImporter.Core.Models;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Utilities;
+using Etherna.VideoImporter.Devcon.MdDto;
+using Etherna.VideoImporter.Devcon.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,46 +24,62 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
     internal sealed class MdVideoProvider : IVideoProvider
     {
         // Consts.
-        public static readonly string[] _keywordSkips = { "IMAGE", "IMAGEURL", "IPFSHASH", "EXPERTISE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "SOURCEID" };
         public static readonly string[] _keywordNames = { "IMAGE", "IMAGEURL", "EDITION", "TITLE", "DESCRIPTION", "YOUTUBEURL", "IPFSHASH", "DURATION", "EXPERTISE", "TYPE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "ETHERNAINDEX", "ETHERNAPERMALINK", "SOURCEID" };
 
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
+        private readonly string ffMpegFolderPath;
+        private readonly bool includeAudioTrack;
         private readonly string mdFolderRootPath;
+        private readonly YoutubeClient youtubeClient;
+        private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
-        public MdVideoProvider(string mdFolderRootPath)
+        public MdVideoProvider(
+            string mdFolderRootPath,
+            string ffMpegFolderPath,
+            bool includeAudioTrack)
         {
             this.mdFolderRootPath = mdFolderRootPath;
+            this.ffMpegFolderPath = ffMpegFolderPath;
+            this.includeAudioTrack = includeAudioTrack;
+            youtubeClient = new();
+            youtubeDownloader = new YoutubeDownloader(youtubeClient);
         }
 
+        // Properties.
+        public string SourceName => mdFolderRootPath;
+
         // Methods.
-        public Task<IEnumerable<VideoMetadata>> GetVideosMetadataAsync()
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+            includeAudioTrack,
+            videoMetadata as MdFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(MdFileVideoMetadata)}", nameof(videoMetadata)));
+
+        public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             var mdFilesPaths = Directory.GetFiles(mdFolderRootPath, "*.md", SearchOption.AllDirectories);
 
             Console.WriteLine($"Total files: {mdFilesPaths.Length}");
 
-            var videosMetadata = new List<VideoMetadata>();
+            var videosMetadata = new List<(ArchiveMdFileDto mdDto, YoutubeExplode.Videos.Video ytVideo, string mdRelativePath)>();
             foreach (var mdFilePath in mdFilesPaths)
             {
+                // Get from md file.
                 var mdConvertedToJson = new StringBuilder();
                 var markerLine = 0;
                 var keyFound = 0;
                 var descriptionExtraRows = new List<string>();
-                VideoMetadata? videoDataInfoDto = null;
+                ArchiveMdFileDto? videoDataInfoDto = null;
                 foreach (var line in File.ReadLines(mdFilePath))
                 {
                     if (string.IsNullOrWhiteSpace(line))
-                        continue;
-                    if (_keywordSkips.Any(keyToSkip =>
-                        line.StartsWith(keyToSkip, StringComparison.InvariantCultureIgnoreCase)))
                         continue;
 
                     if (line == "---")
@@ -74,12 +93,9 @@ namespace Etherna.VideoImporter.Devcon.Services
                             mdConvertedToJson.AppendLine("}");
                             try
                             {
-                                videoDataInfoDto = JsonSerializer.Deserialize<VideoMetadata>(
+                                videoDataInfoDto = JsonSerializer.Deserialize<ArchiveMdFileDto>(
                                     mdConvertedToJson.ToString(),
-                                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-                                videoDataInfoDto?.SetData(
-                                    mdFilePath!.Replace(mdFilePath, "", StringComparison.InvariantCultureIgnoreCase),
-                                    mdFilePath);
+                                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
                             }
                             catch (Exception ex)
                             {
@@ -94,20 +110,34 @@ namespace Etherna.VideoImporter.Devcon.Services
                     }
                     else
                     {
+                        mdConvertedToJson.AppendLine(FormatLineForJson(line, keyFound == 0, descriptionExtraRows));
                         keyFound++;
-                        mdConvertedToJson.AppendLine(FormatLineForJson(line, keyFound > 1, descriptionExtraRows));
                     }
                 }
 
-                if (videoDataInfoDto is not null)
-                    videosMetadata.Add(videoDataInfoDto);
+                if (videoDataInfoDto is null)
+                    continue;
+
+                // Get from youtube.
+                var youtubeVideo = await youtubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl).ConfigureAwait(false);
+
+                videosMetadata.Add((videoDataInfoDto, youtubeVideo, Path.GetRelativePath(mdFilePath, mdFolderRootPath)));
             }
 
-            return Task.FromResult<IEnumerable<VideoMetadata>>(videosMetadata);
+            return videosMetadata.Select(
+                p => new MdFileVideoMetadata(
+                    p.mdDto.Description,
+                    p.ytVideo.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
+                    p.ytVideo.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
+                    p.mdDto.Title,
+                    p.mdRelativePath,
+                    p.mdDto.YoutubeUrl,
+                    p.mdDto.EthernaIndex,
+                    p.mdDto.EthernaPermalink));
         }
 
         // Helpers.
-        private static string FormatLineForJson(string line, bool havePreviusRow, List<string>? descriptionExtraRows)
+        private static string FormatLineForJson(string line, bool isFirstRow, List<string> descriptionExtraRows)
         {
             if (string.IsNullOrWhiteSpace(line))
                 return "";
@@ -120,23 +150,21 @@ namespace Etherna.VideoImporter.Devcon.Services
                         line.Contains("['", StringComparison.InvariantCultureIgnoreCase)))
                 {
                     //array of string change from ' to "
-                    //use TEMPSINGLEQUOTE for mange the case like        'Piotrek "Viggith" Janiuk'
+                    //use TEMPSINGLEQUOTE for manage the case like 'Piotrek "Viggith" Janiuk'
                     line = line.Replace("'", "TEMPSINGLEQUOTE", StringComparison.InvariantCultureIgnoreCase);
                     line = line.Replace("\"", "'", StringComparison.InvariantCultureIgnoreCase);
                     line = line.Replace("TEMPSINGLEQUOTE", "\"", StringComparison.InvariantCultureIgnoreCase);
                 }
 
             // Prevent multiline description error 
-            if (descriptionExtraRows is not null &&
-                !_keywordNames.Any(keywordName =>
-                    line.StartsWith(keywordName, StringComparison.InvariantCultureIgnoreCase)))
+            if (!_keywordNames.Any(keywordName => line.StartsWith(keywordName, StringComparison.InvariantCultureIgnoreCase)))
             {
                 descriptionExtraRows.Add(line);
                 return "";
             }
 
-            var formatedString = (havePreviusRow ? "," : "") // Add , at end of every previus row (isFirstKeyFound used to avoid insert , in the last keyword)
-                 + "\"" // Add " at start of every row
+            var formatedString = (isFirstRow ? "" : ",") // Add , at end of every previus row (isFirstKeyFound used to avoid insert , in the last keyword)
+                + "\"" // Add " at start of every row
                 + ReplaceFirstOccurrence(line, ":", "\":"); // Find the first : and add "
 
             // Prevent error for description multiline

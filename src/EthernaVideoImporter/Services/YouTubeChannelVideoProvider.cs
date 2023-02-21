@@ -14,7 +14,11 @@
 
 using Etherna.VideoImporter.Core.Models;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Utilities;
+using Etherna.VideoImporter.Models;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
@@ -25,31 +29,47 @@ namespace Etherna.VideoImporter.Services
     {
         // Fields.
         private readonly string channelUrl;
-        private readonly YoutubeClient youtubeClient = new();
+        private readonly string ffMpegBinaryPath;
+        private readonly bool includeAudioTrack;
+        private readonly YoutubeClient youtubeClient;
+        private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
-        public YouTubeChannelVideoProvider(string channelUrl)
+        public YouTubeChannelVideoProvider(
+            string channelUrl,
+            string ffMpegBinaryPath,
+            bool includeAudioTrack)
         {
             this.channelUrl = channelUrl;
+            this.ffMpegBinaryPath = ffMpegBinaryPath;
+            this.includeAudioTrack = includeAudioTrack;
+            youtubeClient = new();
+            youtubeDownloader = new YoutubeDownloader(youtubeClient);
         }
 
+        // Properties.
+        public string SourceName => channelUrl;
+
         // Methods.
-        public async Task<IEnumerable<VideoMetadata>> GetVideosMetadataAsync()
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+            includeAudioTrack,
+            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
+
+        public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             var youtubeChannel = await youtubeClient.Channels.GetByHandleAsync(channelUrl).ConfigureAwait(false);
             var youtubeVideos = await youtubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
 
-            var videosMetadata = new List<VideoMetadata>();
+            var videosMetadata = new List<VideoMetadataBase>();
             foreach (var video in youtubeVideos)
             {
                 var metadata = await youtubeClient.Videos.GetAsync(video.Url).ConfigureAwait(false);
-                videosMetadata.Add(new VideoMetadata
-                {
-                    Id = metadata.Id,
-                    YoutubeUrl = metadata.Url,
-                    Title = metadata.Title,
-                    Description = metadata.Description
-                });
+                videosMetadata.Add(new YouTubeVideoMetadata(
+                    metadata.Description,
+                    metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
+                    metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
+                    metadata.Title,
+                    metadata.Url));
             }
 
             return videosMetadata;

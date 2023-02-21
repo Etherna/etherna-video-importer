@@ -12,20 +12,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Models;
-using System.Threading.Tasks;
-
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Core.Models
 {
-    /// <summary>
-    /// Downloader services
-    /// </summary>
-    public interface IVideoDownloaderService
+    public abstract class FileBase
     {
-        /// <summary>
-        /// Start download from youtube url.
-        /// </summary>
-        /// <param name="videoData">video data</param>
-        Task<VideoMetadata> StartDownloadAsync(VideoMetadata videoData);
+        // Constructors.
+        protected FileBase(
+            string downloadedFilePath,
+            long byteSize)
+        {
+            ByteSize = byteSize;
+            DownloadedFilePath = downloadedFilePath;
+        }
+
+        // Properties.
+        public long ByteSize { get; }
+        public string DownloadedFilePath { get; }
+        public string? UploadedHashReference { get; set; }
     }
 }
