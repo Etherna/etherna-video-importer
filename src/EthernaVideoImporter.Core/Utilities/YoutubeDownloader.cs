@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
+using YoutubeExplode.Converter;
 using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Core.Utilities
@@ -16,12 +17,16 @@ namespace Etherna.VideoImporter.Core.Utilities
     {
         // Fields.
         private readonly DirectoryInfo downloadDirectory;
+        private readonly string ffMpegPath;
         private readonly YoutubeClient youtubeClient;
 
         // Constructor.
-        public YoutubeDownloader(YoutubeClient youtubeClient)
+        public YoutubeDownloader(
+            string ffMpegPath,
+            YoutubeClient youtubeClient)
         {
             downloadDirectory = Directory.CreateTempSubdirectory();
+            this.ffMpegPath = ffMpegPath;
             this.youtubeClient = youtubeClient;
         }
 
@@ -35,21 +40,27 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             // Get manifest data.
             var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeUrl).ConfigureAwait(false);
-            var youtubeStreamsInfo = youtubeStreamsManifest.GetMuxedStreams()
-                .Where(stream => stream.Container == Container.Mp4)
-                .OrderBy(res => res.VideoResolution.Area);
 
-            // Get video streams.
+            var videoOnlyStreamsInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
+                .Where(stream => stream.Container == Container.Mp4)
+                .OrderByDescending(res => res.VideoResolution.Area);
+            var audioOnlyStreamInfo = youtubeStreamsManifest.GetAudioOnlyStreams()
+                .OrderByDescending(s => s.Bitrate)
+                .First();
+
+            // Get streams.
+            //video streams
             var encodedFiles = new List<FileBase>();
-            foreach (var youtubeStreamInfo in youtubeStreamsInfo)
+            foreach (var videoOnlyStreamInfo in videoOnlyStreamsInfo)
                 encodedFiles.Add(await DownloadVideoStreamAsync(
-                    youtubeStreamInfo,
+                    audioOnlyStreamInfo,
+                    videoOnlyStreamInfo,
                     videoMetadata.Title).ConfigureAwait(false));
 
-            // Get audio only stream.
+            //audio only stream
             if (includeAudioTrack)
                 encodedFiles.Add(await DownloadAudioTrackAsync(
-                    youtubeStreamsManifest.GetAudioOnlyStreams().GetWithHighestBitrate(),
+                    audioOnlyStreamInfo,
                     videoMetadata.Title).ConfigureAwait(false));
 
             // Get thumbnail.
@@ -94,7 +105,7 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             return new AudioFile(
                 audioFilePath,
-                audioStream.Size.Bytes);
+                new FileInfo(audioFilePath).Length);
         }
 
         private async Task<ThumbnailFile> DownloadThumbnailAsync(
@@ -105,8 +116,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 throw new ArgumentNullException(nameof(thumbnail));
 
             string thumbnailFilePath = Path.Combine(downloadDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
-            long fileSize = 0;
-
+            
             for (int i = 0; i <= CommonConsts.DOWNLOAD_MAX_RETRY; i++)
             {
                 if (i == CommonConsts.DOWNLOAD_MAX_RETRY)
@@ -118,7 +128,6 @@ namespace Etherna.VideoImporter.Core.Utilities
                     var stream = await httpClient.GetStreamAsync(thumbnail.Url).ConfigureAwait(false);
                     using var fileStream = new FileStream(thumbnailFilePath, FileMode.Create, FileAccess.Write);
                     await stream.CopyToAsync(fileStream).ConfigureAwait(false);
-                    fileSize = fileStream.Length;
                     break;
                 }
                 catch { await Task.Delay(CommonConsts.DOWNLOAD_RETRY_TIMESPAN).ConfigureAwait(false); }
@@ -126,21 +135,19 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             return new ThumbnailFile(
                 thumbnailFilePath,
-                fileSize,
+                new FileInfo(thumbnailFilePath).Length,
                 thumbnail.Resolution.Width,
                 thumbnail.Resolution.Height);
         }
 
         private async Task<VideoFile> DownloadVideoStreamAsync(
-            IVideoStreamInfo videoStream,
+            IAudioStreamInfo audioOnlyStream,
+            IVideoStreamInfo videoOnlyStream,
             string videoTitle)
         {
-            if (videoStream is null)
-                throw new ArgumentNullException(nameof(videoStream));
-
-            var videoFileName = $"{videoTitle.ToSafeFileName()}_{videoStream.VideoResolution}.{videoStream.Container}";
+            var videoFileName = $"{videoTitle.ToSafeFileName()}_{videoOnlyStream.VideoResolution}.{videoOnlyStream.Container}";
             var videoFilePath = Path.Combine(downloadDirectory.FullName, videoFileName);
-            var videoQualityLabel = videoStream.VideoQuality.Label;
+            var videoQualityLabel = videoOnlyStream.VideoQuality.Label;
 
             // Download video.
             for (int i = 0; i <= CommonConsts.DOWNLOAD_MAX_RETRY; i++)
@@ -150,12 +157,13 @@ namespace Etherna.VideoImporter.Core.Utilities
 
                 try
                 {
-                    await youtubeClient.Videos.Streams.DownloadAsync(
-                        videoStream,
-                        videoFilePath,
+                    await youtubeClient.Videos.DownloadAsync(
+                        new IStreamInfo[] { audioOnlyStream, videoOnlyStream },
+                        new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(ffMpegPath).Build(),
                         new Progress<double>((progressStatus) =>
                         {
-                            Console.Write($"Downloading resolution {videoQualityLabel} ({(progressStatus * 100):N0}%) {videoStream.Size.MegaBytes:N2} MB\r");
+                            Console.Write($"Downloading and mux resolution {videoQualityLabel} ({(progressStatus * 100):N0}%) " +
+                                $"{videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes:N2} MB\r");
                         })).ConfigureAwait(false);
                     break;
                 }
@@ -165,7 +173,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             return new VideoFile(
                 videoFilePath,
                 videoQualityLabel,
-                videoStream.Size.Bytes);
+                new FileInfo(videoFilePath).Length);
         }
     }
 }

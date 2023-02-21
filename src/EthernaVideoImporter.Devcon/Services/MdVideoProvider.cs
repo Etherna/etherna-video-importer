@@ -35,7 +35,6 @@ namespace Etherna.VideoImporter.Devcon.Services
 
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
-        private readonly string ffMpegFolderPath;
         private readonly bool includeAudioTrack;
         private readonly string mdFolderRootPath;
         private readonly YoutubeClient youtubeClient;
@@ -44,14 +43,13 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Constructor.
         public MdVideoProvider(
             string mdFolderRootPath,
-            string ffMpegFolderPath,
+            string ffMpegPath,
             bool includeAudioTrack)
         {
             this.mdFolderRootPath = mdFolderRootPath;
-            this.ffMpegFolderPath = ffMpegFolderPath;
             this.includeAudioTrack = includeAudioTrack;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient);
         }
 
         // Properties.

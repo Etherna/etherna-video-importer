@@ -29,7 +29,6 @@ namespace Etherna.VideoImporter.Services
     {
         // Fields.
         private readonly string channelUrl;
-        private readonly string ffMpegBinaryPath;
         private readonly bool includeAudioTrack;
         private readonly YoutubeClient youtubeClient;
         private readonly IYoutubeDownloader youtubeDownloader;
@@ -37,14 +36,13 @@ namespace Etherna.VideoImporter.Services
         // Constructor.
         public YouTubeChannelVideoProvider(
             string channelUrl,
-            string ffMpegBinaryPath,
+            string ffMpegPath,
             bool includeAudioTrack)
         {
             this.channelUrl = channelUrl;
-            this.ffMpegBinaryPath = ffMpegBinaryPath;
             this.includeAudioTrack = includeAudioTrack;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient);
         }
 
         // Properties.
