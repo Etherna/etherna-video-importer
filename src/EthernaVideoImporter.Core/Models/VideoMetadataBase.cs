@@ -21,16 +21,18 @@ namespace Etherna.VideoImporter.Core.Models
         // Constructor.
         protected VideoMetadataBase(
             string description,
+            TimeSpan duration,
             string title)
         {
             Description = description;
+            Duration = duration;
             Title = title;
         }
 
         // Properties.
         public abstract string Id { get; }
         public string Description { get; }
-        public abstract TimeSpan Duration { get; }
+        public TimeSpan Duration { get; }
         public string Title { get; }
     }
 }

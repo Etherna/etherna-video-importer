@@ -22,7 +22,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
-using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Services
 {
@@ -33,28 +32,28 @@ namespace Etherna.VideoImporter.Services
         private readonly string ffMpegBinaryPath;
         private readonly bool includeAudioTrack;
         private readonly YoutubeClient youtubeClient;
-        private readonly YoutubeDownloader youtubeDownloader;
+        private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public YouTubeChannelVideoProvider(
             string channelUrl,
-            string ffMpegBinaryPath)
+            string ffMpegBinaryPath,
+            bool includeAudioTrack)
         {
             this.channelUrl = channelUrl;
             this.ffMpegBinaryPath = ffMpegBinaryPath;
-            includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
-
+            this.includeAudioTrack = includeAudioTrack;
             youtubeClient = new();
-            youtubeDownloader = new(youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(youtubeClient);
         }
 
         // Properties.
         public string SourceName => channelUrl;
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => GetVideoHelperAsync(
-            videoMetadata as YouTubeVideoMetadata ??
-            throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+            includeAudioTrack,
+            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
@@ -65,42 +64,15 @@ namespace Etherna.VideoImporter.Services
             foreach (var video in youtubeVideos)
             {
                 var metadata = await youtubeClient.Videos.GetAsync(video.Url).ConfigureAwait(false);
-                videosMetadata.Add(new YouTubeVideoMetadata(metadata));
+                videosMetadata.Add(new YouTubeVideoMetadata(
+                    metadata.Description,
+                    metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
+                    metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
+                    metadata.Title,
+                    metadata.Url));
             }
 
             return videosMetadata;
-        }
-
-        // Helpers.
-        private async Task<Video> GetVideoHelperAsync(YouTubeVideoMetadata videoMetadata)
-        {
-            // Get manifest data.
-            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeUrl).ConfigureAwait(false);
-            var youtubeStreamsInfo = youtubeStreamsManifest.GetMuxedStreams()
-                .Where(stream => stream.Container == Container.Mp4)
-                .OrderBy(res => res.VideoResolution.Area);
-
-            // Get video streams.
-            var encodedFiles = new List<FileBase>();
-            foreach (var youtubeStreamInfo in youtubeStreamsInfo)
-                encodedFiles.Add(await youtubeDownloader.DownloadVideoStreamAsync(
-                    youtubeStreamInfo,
-                    videoMetadata.Title).ConfigureAwait(false));
-
-            // Get audio only stream.
-            if (includeAudioTrack)
-                encodedFiles.Add(await youtubeDownloader.DownloadAudioTrackAsync(
-                    youtubeStreamsManifest.GetAudioOnlyStreams().GetWithHighestBitrate(),
-                    videoMetadata.Title).ConfigureAwait(false));
-
-            // Get thumbnail.
-            ThumbnailFile? thumbnailFile = null;
-            if (videoMetadata.Thumbnail is not null)
-                thumbnailFile = await youtubeDownloader.DownloadThumbnailAsync(
-                    videoMetadata.Thumbnail,
-                    videoMetadata.Title).ConfigureAwait(false);
-
-            return new Video(videoMetadata, encodedFiles, thumbnailFile);
         }
     }
 }

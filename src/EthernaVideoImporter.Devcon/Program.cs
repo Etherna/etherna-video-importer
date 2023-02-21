@@ -55,7 +55,7 @@ namespace Etherna.VideoImporter.Devcon
             bool pinVideos = false;
             bool deleteSourceRemovedVideos = false;
             bool deleteVideosFromOtherSources = false;
-            bool includeAudioTrack = false;
+            bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
@@ -130,7 +130,6 @@ namespace Etherna.VideoImporter.Devcon
                 ethernaUserClients.IndexClient,
                 userEthAddr,
                 httpClient,
-                includeAudioTrack,
                 ttlPostageStamp);
 
             // Call runner.
@@ -138,7 +137,10 @@ namespace Etherna.VideoImporter.Devcon
                 new CleanerVideoService(ethernaUserClients.IndexClient),
                 ethernaUserClients.IndexClient,
                 new DevconLinkReporterService(),
-                new MdVideoProvider(mdSourceFolderPath, ffMpegBinaryPath),
+                new MdVideoProvider(
+                    mdSourceFolderPath,
+                    ffMpegBinaryPath,
+                    includeAudioTrack),
                 videoUploaderService);
 
             await importer.RunAsync(

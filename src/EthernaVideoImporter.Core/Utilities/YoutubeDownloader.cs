@@ -1,7 +1,9 @@
 ﻿using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using YoutubeExplode;
@@ -10,7 +12,7 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Core.Utilities
 {
-    public class YoutubeDownloader
+    public class YoutubeDownloader : IYoutubeDownloader
     {
         // Fields.
         private readonly DirectoryInfo downloadDirectory;
@@ -24,7 +26,44 @@ namespace Etherna.VideoImporter.Core.Utilities
         }
 
         // Methods.
-        public async Task<AudioFile> DownloadAudioTrackAsync(
+        public async Task<Video> GetVideoAsync(
+            bool includeAudioTrack,
+            YouTubeVideoMetadataBase videoMetadata)
+        {
+            if (videoMetadata is null)
+                throw new ArgumentNullException(nameof(videoMetadata));
+
+            // Get manifest data.
+            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeUrl).ConfigureAwait(false);
+            var youtubeStreamsInfo = youtubeStreamsManifest.GetMuxedStreams()
+                .Where(stream => stream.Container == Container.Mp4)
+                .OrderBy(res => res.VideoResolution.Area);
+
+            // Get video streams.
+            var encodedFiles = new List<FileBase>();
+            foreach (var youtubeStreamInfo in youtubeStreamsInfo)
+                encodedFiles.Add(await DownloadVideoStreamAsync(
+                    youtubeStreamInfo,
+                    videoMetadata.Title).ConfigureAwait(false));
+
+            // Get audio only stream.
+            if (includeAudioTrack)
+                encodedFiles.Add(await DownloadAudioTrackAsync(
+                    youtubeStreamsManifest.GetAudioOnlyStreams().GetWithHighestBitrate(),
+                    videoMetadata.Title).ConfigureAwait(false));
+
+            // Get thumbnail.
+            ThumbnailFile? thumbnailFile = null;
+            if (videoMetadata.Thumbnail is not null)
+                thumbnailFile = await DownloadThumbnailAsync(
+                    videoMetadata.Thumbnail,
+                    videoMetadata.Title).ConfigureAwait(false);
+
+            return new Video(videoMetadata, encodedFiles, thumbnailFile);
+        }
+
+        // Helpers.
+        private async Task<AudioFile> DownloadAudioTrackAsync(
             IStreamInfo audioStream,
             string videoTitle)
         {
@@ -58,7 +97,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 audioStream.Size.Bytes);
         }
 
-        public async Task<ThumbnailFile> DownloadThumbnailAsync(
+        private async Task<ThumbnailFile> DownloadThumbnailAsync(
             Thumbnail thumbnail,
             string videoTitle)
         {
@@ -92,7 +131,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 thumbnail.Resolution.Height);
         }
 
-        public async Task<VideoFile> DownloadVideoStreamAsync(
+        private async Task<VideoFile> DownloadVideoStreamAsync(
             IVideoStreamInfo videoStream,
             string videoTitle)
         {
