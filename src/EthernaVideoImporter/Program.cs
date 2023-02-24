@@ -161,8 +161,7 @@ namespace Etherna.VideoImporter
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,
-                deleteVideosFromOtherSources,
-                null).ConfigureAwait(false);
+                deleteVideosFromOtherSources).ConfigureAwait(false);
         }
     }
 }

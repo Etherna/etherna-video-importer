@@ -59,7 +59,7 @@ namespace Etherna.VideoImporter.Core
             bool pinVideos,
             bool deleteVideosRemovedFromSource,
             bool deleteVideosNotFromThisTool,
-            Func<string, string, string, Task>? reporterLink)
+            Func<string, string, string, Task>? reporterLink = null)
         {
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
