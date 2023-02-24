@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Index;
+using Etherna.VideoImporter.Core.Dtos;
 using Etherna.VideoImporter.Core.Models;
 using System.Threading.Tasks;
 
@@ -26,23 +26,22 @@ namespace Etherna.VideoImporter.Core.Services
         /// <summary>
         /// Start to upload all video data (manifest, video with all avaiable resolutions, thumbnail, index).
         /// </summary>
-        /// <param name="videoData">all video data</param>
+        /// <param name="video">video data</param>
         /// <param name="pinVideo">pin video</param>
         /// <param name="offerVideo">free video</param>
         public Task UploadVideoAsync(
-            VideoMetadata videoData,
+            Video video,
             bool pinVideo,
             bool offerVideo);
 
         /// <summary>
-        /// Update metadata and index.
+        /// Upload a new video manifest
         /// </summary>
-        /// <param name="videoManifestDto">manifest data</param>
-        /// <param name="videoData">video data</param>
-        /// <param name="pinVideo">free video</param>
-        Task<string> UploadMetadataAsync(
-            VideoManifestDto videoManifestDto,
-            VideoMetadata videoData,
-            bool pinVideo);
+        /// <param name="videoManifest">The video manifest</param>
+        /// <param name="pinManifest">True if need to pin manifest</param>
+        /// <returns>The new manifest hash</returns>
+        Task<string> UploadVideoManifestAsync(
+            ManifestDto videoManifest,
+            bool pinManifest);
     }
 }

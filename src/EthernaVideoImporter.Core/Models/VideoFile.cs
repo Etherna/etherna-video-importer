@@ -12,11 +12,21 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.VideoImporter.Core.Dtos
+namespace Etherna.VideoImporter.Core.Models
 {
-    public class MetadataPersonalDataDto
+    public class VideoFile : FileBase
     {
-        public string VideoId { get; set; } = default!;
-        public MetadataUploadMode Mode { get; set; } = default!;
+        // Constructors.
+        public VideoFile(
+            string downloadedFilePath,
+            string videoQualityLabel,
+            long byteSize)
+            : base(downloadedFilePath, byteSize)
+        {
+            VideoQualityLabel = videoQualityLabel;
+        }
+
+        // Properties.
+        public string VideoQualityLabel { get; }
     }
 }

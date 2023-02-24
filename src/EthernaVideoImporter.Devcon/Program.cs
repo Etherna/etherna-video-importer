@@ -74,6 +74,8 @@ namespace Etherna.VideoImporter.Devcon
 
             // Get params.
             for (int i = 2; i < args.Length; i++)
+            bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
                 {
@@ -89,10 +91,11 @@ namespace Etherna.VideoImporter.Devcon
             }
 
             // Input validation.
-            //FFmpeg dir
-            if (!Directory.Exists(ffMpegFolderPath))
+            //FFmpeg
+            var ffMpegBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFMpegBinaryName);
+            if (!File.Exists(ffMpegBinaryPath))
             {
-                Console.WriteLine($"FFmpeg not found at ({ffMpegFolderPath})");
+                Console.WriteLine($"FFmpeg not found at ({ffMpegBinaryPath})");
                 return;
             }
 
@@ -122,18 +125,17 @@ namespace Etherna.VideoImporter.Devcon
             // Inizialize services.
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
             var ethernaUserClients = new EthernaUserClients(
-                new Uri(CommonConst.ETHERNA_CREDIT),
-                new Uri(CommonConst.ETHERNA_GATEWAY),
-                new Uri(CommonConst.ETHERNA_INDEX),
-                new Uri(CommonConst.SSO_AUTHORITY),
+                new Uri(CommonConsts.ETHERNA_CREDIT),
+                new Uri(CommonConsts.ETHERNA_GATEWAY),
+                new Uri(CommonConsts.ETHERNA_INDEX),
+                new Uri(CommonConsts.SSO_AUTHORITY),
                 () => httpClient);
-            using var videoDownloaderService = new VideoDownloaderService(ffMpegFolderPath, includeAudioTrack);
             using var beeNodeClient = new BeeNodeClient(
-                CommonConst.ETHERNA_GATEWAY,
-                CommonConst.BEENODE_GATEWAYPORT,
+                CommonConsts.ETHERNA_GATEWAY,
+                CommonConsts.BEENODE_GATEWAYPORT,
                 null,
-                CommonConst.BEENODE_GATEWAYVERSION,
-                CommonConst.BEENODE_DEBUGVERSION,
+                CommonConsts.BEENODE_GATEWAYVERSION,
+                CommonConsts.BEENODE_DEBUGVERSION,
                 httpClient);
             var videoUploaderService = new VideoUploaderService(
                 beeNodeClient,
@@ -141,23 +143,25 @@ namespace Etherna.VideoImporter.Devcon
                 ethernaUserClients.IndexClient,
                 userEthAddr,
                 httpClient,
-                includeAudioTrack,
                 ttlPostageStamp);
 
             // Call runner.
-            var runner = new Runner(
+            var importer = new EthernaVideoImporter(
                 new CleanerVideoService(ethernaUserClients.IndexClient),
                 ethernaUserClients.IndexClient,
-                new LinkReporterService(),
-                videoDownloaderService,
-                new MdVideoProvider(mdSourceFolderPath),
+                new DevconLinkReporterService(),
+                new MdVideoProvider(
+                    mdSourceFolderPath,
+                    ffMpegBinaryPath,
+                    includeAudioTrack),
                 videoUploaderService);
-            await runner.RunAsync(
+
+            await importer.RunAsync(
+                userEthAddr,
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,
-                deleteVideosFromOtherSources,
-                userEthAddr).ConfigureAwait(false);
+                deleteVideosFromOtherSources).ConfigureAwait(false);
         }
 
         // Private helpers.

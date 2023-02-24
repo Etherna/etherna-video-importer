@@ -12,19 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using System;
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Core.Models
 {
-    public interface ICleanerVideoService
+    public class AudioFile : FileBase
     {
-        Task RunCleanerAsync(
-            IEnumerable<VideoMetadataBase> allVideosMetadata,
-            IEnumerable<IndexedVideo> importedVideos);
-
-        Task RunOldDeleterAsync(
-            IEnumerable<IndexedVideo> videos);
+        // Constructors.
+        public AudioFile(
+            string downloadedFilePath,
+            long byteSize)
+            : base(downloadedFilePath, byteSize)
+        { }
     }
 }

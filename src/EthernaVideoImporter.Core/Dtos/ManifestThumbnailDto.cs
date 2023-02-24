@@ -12,19 +12,27 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Models;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Core.Dtos
 {
-    public interface ICleanerVideoService
+    public sealed class ManifestThumbnailDto
     {
-        Task RunCleanerAsync(
-            IEnumerable<VideoMetadataBase> allVideosMetadata,
-            IEnumerable<IndexedVideo> importedVideos);
+        // Constructors.
+        public ManifestThumbnailDto(
+            float aspectRatio,
+            string blurhash,
+            IDictionary<string, string> sources)
+        {
+            AspectRatio = aspectRatio;
+            Blurhash = blurhash;
+            Sources = sources;
+        }
 
-        Task RunOldDeleterAsync(
-            IEnumerable<IndexedVideo> videos);
+        // Properties.
+        public float AspectRatio { get; set; }
+        public string Blurhash { get; set; }
+        public IDictionary<string, string> Sources { get; }
+        public string V { get; } = "1.0";
     }
 }
