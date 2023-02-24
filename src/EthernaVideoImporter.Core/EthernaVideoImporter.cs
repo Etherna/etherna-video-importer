@@ -29,7 +29,6 @@ namespace Etherna.VideoImporter.Core
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
         private readonly IUserIndexClient ethernaIndexClient;
-        private readonly ILinkReporterService linkReporterService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -37,14 +36,11 @@ namespace Etherna.VideoImporter.Core
         public EthernaVideoImporter(
             ICleanerVideoService cleanerVideoService,
             IUserIndexClient ethernaIndexClient,
-            ILinkReporterService linkReporterService,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
-            if (linkReporterService is null)
-                throw new ArgumentNullException(nameof(linkReporterService));
             if (videoProvider is null)
                 throw new ArgumentNullException(nameof(videoProvider));
             if (videoUploaderService is null)
@@ -52,7 +48,6 @@ namespace Etherna.VideoImporter.Core
 
             this.cleanerVideoService = cleanerVideoService;
             this.ethernaIndexClient = ethernaIndexClient;
-            this.linkReporterService = linkReporterService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -63,7 +58,8 @@ namespace Etherna.VideoImporter.Core
             bool offerVideos,
             bool pinVideos,
             bool deleteVideosRemovedFromSource,
-            bool deleteVideosNotFromThisTool)
+            bool deleteVideosNotFromThisTool,
+            Func<string, string, string, Task>? reporterLink)
         {
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
@@ -182,10 +178,11 @@ namespace Etherna.VideoImporter.Core
                      * Report Etherna references even if video is already present on index.
                      * This handle cases where references are missing for some previous execution error.
                      */
-                    await linkReporterService.SetEthernaReferencesAsync(
-                        sourceMetadata.Id,
-                        updatedIndexId,
-                        updatedPermalinkHash).ConfigureAwait(false);
+                    if (reporterLink is not null)
+                        await reporterLink(
+                            sourceMetadata.Id,
+                            updatedIndexId,
+                            updatedPermalinkHash).ConfigureAwait(false);
 
                     // Import succeeded.
                     Console.ForegroundColor = ConsoleColor.DarkGreen;

@@ -136,7 +136,6 @@ namespace Etherna.VideoImporter.Devcon
             var importer = new EthernaVideoImporter(
                 new CleanerVideoService(ethernaUserClients.IndexClient),
                 ethernaUserClients.IndexClient,
-                new DevconLinkReporterService(),
                 new MdVideoProvider(
                     mdSourceFolderPath,
                     ffMpegBinaryPath,
@@ -148,7 +147,8 @@ namespace Etherna.VideoImporter.Devcon
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,
-                deleteVideosFromOtherSources).ConfigureAwait(false);
+                deleteVideosFromOtherSources,
+                DevconLinkReporterService.SetEthernaReferencesAsync).ConfigureAwait(false);
         }
 
         // Private helpers.

@@ -13,7 +13,6 @@
 //   limitations under the License.
 
 using Etherna.VideoImporter.Core;
-using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,14 +21,14 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
-    public sealed class DevconLinkReporterService : ILinkReporterService
+    public sealed class DevconLinkReporterService
     {
         // Fields.
         private const string EthernaIndexPrefix = "ethernaIndex:";
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
 
         // Methods.
-        public async Task SetEthernaReferencesAsync(
+        public static async Task SetEthernaReferencesAsync(
             string sourceVideoId,
             string ethernaIndexId,
             string ethernaPermalinkHash)
@@ -61,7 +60,7 @@ namespace Etherna.VideoImporter.Devcon.Services
         }
 
         // Helpers.
-        private int GetLineNumber(List<string> lines, string prefix)
+        private static int GetLineNumber(List<string> lines, string prefix)
         {
             var lineIndex = 0;
             foreach (var line in lines)
@@ -74,7 +73,7 @@ namespace Etherna.VideoImporter.Devcon.Services
             return -1;
         }
 
-        private int GetIndexOfInsertLine(int lines)
+        private static int GetIndexOfInsertLine(int lines)
         {
             // Last position. (Exclueded final ---)
             return lines - 2;

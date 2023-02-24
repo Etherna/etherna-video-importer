@@ -29,6 +29,7 @@ namespace Etherna.VideoImporter
 {
     internal static class Program
     {
+        public delegate void Print(int val);
         // Consts.
         private const int DefaultTTLPostageStamp = 365;
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
@@ -149,7 +150,6 @@ namespace Etherna.VideoImporter
             var importer = new EthernaVideoImporter(
                 new CleanerVideoService(ethernaUserClients.IndexClient),
                 ethernaUserClients.IndexClient,
-                new LinkReporterService(),
                 new YouTubeChannelVideoProvider(
                     sourceUri,
                     ffMpegBinaryPath,
@@ -161,7 +161,8 @@ namespace Etherna.VideoImporter
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,
-                deleteVideosFromOtherSources).ConfigureAwait(false);
+                deleteVideosFromOtherSources,
+                null).ConfigureAwait(false);
         }
     }
 }
