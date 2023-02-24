@@ -14,12 +14,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="FFmpeg\**" />
-    <EmbeddedResource Remove="FFmpeg\**" />
-    <None Remove="FFmpeg\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Bee.Net" Version="0.2.0-alpha.156" />
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
     <PackageReference Include="EthernaServicesClient" Version="0.3.0-alpha.59" />
@@ -36,6 +30,12 @@
     <PackageReference Include="YoutubeExplode" Version="6.2.6" />
     <PackageReference Include="YoutubeExplode.Converter" Version="6.2.6" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="FFmpeg\Place_Here_FFmpeg.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
