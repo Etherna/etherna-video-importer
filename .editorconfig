@@ -16,6 +16,9 @@ indent_size = 2
 # C# files
 [*.cs]
 
+# CA1031: Catch general exception types for process next video in case of some error
+dotnet_diagnostic.CA1031.severity = none
+
 # CA1034: Nested types should not be visible
 dotnet_diagnostic.CA1034.severity = none    # Asp.Net Core Pages uses nested models
 
@@ -37,11 +40,8 @@ dotnet_diagnostic.CA1812.severity = none    # Doing extensive use of Dependency 
 # CA1822: Mark members as static
 dotnet_diagnostic.CA1822.severity = none    # Don't like static members
 
-# CA1054: URI-like parameters should not be strings
-dotnet_diagnostic.CA1054.severity = none
+# CA2007: Consider calling ConfigureAwait on the awaited task
+dotnet_diagnostic.CA2007.severity = none
 
 # CA2234: Pass system uri objects instead of strings
 dotnet_diagnostic.CA2234.severity = none
-
-# CA1031: Catch general exception types for process next video in case of some error
-dotnet_diagnostic.CA1031.severity = none

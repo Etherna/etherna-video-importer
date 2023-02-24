@@ -57,7 +57,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaPermalinkLine);
 
             // Save file.
-            await File.WriteAllLinesAsync(sourceVideoId, lines).ConfigureAwait(false);
+            await File.WriteAllLinesAsync(sourceVideoId, lines);
         }
 
         // Helpers.

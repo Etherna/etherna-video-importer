@@ -40,7 +40,7 @@ namespace Etherna.VideoImporter.Core.SSO
             };
 
             var oidcClient = new OidcClient(options);
-            return await oidcClient.LoginAsync(new LoginRequest()).ConfigureAwait(false);
+            return await oidcClient.LoginAsync(new LoginRequest());
         }
     }
 }

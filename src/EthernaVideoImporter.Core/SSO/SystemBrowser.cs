@@ -60,7 +60,7 @@ namespace Etherna.VideoImporter.Core.SSO
 
             try
             {
-                var result = await listener.WaitForCallbackAsync().ConfigureAwait(false);
+                var result = await listener.WaitForCallbackAsync();
                 if (String.IsNullOrWhiteSpace(result))
                     return new BrowserResult { ResultType = BrowserResultType.UnknownError, Error = "Empty response." };
 
@@ -135,7 +135,7 @@ namespace Etherna.VideoImporter.Core.SSO
         {
             Task.Run(async () =>
             {
-                await Task.Delay(500).ConfigureAwait(false);
+                await Task.Delay(500);
                 Dispose(true);
                 GC.SuppressFinalize(this);
             });
@@ -158,7 +158,7 @@ namespace Etherna.VideoImporter.Core.SSO
             app.Run(async ctx =>
             {
                 if (ctx.Request.Method == "GET")
-                    await SetResultAsync(ctx.Request.QueryString.Value ?? "", ctx).ConfigureAwait(false);
+                    await SetResultAsync(ctx.Request.QueryString.Value ?? "", ctx);
                 else
                     ctx.Response.StatusCode = 405;
             });
@@ -173,15 +173,15 @@ namespace Etherna.VideoImporter.Core.SSO
             {
                 ctx.Response.StatusCode = 200;
                 ctx.Response.ContentType = "text/html";
-                await ctx.Response.WriteAsync("<h1>You can now return to the application.</h1>").ConfigureAwait(false);
-                await ctx.Response.Body.FlushAsync().ConfigureAwait(false);
+                await ctx.Response.WriteAsync("<h1>You can now return to the application.</h1>");
+                await ctx.Response.Body.FlushAsync();
             }
             catch
             {
                 ctx.Response.StatusCode = 400;
                 ctx.Response.ContentType = "text/html";
-                await ctx.Response.WriteAsync("<h1>Invalid request.</h1>").ConfigureAwait(false);
-                await ctx.Response.Body.FlushAsync().ConfigureAwait(false); ;
+                await ctx.Response.WriteAsync("<h1>Invalid request.</h1>");
+                await ctx.Response.Body.FlushAsync(); ;
             }
         }
 
@@ -189,7 +189,7 @@ namespace Etherna.VideoImporter.Core.SSO
         {
             Task.Run(async () =>
             {
-                await Task.Delay(timeoutInSeconds * 1000).ConfigureAwait(false);
+                await Task.Delay(timeoutInSeconds * 1000);
                 _source.TrySetCanceled();
             });
 

@@ -56,7 +56,7 @@ namespace Etherna.VideoImporter.Core.Services
                         .Where(videoData => videoData?.LastValidManifest?.PersonalData?.VideoId == videoId)
                         .First();
 
-                    await ethernaIndexClient.VideosClient.VideosDeleteAsync(itemToRemove.IndexId).ConfigureAwait(false);
+                    await ethernaIndexClient.VideosClient.VideosDeleteAsync(itemToRemove.IndexId);
 
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine($"Video {itemToRemove.IndexId} removed");
@@ -85,7 +85,7 @@ namespace Etherna.VideoImporter.Core.Services
 
                 try
                 {
-                    await ethernaIndexClient.VideosClient.VideosDeleteAsync(video.IndexId).ConfigureAwait(false);
+                    await ethernaIndexClient.VideosClient.VideosDeleteAsync(video.IndexId);
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine($"Video {video.IndexId} removed");
                     Console.ResetColor();

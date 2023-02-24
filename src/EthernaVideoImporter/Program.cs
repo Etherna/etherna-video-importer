@@ -108,7 +108,7 @@ namespace Etherna.VideoImporter
             var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
 
             // Sign with SSO and create auth client.
-            var authResult = await SignServices.SigInSSO().ConfigureAwait(false);
+            var authResult = await SignServices.SigInSSO();
             if (authResult.IsError)
             {
                 Console.WriteLine($"Error during authentication");
@@ -161,7 +161,7 @@ namespace Etherna.VideoImporter
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,
-                deleteVideosFromOtherSources).ConfigureAwait(false);
+                deleteVideosFromOtherSources);
         }
     }
 }

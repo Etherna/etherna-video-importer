@@ -117,7 +117,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     continue;
 
                 // Get from youtube.
-                var youtubeVideo = await youtubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl).ConfigureAwait(false);
+                var youtubeVideo = await youtubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
 
                 videosMetadata.Add((videoDataInfoDto, youtubeVideo, Path.GetRelativePath(mdFilePath, mdFolderRootPath)));
             }

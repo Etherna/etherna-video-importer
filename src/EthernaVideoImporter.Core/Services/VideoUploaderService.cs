@@ -93,9 +93,9 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException("Batch deep exceeds the maximum");
             }
 
-            var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync().ConfigureAwait(false);
+            var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
             var amount = (long)new TimeSpan(ttlPostageStamp * 24, 0, 0).TotalSeconds * chainState.CurrentPrice / BLOCK_TIME;
-            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount).ConfigureAwait(false);
+            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount);
 
             // Check and wait until created batchId is avaiable.
             Console.WriteLine("Waiting for batch ready...");
@@ -113,13 +113,13 @@ namespace Etherna.VideoImporter.Core.Services
                 }
 
                 // Waiting for batchId avaiable.
-                await Task.Delay((int)BATCH_CHECK_TIME.TotalMilliseconds).ConfigureAwait(false);
-                //batchId = await ethernaClientService.GetBatchIdFromBatchReferenceAsync(batchReferenceId).ConfigureAwait(false);
+                await Task.Delay((int)BATCH_CHECK_TIME.TotalMilliseconds);
+                //batchId = await ethernaClientService.GetBatchIdFromBatchReferenceAsync(batchReferenceId);
 
-                var httpResponse = await httpClient.GetAsync(new Uri($"https://gateway.etherna.io/api/v0.3/System/postageBatchRef/{batchReferenceId}")).ConfigureAwait(false);
+                var httpResponse = await httpClient.GetAsync(new Uri($"https://gateway.etherna.io/api/v0.3/System/postageBatchRef/{batchReferenceId}"));
 
                 batchId = httpResponse.StatusCode != System.Net.HttpStatusCode.OK ? "" :
-                    await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    await httpResponse.Content.ReadAsStringAsync();
 
                 timeWaited += BATCH_CHECK_TIME.TotalSeconds;
             } while (string.IsNullOrWhiteSpace(batchId));
@@ -138,7 +138,7 @@ namespace Etherna.VideoImporter.Core.Services
                 }
 
                 // Waiting for batch ready.
-                await Task.Delay((int)BATCH_CHECK_TIME.TotalMilliseconds).ConfigureAwait(false);
+                await Task.Delay((int)BATCH_CHECK_TIME.TotalMilliseconds);
 
                 //waiting propagation time on bee
                 for (int i = 0; i <= WAITING_PROPAGATION_BATCH_RETRY; i++)
@@ -148,10 +148,10 @@ namespace Etherna.VideoImporter.Core.Services
 
                     try
                     {
-                        batchUsable = (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId).ConfigureAwait(false)).Usable;
+                        batchUsable = (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
                         break;
                     }
-                    catch { await Task.Delay(WAITING_PROPAGATION_BATCH_SECONDS).ConfigureAwait(false); }
+                    catch { await Task.Delay(WAITING_PROPAGATION_BATCH_SECONDS); }
                 }
 
                 timeWaited += BATCH_CHECK_TIME.TotalSeconds;
@@ -184,14 +184,14 @@ namespace Etherna.VideoImporter.Core.Services
                         encodedFile.UploadedHashReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                             batchId,
                             files: new List<FileParameterInput> { fileParameterInput },
-                            swarmPin: pinVideo).ConfigureAwait(false);
+                            swarmPin: pinVideo);
                         break;
                     }
-                    catch { await Task.Delay(3500).ConfigureAwait(false); }
+                    catch { await Task.Delay(3500); }
                 }
 
                 if (offerVideo && encodedFile.UploadedHashReference is not null)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference).ConfigureAwait(false);
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference);
             }
 
             // Upload thumbnail.
@@ -216,16 +216,16 @@ namespace Etherna.VideoImporter.Core.Services
                         var thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                             batchId,
                             files: new List<FileParameterInput> { fileThumbnailParameterInput },
-                            swarmPin: pinVideo).ConfigureAwait(false);
+                            swarmPin: pinVideo);
 
                         video.ThumbnailFile.UploadedHashReference = thumbnailReference;
                         break;
                     }
-                    catch { await Task.Delay(3500).ConfigureAwait(false); }
+                    catch { await Task.Delay(3500); }
                 }
 
                 if (offerVideo && video.ThumbnailFile.UploadedHashReference is not null)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference).ConfigureAwait(false);
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference);
             }
 
             // Upload metadata.
@@ -285,11 +285,11 @@ namespace Etherna.VideoImporter.Core.Services
                 batchId,
                 JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id)));
 
-            var hashMetadataReference = await UploadVideoManifestAsync(metadataVideo, pinVideo).ConfigureAwait(false);
+            var hashMetadataReference = await UploadVideoManifestAsync(metadataVideo, pinVideo);
             video.EthernaPermalinkHash = hashMetadataReference;
 
             if (offerVideo)
-                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(hashMetadataReference).ConfigureAwait(false);
+                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(hashMetadataReference);
 
             // Sync Index.
             Console.WriteLine("Video indexing in progress...");
@@ -298,7 +298,7 @@ namespace Etherna.VideoImporter.Core.Services
                 // Update manifest index.
                 Console.WriteLine($"Update Index: {video!.EthernaIndexId}\t{hashMetadataReference}");
 
-                await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId!, hashMetadataReference).ConfigureAwait(false);
+                await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId!, hashMetadataReference);
             }
             else
             {
@@ -309,7 +309,7 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     ManifestHash = hashMetadataReference,
                 };
-                var indexVideoId = await ethernaIndexClient.VideosClient.VideosPostAsync(videoCreateInput).ConfigureAwait(false);
+                var indexVideoId = await ethernaIndexClient.VideosClient.VideosPostAsync(videoCreateInput);
 
                 video.EthernaIndexId = indexVideoId;
             }
@@ -326,7 +326,7 @@ namespace Etherna.VideoImporter.Core.Services
             var hashMetadataReference = "";
             try
             {
-                await File.WriteAllTextAsync(tmpMetadata, JsonSerializer.Serialize(videoManifest)).ConfigureAwait(false);
+                await File.WriteAllTextAsync(tmpMetadata, JsonSerializer.Serialize(videoManifest));
 
                 var i = 0;
                 while (i < MAX_RETRY &&
@@ -342,9 +342,9 @@ namespace Etherna.VideoImporter.Core.Services
                         hashMetadataReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                             videoManifest.BatchId,
                             files: new List<FileParameterInput> { fileParameterInput },
-                            swarmPin: pinManifest).ConfigureAwait(false);
+                            swarmPin: pinManifest);
                     }
-                    catch { await Task.Delay(3500).ConfigureAwait(false); }
+                    catch { await Task.Delay(3500); }
                 if (string.IsNullOrWhiteSpace(hashMetadataReference))
                     throw new InvalidOperationException("Some error during upload of metadata");
             }
