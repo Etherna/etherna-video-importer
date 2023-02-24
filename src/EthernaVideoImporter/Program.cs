@@ -56,7 +56,7 @@ namespace Etherna.VideoImporter
             bool pinVideos = false;
             bool deleteSourceRemovedVideos = false;
             bool deleteVideosFromOtherSources = false;
-            bool includeAudioTrack = false;
+            bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
 
             // Get MD path.
             if (args.Length < 2)
@@ -64,18 +64,21 @@ namespace Etherna.VideoImporter
                 Console.WriteLine("Missing source video uri");
                 throw new ArgumentException("Missing mandatory data");
             }
-            if (args[0] == "ytvideo")
-                youtubeVideoUrl = args[1];
-            else if (args[0] == "ytchannel")
-                youtubeChannelUrl = args[1];
-            else
+
+            switch (args[0])
             {
-                Console.WriteLine("Invalid argument");
-                throw new ArgumentException("Invalid argument");
+                case "ytvideo":
+                    youtubeVideoUrl = args[1];
+                    break;
+                case "ytchannel":
+                    youtubeChannelUrl = args[1];
+                    break;
+                default:
+                    Console.WriteLine($"Invalid argument\n{HelpText}");
+                    throw new ArgumentException("Invalid argument");
             }
 
             // Get params.
-            bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])

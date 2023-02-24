@@ -34,7 +34,7 @@ namespace Etherna.VideoImporter.Devcon
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "Etherna Video Importer for Devcon Archive help:\n\n" +
-            "md\tSource folder path with *.md files to import\n" +
+            "md <folderMD>\tSource folder path with *.md files to import\n" +
             "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
             "-d\tRemove old videos that are no longer in the .MD files\n" +
@@ -55,17 +55,17 @@ namespace Etherna.VideoImporter.Devcon
             bool pinVideos = false;
             bool deleteSourceRemovedVideos = false;
             bool deleteVideosFromOtherSources = false;
-            bool includeAudioTrack = false;
+            bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
 
             // Get MD path.
             if (args.Length < 2 ||
                 args[0] != "md")
             {
-                Console.WriteLine("Missing source MD directory path");
+                Console.WriteLine($"Missing MD directory path\n{HelpText}");
                 throw new ArgumentException("Missing mandatory data");
             }
             if (string.IsNullOrWhiteSpace(args[1]) ||
-                Directory.Exists(args[1]))
+                !Directory.Exists(args[1]))
             {
                 Console.WriteLine("Not found MD directory path");
                 throw new ArgumentException("Not found MD directory path");
@@ -73,8 +73,6 @@ namespace Etherna.VideoImporter.Devcon
             mdSourceFolderPath = args[1];
 
             // Get params.
-            for (int i = 2; i < args.Length; i++)
-            bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
@@ -162,23 +160,6 @@ namespace Etherna.VideoImporter.Devcon
                 pinVideos,
                 deleteSourceRemovedVideos,
                 deleteVideosFromOtherSources).ConfigureAwait(false);
-        }
-
-        // Private helpers.
-        private static string ReadStringIfEmpty(string? strValue)
-        {
-            if (string.IsNullOrWhiteSpace(strValue))
-            {
-                while (string.IsNullOrWhiteSpace(strValue))
-                {
-                    strValue = Console.ReadLine();
-                    if (string.IsNullOrWhiteSpace(strValue))
-                        Console.WriteLine("*Empty string not allowed*");
-                }
-            }
-            else Console.WriteLine(strValue);
-
-            return strValue;
         }
 
     }
