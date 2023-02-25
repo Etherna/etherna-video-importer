@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 throw new ArgumentNullException(nameof(videoMetadata));
 
             // Get manifest data.
-            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeUrl).ConfigureAwait(false);
+            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.Id).ConfigureAwait(false);
 
             var videoOnlyStreamsInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)

@@ -75,14 +75,12 @@ namespace Etherna.VideoImporter.Core.Services
         {
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
-            if (!video.EncodedFiles.Any())
-                throw new ArgumentException("Must exists at least an encoded file", nameof(video));
 
             // Create new batch.
-            Console.WriteLine("Create batch...");
+            Console.WriteLine("Creating batch...");
 
-            // Size of all video to upload.
-            var totalSize = video.EncodedFiles.Sum(v => v.ByteSize);
+            //calculate size of all contents to upload.
+            var totalSize = video.TotalByteSize;
 
             // Calculate batch deep.
             var batchDeep = 17;

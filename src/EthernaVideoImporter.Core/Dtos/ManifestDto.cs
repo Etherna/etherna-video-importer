@@ -12,7 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Models;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 
 namespace Etherna.VideoImporter.Core.Dtos
 {
@@ -20,12 +24,33 @@ namespace Etherna.VideoImporter.Core.Dtos
     {
         // Constructors.
         public ManifestDto(
+            Video video,
+            string batchId,
+            string ownerAddress)
+        {
+            if (video is null)
+                throw new ArgumentNullException(nameof(video));
+
+            Title = video.Metadata.Title;
+            Description = video.Metadata.Description;
+            OriginalQuality = video.Metadata.OriginVideoQualityLabel;
+            OwnerAddress = ownerAddress;
+            Duration = (long)video.Metadata.Duration.TotalSeconds;
+            Thumbnail = video.ThumbnailFile is null ? null : new ManifestThumbnailDto(video.ThumbnailFile);
+            Sources = video.EncodedFiles.OfType<VideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
+            CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            UpdatedAt = null;
+            BatchId = batchId;
+            PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id));
+        }
+
+        public ManifestDto(
             string title,
             string description,
             string originalQuality,
             string ownerAddress,
             long duration,
-            ManifestThumbnailDto thumbnail,
+            ManifestThumbnailDto? thumbnail,
             IEnumerable<ManifestVideoSourceDto> sources,
             long createdAt,
             long? updatedAt,
@@ -46,13 +71,12 @@ namespace Etherna.VideoImporter.Core.Dtos
         }
 
         // Properties.
-        //public string Id { get; }
         public string Title { get; }
         public string Description { get; }
         public string OriginalQuality { get; }
         public string OwnerAddress { get; }
         public long Duration { get; }
-        public ManifestThumbnailDto Thumbnail { get; }
+        public ManifestThumbnailDto? Thumbnail { get; }
         public IEnumerable<ManifestVideoSourceDto> Sources { get; }
         public long CreatedAt { get; }
         public long? UpdatedAt { get; }

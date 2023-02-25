@@ -22,10 +22,12 @@ namespace Etherna.VideoImporter.Core.Models
         protected VideoMetadataBase(
             string description,
             TimeSpan duration,
+            string originVideoQualityLabel,
             string title)
         {
             Description = description;
             Duration = duration;
+            OriginVideoQualityLabel = originVideoQualityLabel;
             Title = title;
         }
 
@@ -33,6 +35,7 @@ namespace Etherna.VideoImporter.Core.Models
         public abstract string Id { get; }
         public string Description { get; }
         public TimeSpan Duration { get; }
+        public string OriginVideoQualityLabel { get; }
         public string Title { get; }
     }
 }
