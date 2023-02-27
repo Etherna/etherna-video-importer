@@ -34,8 +34,8 @@ namespace Etherna.VideoImporter.Devcon.Services
             string ethernaIndexId,
             string ethernaPermalinkHash)
         {
-            var ethernaIndexUrl = CommonConsts.PREFIX_ETHERNA_INDEX + ethernaIndexId;
-            var ethernaPermalinkUrl = CommonConsts.PREFIX_ETHERNA_PERMALINK + ethernaPermalinkHash;
+            var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + ethernaIndexId;
+            var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + ethernaPermalinkHash;
 
             // Reaad all line.
             var lines = File.ReadLines(sourceVideoId).ToList();

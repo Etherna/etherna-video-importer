@@ -84,9 +84,9 @@ namespace Etherna.VideoImporter.Core.Utilities
             var audioFileName = $"{videoTitle.ToSafeFileName()}_onlyaudio.{audioStream.Container}";
             var audioFilePath = Path.Combine(downloadDirectory.FullName, audioFileName);
 
-            for (int i = 0; i <= CommonConsts.DOWNLOAD_MAX_RETRY; i++)
+            for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
-                if (i == CommonConsts.DOWNLOAD_MAX_RETRY)
+                if (i == CommonConsts.DownloadMaxRetry)
                     throw new InvalidOperationException($"Some error during download of audio track");
 
                 try
@@ -100,7 +100,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                         })).ConfigureAwait(false);
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DOWNLOAD_RETRY_TIMESPAN).ConfigureAwait(false); }
+                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry).ConfigureAwait(false); }
             }
 
             return new AudioFile(
@@ -117,9 +117,9 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             string thumbnailFilePath = Path.Combine(downloadDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
             
-            for (int i = 0; i <= CommonConsts.DOWNLOAD_MAX_RETRY; i++)
+            for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
-                if (i == CommonConsts.DOWNLOAD_MAX_RETRY)
+                if (i == CommonConsts.DownloadMaxRetry)
                     throw new InvalidOperationException($"Some error during download of thumbnail");
 
                 try
@@ -130,7 +130,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     await stream.CopyToAsync(fileStream).ConfigureAwait(false);
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DOWNLOAD_RETRY_TIMESPAN).ConfigureAwait(false); }
+                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry).ConfigureAwait(false); }
             }
 
             return new ThumbnailFile(
@@ -150,9 +150,9 @@ namespace Etherna.VideoImporter.Core.Utilities
             var videoQualityLabel = videoOnlyStream.VideoQuality.Label;
 
             // Download video.
-            for (int i = 0; i <= CommonConsts.DOWNLOAD_MAX_RETRY; i++)
+            for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
-                if (i == CommonConsts.DOWNLOAD_MAX_RETRY)
+                if (i == CommonConsts.DownloadMaxRetry)
                     throw new InvalidOperationException($"Some error during download of video");
 
                 try
@@ -167,7 +167,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                         })).ConfigureAwait(false);
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DOWNLOAD_RETRY_TIMESPAN).ConfigureAwait(false); }
+                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry).ConfigureAwait(false); }
             }
 
             return new VideoFile(

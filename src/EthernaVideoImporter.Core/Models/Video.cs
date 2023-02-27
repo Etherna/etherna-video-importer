@@ -28,7 +28,10 @@ namespace Etherna.VideoImporter.Core.Models
         public string? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
         public ThumbnailFile? ThumbnailFile { get; }
-        public long TotalByteSize => EncodedFiles.Sum(f => f.ByteSize) +
+
+        // Methods.
+        public long GetTotalByteSize() =>
+            EncodedFiles.Sum(f => f.ByteSize) +
             ThumbnailFile?.ByteSize ?? 0 +
             JsonSerializer.Serialize(new ManifestDto(this, "0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000")).Length;
     }
