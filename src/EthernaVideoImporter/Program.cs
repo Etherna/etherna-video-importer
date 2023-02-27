@@ -111,6 +111,14 @@ namespace Etherna.VideoImporter
                 return;
             }
 
+            //deny delete video old sources when is single
+            if (!string.IsNullOrEmpty(youtubeVideoUrl) &&
+                deleteSourceRemovedVideos)
+            {
+                Console.WriteLine($"Cannot delete video removed from source when the source is a single video");
+                return;
+            }
+
             //sources
             var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
 
