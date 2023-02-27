@@ -79,7 +79,7 @@ namespace Etherna.VideoImporter
             }
 
             // Get params.
-            for (int i = 0; i < args.Length; i++)
+            for (int i = 2; i < args.Length; i++)
             {
                 switch (args[i])
                 {
