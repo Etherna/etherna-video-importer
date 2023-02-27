@@ -16,7 +16,7 @@
   <ItemGroup>
     <PackageReference Include="Bee.Net" Version="0.2.0-alpha.156" />
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
-    <PackageReference Include="EthernaServicesClient" Version="0.3.0-alpha.59" />
+    <PackageReference Include="EthernaServicesClient" Version="0.3.0-alpha.60" />
     <PackageReference Include="MimeTypes" Version="2.4.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

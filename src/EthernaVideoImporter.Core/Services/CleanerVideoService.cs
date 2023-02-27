@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models;
 using System;
@@ -24,50 +25,48 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class CleanerVideoService : ICleanerVideoService
     {
         // Fields.
+        private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
 
         // Constructor.
         public CleanerVideoService(
+            IUserGatewayClient ethernaGatewayClient,
             IUserIndexClient ethernaIndexClient)
         {
+            this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
         }
 
         // Methods.
-        public async Task DeleteExogenousVideosAsync(IEnumerable<IndexedVideo> indexedVideos)
+        public async Task DeleteExogenousVideosAsync(
+            IEnumerable<IndexedVideo> indexedVideos,
+            IEnumerable<string>? gatewayPinnedHashes,
+            bool unpinRemovedVideos)
         {
+            if (gatewayPinnedHashes is null && unpinRemovedVideos)
+                throw new ArgumentNullException(nameof(gatewayPinnedHashes), "gatewayPinnedHashes can't be null if needs to unpin removed video");
             if (indexedVideos is null)
                 throw new ArgumentNullException(nameof(indexedVideos));
 
             Console.WriteLine($"Start removing videos not generated with this tool");
 
-            foreach (var video in indexedVideos)
-            {
-                if (video.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier)
-                    continue;
+            var exogenousVideos = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName != CommonConsts.ImporterIdentifier);
 
-                try
-                {
-                    await ethernaIndexClient.VideosClient.VideosDeleteAsync(video.IndexId).ConfigureAwait(false);
-
-                    Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"Video with index Id {video.IndexId} removed");
-                }
-                catch (Exception ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error: {ex.Message}");
-                    Console.WriteLine($"Unable to remove video with index Id {video.IndexId}");
-                }
-
-                Console.ResetColor();
-            }
+            foreach (var video in exogenousVideos)
+                await RemoveFromIndexAsync(video, gatewayPinnedHashes, unpinRemovedVideos).ConfigureAwait(false);
         }
 
         public async Task DeleteVideosRemovedFromSourceAsync(
             IEnumerable<VideoMetadataBase> videosMetadataFromSource,
-            IEnumerable<IndexedVideo> indexedVideos)
+            IEnumerable<IndexedVideo> indexedVideos,
+            IEnumerable<string>? gatewayPinnedHashes,
+            bool unpinRemovedVideos)
         {
+            if (gatewayPinnedHashes is null && unpinRemovedVideos)
+                throw new ArgumentNullException(nameof(gatewayPinnedHashes), "gatewayPinnedHashes can't be null if needs to unpin removed video");
+            if (indexedVideos is null)
+                throw new ArgumentNullException(nameof(indexedVideos));
+
             Console.WriteLine($"Start removing videos deleted from source");
 
             var indexedVideosFromImporter = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier);
@@ -75,22 +74,73 @@ namespace Etherna.VideoImporter.Core.Services
                 v => !videosMetadataFromSource.Any(metadata => metadata.Id == v.LastValidManifest!.PersonalData!.VideoId));
 
             foreach (var sourceRemovedVideo in sourceRemovedVideos)
+                await RemoveFromIndexAsync(sourceRemovedVideo, gatewayPinnedHashes, unpinRemovedVideos).ConfigureAwait(false);
+        }
+
+        // Helpers.
+        private async Task RemoveFromIndexAsync(
+            IndexedVideo indexedVideo,
+            IEnumerable<string>? gatewayPinnedHashes,
+            bool unpinRemovedVideos)
+        {
+            // Remove video.
+            bool removeSucceeded = false;
+            try
             {
-                try
-                {
-                    await ethernaIndexClient.VideosClient.VideosDeleteAsync(sourceRemovedVideo.IndexId).ConfigureAwait(false);
+                await ethernaIndexClient.VideosClient.VideosDeleteAsync(indexedVideo.IndexId).ConfigureAwait(false);
+                removeSucceeded = true;
 
-                    Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"Video with index Id {sourceRemovedVideo.IndexId} removed");
-                }
-                catch (Exception ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error: {ex.Message}");
-                    Console.WriteLine($"Unable to remove video with index Id {sourceRemovedVideo.IndexId}");
-                }
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.WriteLine($"Video with index Id {indexedVideo} removed");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"Unable to remove video with index Id {indexedVideo}");
+            }
 
-                Console.ResetColor();
+            Console.ResetColor();
+
+            // Unpin contents.
+            if (removeSucceeded &&
+                unpinRemovedVideos &&
+                indexedVideo.LastValidManifest is not null)
+            {
+                //videos
+                foreach (var streamSource in indexedVideo.LastValidManifest.Sources)
+                    await UnpinContentAsync(streamSource.Reference, gatewayPinnedHashes!).ConfigureAwait(false);
+
+                //thumbnail
+                foreach (var thumbSource in indexedVideo.LastValidManifest.Thumbnail.Sources)
+                    await UnpinContentAsync(thumbSource.Value, gatewayPinnedHashes!).ConfigureAwait(false);
+
+                //manifest
+                await UnpinContentAsync(indexedVideo.LastValidManifest.Hash, gatewayPinnedHashes!).ConfigureAwait(false);
+            }
+        }
+
+        private async Task<bool> UnpinContentAsync(string hash, IEnumerable<string> gatewayPinnedHashes)
+        {
+            if (!gatewayPinnedHashes.Contains(hash))
+                return false;
+
+            try
+            {
+                await ethernaGatewayClient.ResourcesClient.PinDeleteAsync(hash).ConfigureAwait(false);
+
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.WriteLine($"Resource with hash {hash} unpinned from gateway");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"Unable to unpin resource with hash {hash} from gateway");
+
+                return false;
             }
         }
     }

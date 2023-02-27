@@ -37,8 +37,9 @@ namespace Etherna.VideoImporter
             "[ytvideo|ytchannel] <sourceUri>\tYoutube channel or video url\n" +
             "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
-            "-d\tRemove old videos that are no longer in source channel\n" +
-            "-c\tRemove present videos not uploaded with this tool from channel\n" +
+            "-d\tRemove indexed videos deleted from source\n" +
+            "-c\tRemove indexed videos not generated with this tool\n" +
+            "-u\tTry to unpin videos removed from index\n" +
             $"-ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
             $"-t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "\n" +
@@ -57,6 +58,7 @@ namespace Etherna.VideoImporter
             bool deleteVideosRemovedFromSource = false;
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            bool unpinRemovedVideos = false;
 
             // Get source uri.
             if (args.Length < 2)
@@ -88,6 +90,7 @@ namespace Etherna.VideoImporter
                     case "-p": pinVideos = true; break;
                     case "-d": deleteVideosRemovedFromSource = true; break;
                     case "-c": deleteExogenousVideos = true; break;
+                    case "-u": unpinRemovedVideos = true; break;
                     case "-t": ttlPostageStampStr = args[++i]; break;
                     case "-h": Console.Write(HelpText); return;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
@@ -163,7 +166,10 @@ namespace Etherna.VideoImporter
 
             // Call runner.
             var importer = new EthernaVideoImporter(
-                new CleanerVideoService(ethernaUserClients.IndexClient),
+                new CleanerVideoService(
+                    ethernaUserClients.GatewayClient,
+                    ethernaUserClients.IndexClient),
+                ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),
                 videoProvider,
@@ -174,7 +180,8 @@ namespace Etherna.VideoImporter
                 offerVideos,
                 pinVideos,
                 deleteVideosRemovedFromSource,
-                deleteExogenousVideos).ConfigureAwait(false);
+                deleteExogenousVideos,
+                unpinRemovedVideos).ConfigureAwait(false);
         }
     }
 }
