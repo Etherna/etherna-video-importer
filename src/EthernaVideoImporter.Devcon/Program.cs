@@ -67,7 +67,7 @@ namespace Etherna.VideoImporter.Devcon
             if (string.IsNullOrWhiteSpace(args[1]) ||
                 !Directory.Exists(args[1]))
             {
-                Console.WriteLine("Not found MD directory path");
+                Console.WriteLine($"Not found MD directory path\n{HelpText}");
                 throw new ArgumentException("Not found MD directory path");
             }
             mdSourceFolderPath = args[1];

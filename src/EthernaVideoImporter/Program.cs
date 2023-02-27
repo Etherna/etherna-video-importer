@@ -61,7 +61,7 @@ namespace Etherna.VideoImporter
             // Get MD path.
             if (args.Length < 2)
             {
-                Console.WriteLine("Missing source video uri");
+                Console.WriteLine($"Missing source video uri\n{HelpText}");
                 throw new ArgumentException("Missing mandatory data");
             }
 
@@ -83,8 +83,6 @@ namespace Etherna.VideoImporter
             {
                 switch (args[i])
                 {
-                    case "-yc": youtubeChannelUrl = args[++i]; break;
-                    case "-yv": youtubeVideoUrl = args[++i]; break;
                     case "-ff": ffMpegFolderPath = args[++i]; break;
                     case "-f": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
@@ -114,18 +112,6 @@ namespace Etherna.VideoImporter
             }
 
             //sources
-            var sourceParam = 0;
-            sourceParam += string.IsNullOrWhiteSpace(youtubeChannelUrl) ? 0 : 1;
-            sourceParam += string.IsNullOrWhiteSpace(youtubeVideoUrl) ? 0 : 1;
-            switch (sourceParam)
-            {
-                case 0:
-                    Console.WriteLine("Missing required source param (one of: -ch or -yt)");
-                    return;
-                case > 1:
-                    Console.WriteLine("Select only one source param (one of: -ch or -yt)");
-                    return;
-            }
             var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
 
             // Sign with SSO and create auth client.
