@@ -145,15 +145,22 @@ namespace Etherna.VideoImporter
                 httpClient,
                 ttlPostageStamp);
 
+            IVideoProvider videoProvider = !string.IsNullOrWhiteSpace(youtubeChannelUrl) ?
+                new YouTubeChannelVideoProvider(
+                    sourceUri,
+                    ffMpegBinaryPath,
+                    includeAudioTrack)
+                : new YouTubeSingleVideoProvider(
+                    sourceUri,
+                    ffMpegBinaryPath,
+                    includeAudioTrack);
+
             // Call runner.
             var importer = new EthernaVideoImporter(
                 new CleanerVideoService(ethernaUserClients.IndexClient),
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),
-                new YouTubeChannelVideoProvider(
-                    sourceUri,
-                    ffMpegBinaryPath,
-                    includeAudioTrack),
+                videoProvider,
                 videoUploaderService);
 
             await importer.RunAsync(
