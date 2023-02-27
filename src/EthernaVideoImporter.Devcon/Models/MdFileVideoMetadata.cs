@@ -10,13 +10,14 @@ namespace Etherna.VideoImporter.Devcon.Models
         public MdFileVideoMetadata(
             string description,
             TimeSpan duration,
+            string originVideoQualityLabel,
             Thumbnail? thumbnail,
             string title,
             string mdFileRelativePath,
             string youtubeUrl,
             string? ethernaIndexUrl,
             string? ethernaPermalinkUrl)
-            : base(description, duration, thumbnail, title, youtubeUrl)
+            : base(description, duration, originVideoQualityLabel, thumbnail, title, youtubeUrl)
         {
             EthernaIndexUrl = ethernaIndexUrl;
             EthernaPermalinkUrl = ethernaPermalinkUrl;

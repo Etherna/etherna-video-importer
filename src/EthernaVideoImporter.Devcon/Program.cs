@@ -123,25 +123,24 @@ namespace Etherna.VideoImporter.Devcon
             // Inizialize services.
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
             var ethernaUserClients = new EthernaUserClients(
-                new Uri(CommonConsts.ETHERNA_CREDIT),
-                new Uri(CommonConsts.ETHERNA_GATEWAY),
-                new Uri(CommonConsts.ETHERNA_INDEX),
-                new Uri(CommonConsts.SSO_AUTHORITY),
+                new Uri(CommonConsts.EthernaCreditUrl),
+                new Uri(CommonConsts.EthernaGatewayUrl),
+                new Uri(CommonConsts.EthernaIndexUrl),
+                new Uri(CommonConsts.EthernaSsoUrl),
                 () => httpClient);
             using var beeNodeClient = new BeeNodeClient(
-                CommonConsts.ETHERNA_GATEWAY,
-                CommonConsts.BEENODE_GATEWAYPORT,
+                CommonConsts.EthernaGatewayUrl,
+                CommonConsts.BeeNodeGatewayPort,
                 null,
-                CommonConsts.BEENODE_GATEWAYVERSION,
-                CommonConsts.BEENODE_DEBUGVERSION,
+                CommonConsts.BeeNodeGatewayVersion,
+                CommonConsts.BeeNodeDebugVersion,
                 httpClient);
             var videoUploaderService = new VideoUploaderService(
                 beeNodeClient,
                 ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
                 userEthAddr,
-                httpClient,
-                ttlPostageStamp);
+                TimeSpan.FromDays(ttlPostageStamp));
 
             // Call runner.
             var importer = new EthernaVideoImporter(

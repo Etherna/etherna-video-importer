@@ -10,10 +10,11 @@ namespace Etherna.VideoImporter.Models
         internal YouTubeVideoMetadata(
             string description,
             TimeSpan duration,
+            string originVideoQualityLabel,
             Thumbnail? thumbnail,
             string title,
             string youtubeUrl)
-            : base(description, duration, thumbnail, title, youtubeUrl)
+            : base(description, duration, originVideoQualityLabel, thumbnail, title, youtubeUrl)
         { }
 
         // Properties.

@@ -21,14 +21,18 @@ namespace Etherna.VideoImporter.Core
 {
     public sealed class CommonConsts
     {
-        public const int BEENODE_GATEWAYPORT = 443;
-        public const GatewayApiVersion BEENODE_GATEWAYVERSION = GatewayApiVersion.v4_0_0;
-        public const DebugApiVersion BEENODE_DEBUGVERSION = DebugApiVersion.v4_0_0;
-        public const int DOWNLOAD_MAX_RETRY = 3;
-        public static readonly TimeSpan DOWNLOAD_RETRY_TIMESPAN = TimeSpan.FromMilliseconds(3500);
-        public const string ETHERNA_CREDIT = "https://credit.etherna.io/";
-        public const string ETHERNA_INDEX = "https://index.etherna.io/";
-        public const string ETHERNA_GATEWAY = "https://gateway.etherna.io/";
+        public const int BeeNodeGatewayPort = 443;
+        public const GatewayApiVersion BeeNodeGatewayVersion = GatewayApiVersion.v4_0_0;
+        public const DebugApiVersion BeeNodeDebugVersion = DebugApiVersion.v4_0_0;
+        public const int DownloadMaxRetry = 3;
+        public static readonly TimeSpan DownloadTimespanRetry = TimeSpan.FromMilliseconds(3500);
+        public const string EthernaCreditUrl = "https://credit.etherna.io/";
+        public const string EthernaIndexUrl = "https://index.etherna.io/";
+        public const string EthernaIndexContentUrlPrefix = "https://etherna.io/embed/";
+        public const string EthernaGatewayUrl = "https://gateway.etherna.io/";
+        public const string EthernaPermalinkContentUrlPrefix = "https://etherna.io/embed/";
+        public const string EthernaSsoClientId = "ethernaVideoImporterId";
+        public const string EthernaSsoUrl = "https://sso.etherna.io/";
         public static string FFMpegBinaryName
         {
             get
@@ -43,9 +47,6 @@ namespace Etherna.VideoImporter.Core
                 throw new InvalidOperationException("OS not supported");
             }
         }
-        public const string SSO_AUTHORITY = "https://sso.etherna.io/";
-        public const string SSO_CLIENT_ID = "ethernaVideoImporterId";
-        public const string PREFIX_ETHERNA_INDEX = "https://etherna.io/embed/";
-        public const string PREFIX_ETHERNA_PERMALINK = "https://etherna.io/embed/";
+        public static readonly TimeSpan GnosisBlockTime = TimeSpan.FromSeconds(5);
     }
 }

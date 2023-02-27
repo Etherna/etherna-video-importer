@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using Etherna.VideoImporter.Core.Dtos;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 
 namespace Etherna.VideoImporter.Core.Models
 {
@@ -10,6 +14,9 @@ namespace Etherna.VideoImporter.Core.Models
             IEnumerable<FileBase> encodedFiles,
             ThumbnailFile? thumbnailFile)
         {
+            if (!encodedFiles.Any())
+                throw new ArgumentException("Must exist at least a stream");
+
             EncodedFiles = encodedFiles;
             Metadata = metadata;
             ThumbnailFile = thumbnailFile;
@@ -21,5 +28,11 @@ namespace Etherna.VideoImporter.Core.Models
         public string? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
         public ThumbnailFile? ThumbnailFile { get; }
+
+        // Methods.
+        public long GetTotalByteSize() =>
+            EncodedFiles.Sum(f => f.ByteSize) +
+            ThumbnailFile?.ByteSize ?? 0 +
+            JsonSerializer.Serialize(new ManifestDto(this, "0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000")).Length;
     }
 }

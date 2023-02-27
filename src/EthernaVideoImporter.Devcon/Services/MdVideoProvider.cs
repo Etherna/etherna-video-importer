@@ -25,6 +25,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using YoutubeExplode;
+using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
@@ -66,7 +67,7 @@ namespace Etherna.VideoImporter.Devcon.Services
 
             Console.WriteLine($"Total files: {mdFilesPaths.Length}");
 
-            var videosMetadata = new List<(ArchiveMdFileDto mdDto, YoutubeExplode.Videos.Video ytVideo, string mdRelativePath)>();
+            var videosMetadata = new List<(ArchiveMdFileDto mdDto, YoutubeExplode.Videos.Video ytVideo, VideoOnlyStreamInfo ytBestStreamInfo, string mdRelativePath)>();
             foreach (var mdFilePath in mdFilesPaths)
             {
                 // Get from md file.
@@ -118,14 +119,19 @@ namespace Etherna.VideoImporter.Devcon.Services
 
                 // Get from youtube.
                 var youtubeVideo = await youtubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl).ConfigureAwait(false);
+                var youtubeBestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id).ConfigureAwait(false))
+                    .GetVideoOnlyStreams()
+                    .OrderByDescending(s => s.VideoResolution.Area)
+                    .First();
 
-                videosMetadata.Add((videoDataInfoDto, youtubeVideo, Path.GetRelativePath(mdFilePath, mdFolderRootPath)));
+                videosMetadata.Add((videoDataInfoDto, youtubeVideo, youtubeBestStreamInfo, Path.GetRelativePath(mdFilePath, mdFolderRootPath)));
             }
 
             return videosMetadata.Select(
                 p => new MdFileVideoMetadata(
                     p.mdDto.Description,
                     p.ytVideo.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
+                    p.ytBestStreamInfo.VideoQuality.Label,
                     p.ytVideo.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
                     p.mdDto.Title,
                     p.mdRelativePath,

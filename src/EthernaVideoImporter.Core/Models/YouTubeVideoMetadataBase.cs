@@ -11,10 +11,11 @@ namespace Etherna.VideoImporter.Core.Models
         protected YouTubeVideoMetadataBase(
             string description,
             TimeSpan duration,
+            string originVideoQualityLabel,
             Thumbnail? thumbnail,
             string title,
             string youtubeUrl)
-            : base(description, duration, title)
+            : base(description, duration, originVideoQualityLabel, title)
         {
             Thumbnail = thumbnail;
             YoutubeUrl = youtubeUrl;
