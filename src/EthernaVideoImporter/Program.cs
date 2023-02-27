@@ -54,8 +54,8 @@ namespace Etherna.VideoImporter
             int ttlPostageStamp = DefaultTTLPostageStamp;
             bool offerVideos = false;
             bool pinVideos = false;
-            bool deleteSourceRemovedVideos = false;
-            bool deleteVideosFromOtherSources = false;
+            bool deleteVideosRemovedFromSource = false;
+            bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
 
             // Get source uri.
@@ -86,8 +86,8 @@ namespace Etherna.VideoImporter
                     case "-ff": ffMpegFolderPath = args[++i]; break;
                     case "-f": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
-                    case "-d": deleteSourceRemovedVideos = true; break;
-                    case "-c": deleteVideosFromOtherSources = true; break;
+                    case "-d": deleteVideosRemovedFromSource = true; break;
+                    case "-c": deleteExogenousVideos = true; break;
                     case "-t": ttlPostageStampStr = args[++i]; break;
                     case "-h": Console.Write(HelpText); return;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
@@ -173,8 +173,8 @@ namespace Etherna.VideoImporter
                 userEthAddr,
                 offerVideos,
                 pinVideos,
-                deleteSourceRemovedVideos,
-                deleteVideosFromOtherSources).ConfigureAwait(false);
+                deleteVideosRemovedFromSource,
+                deleteExogenousVideos).ConfigureAwait(false);
         }
     }
 }

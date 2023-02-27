@@ -16,7 +16,6 @@ using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -27,75 +26,71 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly IUserIndexClient ethernaIndexClient;
 
-        // Constractor.
+        // Constructor.
         public CleanerVideoService(
             IUserIndexClient ethernaIndexClient)
         {
             this.ethernaIndexClient = ethernaIndexClient;
         }
 
-        [SuppressMessage("Performance", "CA1851:Possible multiple enumerations of 'IEnumerable' collection", Justification = "Temporary. Remove with next refactoring")]
-        public async Task RunCleanerAsync(
-            IEnumerable<VideoMetadataBase> allVideosMetadata,
-            IEnumerable<IndexedVideo> importedVideos)
+        // Methods.
+        public async Task DeleteExogenousVideosAsync(IEnumerable<IndexedVideo> indexedVideos)
         {
-            Console.WriteLine($"Start cleaner invalid video");
+            if (indexedVideos is null)
+                throw new ArgumentNullException(nameof(indexedVideos));
 
-            // Get indexed videos.
-            var videoIds = importedVideos.Select(
-                    videoData => videoData?.LastValidManifest?.PersonalData?.VideoId)
-                .Where(v => !string.IsNullOrWhiteSpace(v));
+            Console.WriteLine($"Start removing videos not generated with this tool");
 
-            // Get video indexed but not in repository files.
-            var removableIds = videoIds.Except(allVideosMetadata.Select(repVideo => repVideo.Id).ToList());
-            foreach (var videoId in removableIds)
+            foreach (var video in indexedVideos)
             {
-                try
-                {
-                    var itemToRemove = importedVideos
-                        .Where(videoData => videoData?.LastValidManifest?.PersonalData?.VideoId == videoId)
-                        .First();
-
-                    await ethernaIndexClient.VideosClient.VideosDeleteAsync(itemToRemove.IndexId).ConfigureAwait(false);
-
-                    Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"Video {itemToRemove.IndexId} removed");
-                    Console.ResetColor();
-                }
-                catch (Exception ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error:{ex.Message} \n Video unable to remove video {videoId}\n");
-                    Console.ResetColor();
-                }
-            }
-        }
-
-        public async Task RunOldDeleterAsync(IEnumerable<IndexedVideo> videos)
-        {
-            if (videos is null)
-                throw new ArgumentNullException(nameof(videos));
-
-            Console.WriteLine($"Start deleter old video");
-
-            foreach (var video in videos)
-            {
-                if (video.LastValidManifest?.PersonalData is not null)
+                if (video.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier)
                     continue;
 
                 try
                 {
                     await ethernaIndexClient.VideosClient.VideosDeleteAsync(video.IndexId).ConfigureAwait(false);
+
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"Video {video.IndexId} removed");
-                    Console.ResetColor();
+                    Console.WriteLine($"Video with index Id {video.IndexId} removed");
                 }
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error:{ex.Message} \n Video unable to remove video {video.IndexId}\n");
-                    Console.ResetColor();
+                    Console.WriteLine($"Error: {ex.Message}");
+                    Console.WriteLine($"Unable to remove video with index Id {video.IndexId}");
                 }
+
+                Console.ResetColor();
+            }
+        }
+
+        public async Task DeleteVideosRemovedFromSourceAsync(
+            IEnumerable<VideoMetadataBase> videosMetadataFromSource,
+            IEnumerable<IndexedVideo> indexedVideos)
+        {
+            Console.WriteLine($"Start removing videos deleted from source");
+
+            var indexedVideosFromImporter = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier);
+            var sourceRemovedVideos = indexedVideos.Where(
+                v => !videosMetadataFromSource.Any(metadata => metadata.Id == v.LastValidManifest!.PersonalData!.VideoId));
+
+            foreach (var sourceRemovedVideo in sourceRemovedVideos)
+            {
+                try
+                {
+                    await ethernaIndexClient.VideosClient.VideosDeleteAsync(sourceRemovedVideo.IndexId).ConfigureAwait(false);
+
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    Console.WriteLine($"Video with index Id {sourceRemovedVideo.IndexId} removed");
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Error: {ex.Message}");
+                    Console.WriteLine($"Unable to remove video with index Id {sourceRemovedVideo.IndexId}");
+                }
+
+                Console.ResetColor();
             }
         }
     }

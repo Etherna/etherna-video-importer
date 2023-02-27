@@ -63,7 +63,7 @@ namespace Etherna.VideoImporter.Core
             bool offerVideos,
             bool pinVideos,
             bool deleteVideosRemovedFromSource,
-            bool deleteVideosNotFromThisTool)
+            bool deleteExogenousVideos)
         {
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
@@ -204,10 +204,10 @@ namespace Etherna.VideoImporter.Core
 
             // Clean up user channel on Etherna index.
             if (deleteVideosRemovedFromSource)
-                await cleanerVideoService.RunOldDeleterAsync(userVideosOnIndex).ConfigureAwait(false);
+                await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(sourceVideosMetadata, userVideosOnIndex).ConfigureAwait(false);
 
-            if (deleteVideosNotFromThisTool)
-                await cleanerVideoService.RunCleanerAsync(sourceVideosMetadata, userVideosOnIndex).ConfigureAwait(false);
+            if (deleteExogenousVideos)
+                await cleanerVideoService.DeleteExogenousVideosAsync(userVideosOnIndex).ConfigureAwait(false);
         }
 
         // Helpers.

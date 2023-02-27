@@ -20,11 +20,11 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface ICleanerVideoService
     {
-        Task RunCleanerAsync(
-            IEnumerable<VideoMetadataBase> allVideosMetadata,
-            IEnumerable<IndexedVideo> importedVideos);
+        Task DeleteExogenousVideosAsync(
+            IEnumerable<IndexedVideo> indexedVideos);
 
-        Task RunOldDeleterAsync(
-            IEnumerable<IndexedVideo> videos);
+        Task DeleteVideosRemovedFromSourceAsync(
+            IEnumerable<VideoMetadataBase> videosMetadataFromSource,
+            IEnumerable<IndexedVideo> indexedVideos);
     }
 }

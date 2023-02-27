@@ -21,7 +21,7 @@ namespace Etherna.VideoImporter.Core.Dtos
 
         public static ManifestPersonalDataDto BuildNew(string videoId) => new()
         {
-            ClientName = "EthernaImporter",
+            ClientName = CommonConsts.ImporterIdentifier,
             VideoId = videoId
         };
     }
