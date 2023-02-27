@@ -55,11 +55,17 @@ namespace Etherna.VideoImporter.Services
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             var metadata = await youtubeClient.Videos.GetAsync(videoUrl);
+            var bestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
+                .GetVideoOnlyStreams()
+                .OrderByDescending(s => s.VideoResolution.Area)
+                .First();
+
             return new[]
             {
                 new YouTubeVideoMetadata(
                     metadata.Description,
                     metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
+                    bestStreamInfo.VideoQuality.Label,
                     metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
                     metadata.Title,
                     metadata.Url)

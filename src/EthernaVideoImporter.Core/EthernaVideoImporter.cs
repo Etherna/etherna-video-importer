@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Dtos;
 using Etherna.VideoImporter.Core.Models;
@@ -28,6 +29,7 @@ namespace Etherna.VideoImporter.Core
     {
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
+        private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly ILinkReporterService linkReporterService;
         private readonly IVideoUploaderService videoUploaderService;
@@ -36,6 +38,7 @@ namespace Etherna.VideoImporter.Core
         // Constructor.
         public EthernaVideoImporter(
             ICleanerVideoService cleanerVideoService,
+            IUserGatewayClient ethernaGatewayClient,
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoProvider videoProvider,
@@ -51,6 +54,7 @@ namespace Etherna.VideoImporter.Core
                 throw new ArgumentNullException(nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
+            this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
             this.videoProvider = videoProvider;
@@ -63,7 +67,8 @@ namespace Etherna.VideoImporter.Core
             bool offerVideos,
             bool pinVideos,
             bool deleteVideosRemovedFromSource,
-            bool deleteVideosNotFromThisTool)
+            bool deleteExogenousVideos,
+            bool unpinRemovedVideos)
         {
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
@@ -201,11 +206,22 @@ namespace Etherna.VideoImporter.Core
             }
 
             // Clean up user channel on Etherna index.
-            if (deleteVideosRemovedFromSource)
-                await cleanerVideoService.RunOldDeleterAsync(userVideosOnIndex);
+            IEnumerable<string>? gatewayPinnedHashes = null;
+            if (unpinRemovedVideos)
+                gatewayPinnedHashes = await ethernaGatewayClient.UsersClient.PinnedResourcesAsync();
 
-            if (deleteVideosNotFromThisTool)
-                await cleanerVideoService.RunCleanerAsync(sourceVideosMetadata, userVideosOnIndex);
+            if (deleteVideosRemovedFromSource)
+                await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
+                    sourceVideosMetadata,
+                    userVideosOnIndex,
+                    gatewayPinnedHashes,
+                    unpinRemovedVideos);
+
+            if (deleteExogenousVideos)
+                await cleanerVideoService.DeleteExogenousVideosAsync(
+                    userVideosOnIndex,
+                    gatewayPinnedHashes,
+                    unpinRemovedVideos);
         }
 
         // Helpers.

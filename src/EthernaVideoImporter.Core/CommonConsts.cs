@@ -48,5 +48,6 @@ namespace Etherna.VideoImporter.Core
             }
         }
         public static readonly TimeSpan GnosisBlockTime = TimeSpan.FromSeconds(5);
+        public const string ImporterIdentifier = "EthernaImporter";
     }
 }
