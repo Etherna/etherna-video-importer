@@ -34,8 +34,7 @@ namespace Etherna.VideoImporter
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "Etherna Video Importer help:\n\n" +
-            "-yc\tYoutube channel url\n" +
-            "-yv\tYoutube single video url\n" +
+            "[ytvideo|ytchannel] <sourceUri>\tYoutube channel or video url\n" +
             "-f\tFree videos offered by creator\n" +
             "-p\tPin video\n" +
             "-d\tRemove old videos that are no longer in source channel\n" +
@@ -58,12 +57,32 @@ namespace Etherna.VideoImporter
             bool deleteSourceRemovedVideos = false;
             bool deleteVideosFromOtherSources = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
-            for (int i = 0; i < args.Length; i++)
+
+            // Get source uri.
+            if (args.Length < 2)
+            {
+                Console.WriteLine($"Missing source video uri\n{HelpText}");
+                throw new ArgumentException("Missing mandatory data");
+            }
+
+            switch (args[0])
+            {
+                case "ytvideo":
+                    youtubeVideoUrl = args[1];
+                    break;
+                case "ytchannel":
+                    youtubeChannelUrl = args[1];
+                    break;
+                default:
+                    Console.WriteLine($"Invalid argument\n{HelpText}");
+                    throw new ArgumentException("Invalid argument");
+            }
+
+            // Get params.
+            for (int i = 2; i < args.Length; i++)
             {
                 switch (args[i])
                 {
-                    case "-yc": youtubeChannelUrl = args[++i]; break;
-                    case "-yv": youtubeVideoUrl = args[++i]; break;
                     case "-ff": ffMpegFolderPath = args[++i]; break;
                     case "-f": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
@@ -93,18 +112,6 @@ namespace Etherna.VideoImporter
             }
 
             //sources
-            var sourceParam = 0;
-            sourceParam += string.IsNullOrWhiteSpace(youtubeChannelUrl) ? 0 : 1;
-            sourceParam += string.IsNullOrWhiteSpace(youtubeVideoUrl) ? 0 : 1;
-            switch (sourceParam)
-            {
-                case 0:
-                    Console.WriteLine("Missing required source param (one of: -ch or -yt)");
-                    return;
-                case > 1:
-                    Console.WriteLine("Select only one source param (one of: -ch or -yt)");
-                    return;
-            }
             var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
 
             // Sign with SSO and create auth client.
