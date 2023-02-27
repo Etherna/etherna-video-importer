@@ -55,14 +55,14 @@ namespace Etherna.VideoImporter.Services
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var youtubeChannel = await youtubeClient.Channels.GetByHandleAsync(channelUrl).ConfigureAwait(false);
+            var youtubeChannel = await youtubeClient.Channels.GetByHandleAsync(channelUrl);
             var youtubeVideos = await youtubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
 
             var videosMetadata = new List<VideoMetadataBase>();
             foreach (var video in youtubeVideos)
             {
-                var metadata = await youtubeClient.Videos.GetAsync(video.Url).ConfigureAwait(false);
-                var bestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(metadata.Id).ConfigureAwait(false))
+                var metadata = await youtubeClient.Videos.GetAsync(video.Url);
+                var bestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
                     .GetVideoOnlyStreams()
                     .OrderByDescending(s => s.VideoResolution.Area)
                     .First();

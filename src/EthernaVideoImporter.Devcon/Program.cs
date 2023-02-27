@@ -106,7 +106,7 @@ namespace Etherna.VideoImporter.Devcon
             }
             
             // Sign with SSO and create auth client.
-            var authResult = await SignServices.SigInSSO().ConfigureAwait(false);
+            var authResult = await SignServices.SigInSSO();
             if (authResult.IsError)
             {
                 Console.WriteLine($"Error during authentication");
@@ -158,7 +158,7 @@ namespace Etherna.VideoImporter.Devcon
                 offerVideos,
                 pinVideos,
                 deleteSourceRemovedVideos,
-                deleteVideosFromOtherSources).ConfigureAwait(false);
+                deleteVideosFromOtherSources);
         }
 
     }

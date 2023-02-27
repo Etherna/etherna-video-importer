@@ -54,7 +54,7 @@ namespace Etherna.VideoImporter.Services
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var metadata = await youtubeClient.Videos.GetAsync(videoUrl).ConfigureAwait(false);
+            var metadata = await youtubeClient.Videos.GetAsync(videoUrl);
             return new[]
             {
                 new YouTubeVideoMetadata(

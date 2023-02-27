@@ -68,7 +68,7 @@ namespace Etherna.VideoImporter.Core
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
 
-            var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync().ConfigureAwait(false);
+            var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync();
             var totalSourceVideo = sourceVideosMetadata.Count();
 
             Console.WriteLine($"Found {sourceVideosMetadata.Count()} videos from source");
@@ -76,8 +76,8 @@ namespace Etherna.VideoImporter.Core
             // Get information from Etherna index.
             Console.WriteLine("Get user's videos on Etherna Index");
 
-            var userVideosOnIndex = await GetUserVideosOnEthernaAsync(userEthAddress).ConfigureAwait(false);
-            var ethernaIndexParameters = await ethernaIndexClient.SystemClient.ParametersAsync().ConfigureAwait(false);
+            var userVideosOnIndex = await GetUserVideosOnEthernaAsync(userEthAddress);
+            var ethernaIndexParameters = await ethernaIndexClient.SystemClient.ParametersAsync();
 
             Console.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on Etherna Index");
 
@@ -131,14 +131,12 @@ namespace Etherna.VideoImporter.Core
                                 JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(sourceMetadata.Id!)));
 
                             // Upload new manifest.
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(
-                                updatedManifest,
-                                pinVideos).ConfigureAwait(false);
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(updatedManifest, pinVideos);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(
                                 alreadyPresentVideo.IndexId,
-                                updatedPermalinkHash).ConfigureAwait(false);
+                                updatedPermalinkHash);
                         }
                     }
                     else //try to upload new video on Etherna
@@ -160,7 +158,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Get and encode video from source.
-                        var video = await videoProvider.GetVideoAsync(sourceMetadata).ConfigureAwait(false);
+                        var video = await videoProvider.GetVideoAsync(sourceMetadata);
 
                         if (!video.EncodedFiles.Any())
                         {
@@ -171,7 +169,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Upload video and all related data.
-                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos).ConfigureAwait(false);
+                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos);
 
                         updatedIndexId = video.EthernaIndexId!;
                         updatedPermalinkHash = video.EthernaPermalinkHash!;
@@ -185,7 +183,7 @@ namespace Etherna.VideoImporter.Core
                     await linkReporterService.SetEthernaReferencesAsync(
                         sourceMetadata.Id,
                         updatedIndexId,
-                        updatedPermalinkHash).ConfigureAwait(false);
+                        updatedPermalinkHash);
 
                     // Import succeeded.
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
@@ -204,10 +202,10 @@ namespace Etherna.VideoImporter.Core
 
             // Clean up user channel on Etherna index.
             if (deleteVideosRemovedFromSource)
-                await cleanerVideoService.RunOldDeleterAsync(userVideosOnIndex).ConfigureAwait(false);
+                await cleanerVideoService.RunOldDeleterAsync(userVideosOnIndex);
 
             if (deleteVideosNotFromThisTool)
-                await cleanerVideoService.RunCleanerAsync(sourceVideosMetadata, userVideosOnIndex).ConfigureAwait(false);
+                await cleanerVideoService.RunCleanerAsync(sourceVideosMetadata, userVideosOnIndex);
         }
 
         // Helpers.
@@ -219,10 +217,7 @@ namespace Etherna.VideoImporter.Core
             VideoDtoPaginatedEnumerableDto? page = null;
             do
             {
-                page = await ethernaIndexClient.UsersClient.Videos2Async(
-                    userAddress,
-                    page is null ? 0 : page.CurrentPage + 1,
-                    MaxForPage).ConfigureAwait(false);
+                page = await ethernaIndexClient.UsersClient.Videos2Async(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
                 videos.AddRange(page.Elements);
             } while (page.Elements.Any());
 

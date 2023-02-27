@@ -78,11 +78,11 @@ namespace Etherna.VideoImporter.Core.Services
                 batchDeep++;
 
             //calculate amount
-            var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync().ConfigureAwait(false);
+            var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
             var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
 
             //create batch
-            var batchId = await CreatePostageBatchAsync(batchDeep, amount).ConfigureAwait(false);
+            var batchId = await CreatePostageBatchAsync(batchDeep, amount);
 
             // Upload video files.
             foreach (var encodedFile in video.EncodedFiles)
@@ -102,10 +102,10 @@ namespace Etherna.VideoImporter.Core.Services
                 encodedFile.UploadedHashReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                     batchId,
                     files: new List<FileParameterInput> { fileParameterInput },
-                    swarmPin: pinVideo).ConfigureAwait(false);
+                    swarmPin: pinVideo);
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference).ConfigureAwait(false);
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference);
             }
 
             // Upload thumbnail.
@@ -121,20 +121,20 @@ namespace Etherna.VideoImporter.Core.Services
                 var thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                     batchId,
                     files: new List<FileParameterInput> { fileThumbnailParameterInput },
-                    swarmPin: pinVideo).ConfigureAwait(false);
+                    swarmPin: pinVideo);
 
                 video.ThumbnailFile.UploadedHashReference = thumbnailReference;
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference).ConfigureAwait(false);
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference);
             }
 
             // Manifest.
             var metadataVideo = new ManifestDto(video, batchId, userEthAddr);
-            video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo).ConfigureAwait(false);
+            video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo);
 
             if (offerVideo)
-                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.EthernaPermalinkHash).ConfigureAwait(false);
+                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.EthernaPermalinkHash);
 
             // List on index.
             Console.WriteLine($"List on Etherna index: {video.EthernaPermalinkHash}");
@@ -143,7 +143,7 @@ namespace Etherna.VideoImporter.Core.Services
                 new VideoCreateInput
                 {
                     ManifestHash = video.EthernaPermalinkHash,
-                }).ConfigureAwait(false);
+                });
         }
 
         public async Task<string> UploadVideoManifestAsync(
@@ -165,13 +165,13 @@ namespace Etherna.VideoImporter.Core.Services
                         "metadata.json",
                         "application/json")
                 },
-                swarmPin: pinManifest).ConfigureAwait(false);
+                swarmPin: pinManifest);
         }
 
         // Helpers.
         private async Task<string> CreatePostageBatchAsync(int batchDeep, long amount)
         {
-            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount).ConfigureAwait(false);
+            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount);
 
             // Wait until created batch is avaiable.
             Console.WriteLine("Waiting for batch ready...");
@@ -188,10 +188,10 @@ namespace Etherna.VideoImporter.Core.Services
                     throw ex;
                 }
 
-                batchId = await ethernaGatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId).ConfigureAwait(false);
+                batchId = await ethernaGatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
 
                 //waiting for batchId avaiable
-                await Task.Delay(BatchCheckTimeSpan).ConfigureAwait(false);
+                await Task.Delay(BatchCheckTimeSpan);
 
             } while (string.IsNullOrWhiteSpace(batchId));
 
@@ -208,10 +208,10 @@ namespace Etherna.VideoImporter.Core.Services
                     throw ex;
                 }
 
-                batchIsUsable = (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId).ConfigureAwait(false)).Usable;
+                batchIsUsable = (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
 
                 //waiting for batch usable
-                await Task.Delay(BatchCheckTimeSpan).ConfigureAwait(false);
+                await Task.Delay(BatchCheckTimeSpan);
             } while (!batchIsUsable);
 
             return batchId;

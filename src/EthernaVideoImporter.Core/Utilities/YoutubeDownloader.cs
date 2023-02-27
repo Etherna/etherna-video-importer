@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 throw new ArgumentNullException(nameof(videoMetadata));
 
             // Get manifest data.
-            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.Id).ConfigureAwait(false);
+            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.Id);
 
             var videoOnlyStreamsInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)
@@ -55,20 +55,20 @@ namespace Etherna.VideoImporter.Core.Utilities
                 encodedFiles.Add(await DownloadVideoStreamAsync(
                     audioOnlyStreamInfo,
                     videoOnlyStreamInfo,
-                    videoMetadata.Title).ConfigureAwait(false));
+                    videoMetadata.Title));
 
             //audio only stream
             if (includeAudioTrack)
                 encodedFiles.Add(await DownloadAudioTrackAsync(
                     audioOnlyStreamInfo,
-                    videoMetadata.Title).ConfigureAwait(false));
+                    videoMetadata.Title));
 
             // Get thumbnail.
             ThumbnailFile? thumbnailFile = null;
             if (videoMetadata.Thumbnail is not null)
                 thumbnailFile = await DownloadThumbnailAsync(
                     videoMetadata.Thumbnail,
-                    videoMetadata.Title).ConfigureAwait(false);
+                    videoMetadata.Title);
 
             return new Video(videoMetadata, encodedFiles, thumbnailFile);
         }
@@ -97,10 +97,10 @@ namespace Etherna.VideoImporter.Core.Utilities
                         new Progress<double>((progressStatus) =>
                         {
                             Console.Write($"Downloading audio track ({(progressStatus * 100):N0}%) {audioStream.Size.MegaBytes:N2} MB\r");
-                        })).ConfigureAwait(false);
+                        }));
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry).ConfigureAwait(false); }
+                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry); }
             }
 
             return new AudioFile(
@@ -125,12 +125,12 @@ namespace Etherna.VideoImporter.Core.Utilities
                 try
                 {
                     using var httpClient = new HttpClient();
-                    var stream = await httpClient.GetStreamAsync(thumbnail.Url).ConfigureAwait(false);
+                    var stream = await httpClient.GetStreamAsync(thumbnail.Url);
                     using var fileStream = new FileStream(thumbnailFilePath, FileMode.Create, FileAccess.Write);
-                    await stream.CopyToAsync(fileStream).ConfigureAwait(false);
+                    await stream.CopyToAsync(fileStream);
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry).ConfigureAwait(false); }
+                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry); }
             }
 
             return new ThumbnailFile(
@@ -164,10 +164,10 @@ namespace Etherna.VideoImporter.Core.Utilities
                         {
                             Console.Write($"Downloading and mux resolution {videoQualityLabel} ({(progressStatus * 100):N0}%) " +
                                 $"{videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes:N2} MB\r");
-                        })).ConfigureAwait(false);
+                        }));
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry).ConfigureAwait(false); }
+                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry); }
             }
 
             return new VideoFile(

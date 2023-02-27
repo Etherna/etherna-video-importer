@@ -118,8 +118,8 @@ namespace Etherna.VideoImporter.Devcon.Services
                     continue;
 
                 // Get from youtube.
-                var youtubeVideo = await youtubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl).ConfigureAwait(false);
-                var youtubeBestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id).ConfigureAwait(false))
+                var youtubeVideo = await youtubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
+                var youtubeBestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
                     .GetVideoOnlyStreams()
                     .OrderByDescending(s => s.VideoResolution.Area)
                     .First();
