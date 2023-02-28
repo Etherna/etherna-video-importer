@@ -17,6 +17,7 @@ using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
+using Etherna.VideoImporter.Models;
 using Etherna.VideoImporter.Services;
 using System;
 using System.Globalization;
@@ -33,50 +34,75 @@ namespace Etherna.VideoImporter
         private const int DefaultTTLPostageStamp = 365;
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
-            "Etherna Video Importer help:\n\n" +
-            "[ytvideo|ytchannel] <sourceUri>\tYoutube channel or video url\n" +
-            "-f\tFree videos offered by creator\n" +
-            "-p\tPin video\n" +
-            "-d\tRemove indexed videos deleted from source\n" +
-            "-c\tRemove indexed videos not generated with this tool\n" +
-            "-u\tTry to unpin videos removed from index\n" +
-            $"-ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
-            $"-t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "\n" +
-            "-h\tPrint help\n";
+            "Usage:\tEthernaVideoImporter SOURCE_TYPE SOURCE_URI [OPTIONS]\n" +
+            "\n" +
+            "Source types:\n" +
+            "  ytchannel\tYouTube channel\n" +
+            "  ytvideo\tYouTube video\n" +
+            "\n" +
+            "Options:\n" +
+            $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
+            $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
+            "  -o\tOffer video downloads to everyone\n" +
+            "  -p\tPin videos\n" +
+            "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
+            "  -e\tRemove indexed videos not generated with this tool\n" +
+            "  -u\tTry to unpin contents removed from index\n" +
+            "\n" +
+            "Run 'EthernaVideoImporter -h' to print help\n";
 
         static async Task Main(string[] args)
         {
             // Parse arguments.
-            string? youtubeChannelUrl = null;
-            string? youtubeVideoUrl = null;
+            SourceType? sourceType = null;
+            string? sourceUri = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
             int ttlPostageStamp = DefaultTTLPostageStamp;
             bool offerVideos = false;
             bool pinVideos = false;
-            bool deleteVideosRemovedFromSource = false;
+            bool deleteVideosMissingFromSource = false;
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
 
-            // Get source uri.
-            if (args.Length < 2)
+            // Parse input.
+            if (args.Length == 0)
             {
-                Console.WriteLine($"Missing source video uri\n{HelpText}");
-                throw new ArgumentException("Missing mandatory data");
+                Console.WriteLine(HelpText);
+                return;
             }
 
             switch (args[0])
             {
-                case "ytvideo":
-                    youtubeVideoUrl = args[1];
-                    break;
+                case "-h":
+                    Console.WriteLine(HelpText);
+                    return;
+
                 case "ytchannel":
-                    youtubeChannelUrl = args[1];
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("YouTube Channel url is missing");
+                        throw new ArgumentException("Invalid argument");
+                    }
+                    sourceType = SourceType.YouTubeChannel;
+                    sourceUri = args[1];
                     break;
+
+                case "ytvideo":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("YouTube Video url is missing");
+                        throw new ArgumentException("Invalid argument");
+                    }
+                    sourceType = SourceType.YouTubeVideo;
+                    sourceUri = args[1];
+                    break;
+
                 default:
-                    Console.WriteLine($"Invalid argument\n{HelpText}");
+                    Console.WriteLine($"Invalid argument");
+                    Console.WriteLine(HelpText);
                     throw new ArgumentException("Invalid argument");
             }
 
@@ -85,14 +111,21 @@ namespace Etherna.VideoImporter
             {
                 switch (args[i])
                 {
-                    case "-ff": ffMpegFolderPath = args[++i]; break;
-                    case "-f": offerVideos = true; break;
+                    case "-ff":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("ffMpeg folder is missing");
+                        ffMpegFolderPath = args[++i];
+                        break;
+                    case "-t":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("TTL value is missing");
+                        ttlPostageStampStr = args[++i];
+                        break;
+                    case "-o": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
-                    case "-d": deleteVideosRemovedFromSource = true; break;
-                    case "-c": deleteExogenousVideos = true; break;
+                    case "-m": deleteVideosMissingFromSource = true; break;
+                    case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
-                    case "-t": ttlPostageStampStr = args[++i]; break;
-                    case "-h": Console.Write(HelpText); return;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -115,15 +148,11 @@ namespace Etherna.VideoImporter
             }
 
             //deny delete video old sources when is single
-            if (!string.IsNullOrEmpty(youtubeVideoUrl) &&
-                deleteVideosRemovedFromSource)
+            if (sourceType == SourceType.YouTubeVideo && deleteVideosMissingFromSource)
             {
                 Console.WriteLine($"Cannot delete video removed from source when the source is a single video");
                 return;
             }
-
-            //sources
-            var sourceUri = youtubeChannelUrl ?? youtubeVideoUrl!;
 
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO();
@@ -162,15 +191,18 @@ namespace Etherna.VideoImporter
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp));
 
-            IVideoProvider videoProvider = !string.IsNullOrWhiteSpace(youtubeChannelUrl) ?
-                new YouTubeChannelVideoProvider(
+            IVideoProvider videoProvider = sourceType switch
+            {
+                SourceType.YouTubeChannel => new YouTubeChannelVideoProvider(
                     sourceUri,
                     ffMpegBinaryPath,
-                    includeAudioTrack) :
-                new YouTubeSingleVideoProvider(
+                    includeAudioTrack),
+                SourceType.YouTubeVideo => new YouTubeSingleVideoProvider(
                     sourceUri,
                     ffMpegBinaryPath,
-                    includeAudioTrack);
+                    includeAudioTrack),
+                _ => throw new InvalidOperationException()
+            };
 
             // Call runner.
             var importer = new EthernaVideoImporter(
@@ -187,7 +219,7 @@ namespace Etherna.VideoImporter
                 userEthAddr,
                 offerVideos,
                 pinVideos,
-                deleteVideosRemovedFromSource,
+                deleteVideosMissingFromSource,
                 deleteExogenousVideos,
                 unpinRemovedVideos);
         }

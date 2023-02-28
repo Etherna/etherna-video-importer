@@ -33,17 +33,19 @@ namespace Etherna.VideoImporter.Devcon
         private const int DefaultTTLPostageStamp = 365;
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
-            "Etherna Video Importer for Devcon Archive help:\n\n" +
-            "md <folderMD>\tSource folder path with *.md files to import\n" +
-            "-f\tFree videos offered by creator\n" +
-            "-p\tPin video\n" +
-            "-d\tRemove indexed videos deleted from source\n" +
-            "-c\tRemove indexed videos not generated with this tool\n" +
-            "-u\tTry to unpin videos removed from index\n" +
-            $"-ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
-            $"-t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "\n" +
-            "-h\tPrint help\n";
+            "Usage:\tEthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]\n" +
+            "\n" +
+            "Options:\n" +
+            $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
+            $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
+            "  -o\tOffer video downloads to everyone\n" +
+            "  -p\tPin videos\n" +
+            "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
+            "  -e\tRemove indexed videos not generated with this tool\n" +
+            "  -u\tTry to unpin contents removed from index\n" +
+            "\n" +
+            "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
         static async Task Main(string[] args)
         {
@@ -54,39 +56,64 @@ namespace Etherna.VideoImporter.Devcon
             int ttlPostageStamp = DefaultTTLPostageStamp;
             bool offerVideos = false;
             bool pinVideos = false;
-            bool deleteVideosRemovedFromSource = false;
+            bool deleteVideosMissingFromSource = false;
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
 
-            // Get MD path.
-            if (args.Length < 2 ||
-                args[0] != "md")
+            // Parse input.
+            if (args.Length == 0)
             {
-                Console.WriteLine($"Missing MD directory path\n{HelpText}");
-                throw new ArgumentException("Missing mandatory data");
+                Console.WriteLine(HelpText);
+                return;
             }
-            if (string.IsNullOrWhiteSpace(args[1]) ||
-                !Directory.Exists(args[1]))
+
+            switch (args[0])
             {
-                Console.WriteLine($"Not found MD directory path\n{HelpText}");
-                throw new ArgumentException("Not found MD directory path");
+                case "-h":
+                    Console.WriteLine(HelpText);
+                    return;
+
+                case "md":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("MD file folder is missing");
+                        throw new ArgumentException("Invalid argument");
+                    }
+                    if (string.IsNullOrWhiteSpace(args[1]) || !Directory.Exists(args[1]))
+                    {
+                        Console.WriteLine($"Not found MD directory path {args[1]}");
+                        throw new ArgumentException("Not found MD directory path");
+                    }
+                    mdSourceFolderPath = args[1];
+                    break;
+
+                default:
+                    Console.WriteLine($"Invalid argument");
+                    Console.WriteLine(HelpText);
+                    throw new ArgumentException("Invalid argument");
             }
-            mdSourceFolderPath = args[1];
 
             // Get params.
             for (int i = 2; i < args.Length; i++)
             {
                 switch (args[i])
                 {
-                    case "-ff": ffMpegFolderPath = args[++i]; break;
-                    case "-f": offerVideos = true; break;
+                    case "-ff":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("ffMpeg folder is missing");
+                        ffMpegFolderPath = args[++i];
+                        break;
+                    case "-t":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("TTL value is missing");
+                        ttlPostageStampStr = args[++i];
+                        break;
+                    case "-o": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
-                    case "-d": deleteVideosRemovedFromSource = true; break;
-                    case "-c": deleteExogenousVideos = true; break;
+                    case "-m": deleteVideosMissingFromSource = true; break;
+                    case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
-                    case "-t": ttlPostageStampStr = args[++i]; break;
-                    case "-h": Console.Write(HelpText); return;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -107,7 +134,7 @@ namespace Etherna.VideoImporter.Devcon
                 Console.WriteLine($"Invalid value for TTL Postage Stamp");
                 return;
             }
-            
+
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO();
             if (authResult.IsError)
@@ -163,7 +190,7 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 offerVideos,
                 pinVideos,
-                deleteVideosRemovedFromSource,
+                deleteVideosMissingFromSource,
                 deleteExogenousVideos,
                 unpinRemovedVideos);
         }
