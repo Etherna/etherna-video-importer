@@ -1,8 +1,7 @@
 {
   "profiles": {
     "DevconArchiveVideoParser": {
-      "commandName": "Project",
-      "commandLineArgs": "-h"
+      "commandName": "Project"
     }
   }
 }
