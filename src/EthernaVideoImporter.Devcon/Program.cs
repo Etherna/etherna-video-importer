@@ -129,7 +129,7 @@ namespace Etherna.VideoImporter.Devcon
 
             //ttl postage batch
             if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
-                int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
+                !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
             {
                 Console.WriteLine($"Invalid value for TTL Postage Stamp");
                 return;

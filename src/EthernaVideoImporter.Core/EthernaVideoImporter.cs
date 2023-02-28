@@ -76,7 +76,7 @@ namespace Etherna.VideoImporter.Core
             var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync();
             var totalSourceVideo = sourceVideosMetadata.Count();
 
-            Console.WriteLine($"Found {sourceVideosMetadata.Count()} videos from source");
+            Console.WriteLine($"Found {sourceVideosMetadata.Count()} valid videos from source");
 
             // Get information from Etherna index.
             Console.WriteLine("Get user's videos on Etherna Index");
@@ -97,7 +97,7 @@ namespace Etherna.VideoImporter.Core
                 try
                 {
                     Console.WriteLine("===============================");
-                    Console.WriteLine($"Processing video #{i} of #{totalSourceVideo}. Source Id: {sourceMetadata.Id}");
+                    Console.WriteLine($"Processing video #{i + 1} of #{totalSourceVideo}. Source Id: {sourceMetadata.Id}");
                     Console.WriteLine($"Title: {sourceMetadata.Title}");
 
                     // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.
@@ -201,8 +201,6 @@ namespace Etherna.VideoImporter.Core
                     Console.WriteLine($"Error:{ex.Message} \n#{i} Video unable to import\n");
                     Console.ResetColor();
                 }
-
-                Console.WriteLine($"Done.");
             }
 
             // Clean up user channel on Etherna index.

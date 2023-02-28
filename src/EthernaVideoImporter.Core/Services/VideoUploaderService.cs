@@ -174,10 +174,10 @@ namespace Etherna.VideoImporter.Core.Services
             var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount);
 
             // Wait until created batch is avaiable.
-            Console.WriteLine("Waiting for batch ready...");
+            Console.WriteLine("Waiting for batch ready... (it may take a while)");
 
             var batchStartWait = DateTime.UtcNow;
-            string? batchId;
+            string? batchId = null;
             do
             {
                 //timeout throw exception
@@ -188,11 +188,15 @@ namespace Etherna.VideoImporter.Core.Services
                     throw ex;
                 }
 
-                batchId = await ethernaGatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
-
-                //waiting for batchId avaiable
-                await Task.Delay(BatchCheckTimeSpan);
-
+                try
+                {
+                    batchId = await ethernaGatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
+                }
+                catch (GatewayApiException)
+                {
+                    //waiting for batchId avaiable
+                    await Task.Delay(BatchCheckTimeSpan);
+                }
             } while (string.IsNullOrWhiteSpace(batchId));
 
             // Wait until created batch is usable.

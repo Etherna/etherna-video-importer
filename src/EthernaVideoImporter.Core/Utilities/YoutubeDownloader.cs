@@ -43,7 +43,10 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             var videoOnlyStreamsInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)
-                .OrderByDescending(res => res.VideoResolution.Area);
+                .OrderByDescending(stream => stream.VideoResolution.Area)
+                .GroupBy(stream => stream.VideoQuality.Label)
+                .Select(qualityGroup => qualityGroup.OrderByDescending(s => s.Bitrate.BitsPerSecond)
+                                                    .First());
             var audioOnlyStreamInfo = youtubeStreamsManifest.GetAudioOnlyStreams()
                 .OrderByDescending(s => s.Bitrate)
                 .First();
@@ -96,7 +99,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                         audioFilePath,
                         new Progress<double>((progressStatus) =>
                         {
-                            Console.Write($"Downloading audio track ({(progressStatus * 100):N0}%) {audioStream.Size.MegaBytes:N2} MB\r");
+                            Console.Write($"Downloading audio track ({(progressStatus * 100):N0}%) {audioStream.Size.MegaBytes:N2}MB\r");
                         }));
                     break;
                 }
@@ -128,6 +131,8 @@ namespace Etherna.VideoImporter.Core.Utilities
                     var stream = await httpClient.GetStreamAsync(thumbnail.Url);
                     using var fileStream = new FileStream(thumbnailFilePath, FileMode.Create, FileAccess.Write);
                     await stream.CopyToAsync(fileStream);
+
+                    Console.WriteLine("Downloaded thumbnail");
                     break;
                 }
                 catch { await Task.Delay(CommonConsts.DownloadTimespanRetry); }
@@ -162,9 +167,10 @@ namespace Etherna.VideoImporter.Core.Utilities
                         new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(ffMpegPath).Build(),
                         new Progress<double>((progressStatus) =>
                         {
-                            Console.Write($"Downloading and mux resolution {videoQualityLabel} ({(progressStatus * 100):N0}%) " +
-                                $"{videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes:N2} MB\r");
+                            Console.Write($"Downloading and mux {videoQualityLabel} ({(progressStatus * 100):N0}%) " +
+                                $"{videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes:N2}MB\r");
                         }));
+                    Console.WriteLine();
                     break;
                 }
                 catch { await Task.Delay(CommonConsts.DownloadTimespanRetry); }

@@ -18,7 +18,7 @@ namespace Etherna.VideoImporter.Core.Models
             Duration = lastValidManifest.Duration ?? 0;
             Hash = lastValidManifest.Hash;
             OriginalQuality = lastValidManifest.OriginalQuality ?? "";
-            PersonalData = JsonSerializer.Deserialize<ManifestPersonalDataDto>(lastValidManifest.PersonalData!);
+            PersonalData = lastValidManifest.PersonalData is null ? null : JsonSerializer.Deserialize<ManifestPersonalDataDto>(lastValidManifest.PersonalData);
             RawPersonalData = lastValidManifest.PersonalData;
             Sources = lastValidManifest.Sources;
             Thumbnail = lastValidManifest.Thumbnail;

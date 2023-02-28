@@ -65,7 +65,7 @@ namespace Etherna.VideoImporter.Devcon.Services
         {
             var mdFilesPaths = Directory.GetFiles(mdFolderRootPath, "*.md", SearchOption.AllDirectories);
 
-            Console.WriteLine($"Total files: {mdFilesPaths.Length}");
+            Console.WriteLine($"Found {mdFilesPaths.Length} videos");
 
             var videosMetadata = new List<(ArchiveMdFileDto mdDto, YoutubeExplode.Videos.Video ytVideo, VideoOnlyStreamInfo ytBestStreamInfo, string mdRelativePath)>();
             foreach (var mdFilePath in mdFilesPaths)

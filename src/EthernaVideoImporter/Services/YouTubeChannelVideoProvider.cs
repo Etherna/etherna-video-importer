@@ -22,6 +22,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
+using YoutubeExplode.Exceptions;
 
 namespace Etherna.VideoImporter.Services
 {
@@ -58,22 +59,36 @@ namespace Etherna.VideoImporter.Services
             var youtubeChannel = await youtubeClient.Channels.GetByHandleAsync(channelUrl);
             var youtubeVideos = await youtubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
 
+            Console.WriteLine($"Found {youtubeVideos.Count} videos");
+
             var videosMetadata = new List<VideoMetadataBase>();
             foreach (var video in youtubeVideos)
             {
-                var metadata = await youtubeClient.Videos.GetAsync(video.Url);
-                var bestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
-                    .GetVideoOnlyStreams()
-                    .OrderByDescending(s => s.VideoResolution.Area)
-                    .First();
+                try
+                {
+                    var metadata = await youtubeClient.Videos.GetAsync(video.Url);
+                    var bestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
+                        .GetVideoOnlyStreams()
+                        .OrderByDescending(s => s.VideoResolution.Area)
+                        .First();
 
-                videosMetadata.Add(new YouTubeVideoMetadata(
-                    metadata.Description,
-                    metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
-                    bestStreamInfo.VideoQuality.Label,
-                    metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
-                    metadata.Title,
-                    metadata.Url));
+                    videosMetadata.Add(new YouTubeVideoMetadata(
+                        metadata.Description,
+                        metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
+                        bestStreamInfo.VideoQuality.Label,
+                        metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
+                        metadata.Title,
+                        metadata.Url));
+
+                    Console.WriteLine($"Downloaded metadata for {video.Title}");
+                }
+                catch (VideoUnplayableException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Unplayable video: {video.Title}");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
             }
 
             return videosMetadata;
