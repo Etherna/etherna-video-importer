@@ -49,6 +49,7 @@ namespace Etherna.VideoImporter
             "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
             "  -e\tRemove indexed videos not generated with this tool\n" +
             "  -u\tTry to unpin contents removed from index\n" +
+            "  -f\tForce upload video if they already has been uploaded\n" +
             "\n" +
             "Run 'EthernaVideoImporter -h' to print help\n";
 
@@ -66,6 +67,7 @@ namespace Etherna.VideoImporter
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
+            bool forceUploadVideo = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -126,6 +128,7 @@ namespace Etherna.VideoImporter
                     case "-m": deleteVideosMissingFromSource = true; break;
                     case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
+                    case "-f": forceUploadVideo = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -221,7 +224,8 @@ namespace Etherna.VideoImporter
                 pinVideos,
                 deleteVideosMissingFromSource,
                 deleteExogenousVideos,
-                unpinRemovedVideos);
+                unpinRemovedVideos,
+                forceUploadVideo);
         }
     }
 }
