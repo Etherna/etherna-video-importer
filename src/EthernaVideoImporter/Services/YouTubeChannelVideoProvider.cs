@@ -19,6 +19,7 @@ using Etherna.VideoImporter.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
@@ -81,6 +82,13 @@ namespace Etherna.VideoImporter.Services
                         metadata.Url));
 
                     Console.WriteLine($"Downloaded metadata for {video.Title}");
+                }
+                catch (HttpRequestException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Error retrieving video: {video.Title}. Try again later");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
                 }
                 catch (VideoUnplayableException ex)
                 {

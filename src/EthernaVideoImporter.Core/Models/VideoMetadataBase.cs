@@ -13,11 +13,16 @@
 //   limitations under the License.
 
 using System;
+using System.Text.RegularExpressions;
 
 namespace Etherna.VideoImporter.Core.Models
 {
-    public abstract class VideoMetadataBase
+    public abstract partial class VideoMetadataBase
     {
+        // Consts.
+        [GeneratedRegex("^(?<label>\\d+p)\\d*$")]
+        private static partial Regex QualityLabelRegex();
+
         // Constructor.
         protected VideoMetadataBase(
             string description,
@@ -27,7 +32,13 @@ namespace Etherna.VideoImporter.Core.Models
         {
             Description = description;
             Duration = duration;
-            OriginVideoQualityLabel = originVideoQualityLabel;
+
+            var originVideoQualityLabelMatch = QualityLabelRegex().Match(originVideoQualityLabel);
+            if (originVideoQualityLabelMatch.Success)
+                OriginVideoQualityLabel = originVideoQualityLabelMatch.Groups["label"].Value;
+            else
+                throw new ArgumentException("Invalid quality label", nameof(originVideoQualityLabel));
+            
             Title = title;
         }
 

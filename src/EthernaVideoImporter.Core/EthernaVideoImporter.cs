@@ -192,13 +192,14 @@ namespace Etherna.VideoImporter.Core
 
                     // Import succeeded.
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"#{i} Video imported successfully");
+                    Console.WriteLine($"#{i + 1} Video imported successfully");
                     Console.ResetColor();
                 }
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error:{ex.Message} \n#{i} Video unable to import\n");
+                    Console.WriteLine("Video unable to upload");
+                    Console.WriteLine($"Error: {ex.Message}\n");
                     Console.ResetColor();
                 }
             }
