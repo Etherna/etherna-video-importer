@@ -1,5 +1,5 @@
 ﻿using Etherna.VideoImporter.Core.Extensions;
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using System.Collections.Generic;
 using System.IO;

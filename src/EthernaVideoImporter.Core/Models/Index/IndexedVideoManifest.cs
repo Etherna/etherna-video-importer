@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using System;
 using System.Collections.Generic;
 using System.Text.Json;
-using Etherna.VideoImporter.Core.Dtos;
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Core.Models.Index
 {
     public sealed class IndexedVideoManifest
     {

@@ -12,22 +12,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract class FileBase
+    public class AudioFile : FileBase
     {
         // Constructors.
-        protected FileBase(
+        public AudioFile(
             string downloadedFilePath,
             long byteSize)
-        {
-            ByteSize = byteSize;
-            DownloadedFilePath = downloadedFilePath;
-        }
-
-        // Properties.
-        public long ByteSize { get; }
-        public string DownloadedFilePath { get; }
-        public string? UploadedHashReference { get; set; }
+            : base(downloadedFilePath, byteSize)
+        { }
     }
 }

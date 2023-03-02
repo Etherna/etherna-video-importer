@@ -14,8 +14,8 @@
 
 using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
-using Etherna.VideoImporter.Core.Dtos;
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Index;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;

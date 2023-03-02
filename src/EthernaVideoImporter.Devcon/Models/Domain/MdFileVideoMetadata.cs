@@ -1,8 +1,8 @@
-﻿using Etherna.VideoImporter.Core.Models;
+﻿using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using YoutubeExplode.Common;
 
-namespace Etherna.VideoImporter.Devcon.Models
+namespace Etherna.VideoImporter.Devcon.Models.Domain
 {
     public class MdFileVideoMetadata : YouTubeVideoMetadataBase
     {

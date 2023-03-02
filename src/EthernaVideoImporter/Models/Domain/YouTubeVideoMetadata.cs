@@ -1,8 +1,8 @@
-﻿using Etherna.VideoImporter.Core.Models;
+﻿using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using YoutubeExplode.Common;
 
-namespace Etherna.VideoImporter.Models
+namespace Etherna.VideoImporter.Models.Domain
 {
     internal sealed class YouTubeVideoMetadata : YouTubeVideoMetadataBase
     {

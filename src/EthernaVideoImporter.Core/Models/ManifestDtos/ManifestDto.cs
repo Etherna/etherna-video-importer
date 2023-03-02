@@ -12,13 +12,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
-namespace Etherna.VideoImporter.Core.Dtos
+namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestDto
     {

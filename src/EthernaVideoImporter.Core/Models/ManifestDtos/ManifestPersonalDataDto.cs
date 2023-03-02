@@ -12,17 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
-
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
-    public class AudioFile : FileBase
+    public class ManifestPersonalDataDto
     {
-        // Constructors.
-        public AudioFile(
-            string downloadedFilePath,
-            long byteSize)
-            : base(downloadedFilePath, byteSize)
-        { }
+        public string? ClientName { get; set; }
+        public string? VideoId { get; set; }
+
+        public static ManifestPersonalDataDto BuildNew(string videoId) => new()
+        {
+            ClientName = CommonConsts.ImporterIdentifier,
+            VideoId = videoId
+        };
     }
 }

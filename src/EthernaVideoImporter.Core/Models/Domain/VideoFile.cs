@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public class VideoFile : FileBase
     {

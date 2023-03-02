@@ -12,11 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
-using Etherna.VideoImporter.Devcon.MdDto;
-using Etherna.VideoImporter.Devcon.Models;
+using Etherna.VideoImporter.Devcon.Models.Domain;
+using Etherna.VideoImporter.Devcon.Models.MdDto;
 using System;
 using System.Collections.Generic;
 using System.IO;

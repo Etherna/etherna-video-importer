@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Etherna.VideoImporter.Core.Models.Domain;
+using System;
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Core.Models.Index
 {
     public sealed class IndexedVideo
     {

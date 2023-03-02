@@ -1,4 +1,4 @@
-﻿namespace Etherna.VideoImporter.Core.Models
+﻿namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public class ThumbnailFile : FileBase
     {

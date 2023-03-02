@@ -3,7 +3,7 @@ using System.Linq;
 using System.Web;
 using YoutubeExplode.Common;
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public abstract class YouTubeVideoMetadataBase : VideoMetadataBase
     {

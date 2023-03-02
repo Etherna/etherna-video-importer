@@ -1,10 +1,10 @@
-﻿using Etherna.VideoImporter.Core.Dtos;
+﻿using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public class Video
     {

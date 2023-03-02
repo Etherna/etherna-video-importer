@@ -1,4 +1,4 @@
-﻿using Etherna.VideoImporter.Core.Models;
+﻿using Etherna.VideoImporter.Core.Models.Domain;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Utilities

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Etherna.VideoImporter.Devcon.MdDto
+namespace Etherna.VideoImporter.Devcon.Models.MdDto
 {
     internal sealed class ArchiveMdFileDto
     {

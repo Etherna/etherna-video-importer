@@ -1,8 +1,8 @@
 ﻿using Etherna.ServicesClient.Clients.Index;
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 
-namespace Etherna.VideoImporter.Core.Dtos
+namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestVideoSourceDto
     {

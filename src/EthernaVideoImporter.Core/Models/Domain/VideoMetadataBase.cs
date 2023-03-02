@@ -15,7 +15,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public abstract partial class VideoMetadataBase
     {
