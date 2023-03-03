@@ -199,7 +199,7 @@ namespace Etherna.VideoImporter.Core
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
                     Console.WriteLine("Video unable to upload");
-                    Console.WriteLine($"Error: {ex.Message}\n");
+                    Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
                 }
             }
