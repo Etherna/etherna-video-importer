@@ -229,7 +229,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 $"{message} ({(progressStatus * 100):N2}%) {progressStatus * totalSizeMB:N2}MB of {totalSizeMB:N2}MB.");
 
             if (eta is not null)
-                strBuilder.Append(CultureInfo.InvariantCulture, $" ETA: {eta}");
+                strBuilder.Append(CultureInfo.InvariantCulture, $" ETA: {eta:hh\\:mm\\:ss}");
 
             strBuilder.Append('\r');
 
