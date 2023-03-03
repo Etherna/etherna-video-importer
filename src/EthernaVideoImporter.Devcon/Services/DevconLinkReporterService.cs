@@ -27,6 +27,12 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Fields.
         private const string EthernaIndexPrefix = "ethernaIndex:";
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
+        private readonly string mdSourceFolderPath;
+
+        public DevconLinkReporterService(string mdSourceFolderPath)
+        {
+            this.mdSourceFolderPath = mdSourceFolderPath;
+        }
 
         // Methods.
         public async Task SetEthernaReferencesAsync(
@@ -34,11 +40,12 @@ namespace Etherna.VideoImporter.Devcon.Services
             string ethernaIndexId,
             string ethernaPermalinkHash)
         {
+            var filePath = Path.Combine(mdSourceFolderPath, sourceVideoId);
             var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + ethernaIndexId;
             var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + ethernaPermalinkHash;
 
             // Reaad all line.
-            var lines = File.ReadLines(sourceVideoId).ToList();
+            var lines = File.ReadLines(filePath).ToList();
 
             // Set ethernaIndex.
             var index = GetLineNumber(lines, EthernaIndexPrefix);
@@ -57,7 +64,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaPermalinkLine);
 
             // Save file.
-            await File.WriteAllLinesAsync(sourceVideoId, lines);
+            await File.WriteAllLinesAsync(filePath, lines);
         }
 
         // Helpers.

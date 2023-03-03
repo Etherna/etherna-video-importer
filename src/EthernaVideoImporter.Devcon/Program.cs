@@ -179,7 +179,7 @@ namespace Etherna.VideoImporter.Devcon
                     ethernaUserClients.IndexClient),
                 ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
-                new DevconLinkReporterService(),
+                new DevconLinkReporterService(mdSourceFolderPath),
                 new MdVideoProvider(
                     mdSourceFolderPath,
                     ffMpegBinaryPath,

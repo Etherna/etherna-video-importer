@@ -78,13 +78,13 @@ namespace Etherna.VideoImporter.Core
 
             Console.WriteLine($"Found {sourceVideosMetadata.Count()} valid videos from source");
 
-            // Get information from Etherna index.
-            Console.WriteLine("Get user's videos on Etherna Index");
+            // Get information from etherna index.
+            Console.WriteLine("Get user's videos on etherna index");
 
             var userVideosOnIndex = await GetUserVideosOnEthernaAsync(userEthAddress);
             var ethernaIndexParameters = await ethernaIndexClient.SystemClient.ParametersAsync();
 
-            Console.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on Etherna Index");
+            Console.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on etherna index");
 
             // Import each video.
             Console.WriteLine("Start importing videos");
@@ -106,7 +106,7 @@ namespace Etherna.VideoImporter.Core
 
                     if (alreadyPresentVideo != null)
                     {
-                        Console.WriteLine("Video already uploaded on Etherna");
+                        Console.WriteLine("Video already uploaded on etherna");
 
                         // Verify if manifest needs to be updated with new metadata.
                         updatedIndexId = alreadyPresentVideo.IndexId;
@@ -144,7 +144,7 @@ namespace Etherna.VideoImporter.Core
                                 updatedPermalinkHash);
                         }
                     }
-                    else //try to upload new video on Etherna
+                    else //try to upload new video on etherna
                     {
                         // Validate metadata.
                         if (sourceMetadata.Title.Length > ethernaIndexParameters.VideoTitleMaxLength)
@@ -180,16 +180,6 @@ namespace Etherna.VideoImporter.Core
                         updatedPermalinkHash = video.EthernaPermalinkHash!;
                     }
 
-                    // Report Etherna new references.
-                    /*
-                     * Report Etherna references even if video is already present on index.
-                     * This handle cases where references are missing for some previous execution error.
-                     */
-                    await linkReporterService.SetEthernaReferencesAsync(
-                        sourceMetadata.Id,
-                        updatedIndexId,
-                        updatedPermalinkHash);
-
                     // Import succeeded.
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine($"#{i + 1} Video imported successfully");
@@ -201,10 +191,34 @@ namespace Etherna.VideoImporter.Core
                     Console.WriteLine("Video unable to upload");
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
+
+                    continue;
+                }
+
+                // Report etherna new references.
+                try
+                {
+                    /*
+                     * Report etherna references even if video is already present on index.
+                     * This handle cases where references are missing for some previous execution error.
+                     */
+                    await linkReporterService.SetEthernaReferencesAsync(
+                        sourceMetadata.Id,
+                        updatedIndexId,
+                        updatedPermalinkHash);
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine("Unable to report etherna links");
+                    Console.WriteLine($"Error: {ex.Message}");
+                    Console.ResetColor();
+
+                    continue;
                 }
             }
 
-            // Clean up user channel on Etherna index.
+            // Clean up user channel on etherna index.
             IEnumerable<string>? gatewayPinnedHashes = null;
             if (unpinRemovedVideos)
                 gatewayPinnedHashes = await ethernaGatewayClient.UsersClient.PinnedResourcesAsync();

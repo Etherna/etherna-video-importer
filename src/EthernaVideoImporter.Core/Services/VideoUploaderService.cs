@@ -146,7 +146,7 @@ namespace Etherna.VideoImporter.Core.Services
                     ManifestHash = video.EthernaPermalinkHash,
                 });
 
-            Console.WriteLine($"Listed on Etherna index with Id: {video.EthernaIndexId}");
+            Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }
 
         public async Task<string> UploadVideoManifestAsync(
