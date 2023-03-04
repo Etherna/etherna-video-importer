@@ -12,21 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter
 {
-    public class VideoFile : FileBase
+    enum SourceType
     {
-        // Constructors.
-        public VideoFile(
-            string downloadedFilePath,
-            string videoQualityLabel,
-            long byteSize)
-            : base(downloadedFilePath, byteSize)
-        {
-            VideoQualityLabel = videoQualityLabel;
-        }
-
-        // Properties.
-        public string VideoQualityLabel { get; }
+        YouTubeChannel,
+        YouTubeVideo
     }
 }

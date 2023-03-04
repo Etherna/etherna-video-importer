@@ -12,20 +12,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System.IO;
-using System.Text;
-
-namespace Etherna.VideoImporter.Core.Extensions
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public static class StringExtensions
+    public abstract class FileBase
     {
-        public static string ToSafeFileName(this string value)
+        // Constructors.
+        protected FileBase(
+            string downloadedFilePath,
+            long byteSize)
         {
-            var strBuilder = new StringBuilder(value);
-            foreach (char c in Path.GetInvalidFileNameChars())
-                strBuilder = strBuilder.Replace(c, '_');
-
-            return strBuilder.ToString();
+            ByteSize = byteSize;
+            DownloadedFilePath = downloadedFilePath;
         }
+
+        // Properties.
+        public long ByteSize { get; }
+        public string DownloadedFilePath { get; }
+        public string? UploadedHashReference { get; set; }
     }
 }

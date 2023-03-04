@@ -12,8 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Dtos;
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services

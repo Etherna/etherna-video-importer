@@ -13,13 +13,13 @@
 //   limitations under the License.
 
 using Blurhash.SkiaSharp;
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Etherna.VideoImporter.Core.Dtos
+namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestThumbnailDto
     {
@@ -35,7 +35,7 @@ namespace Etherna.VideoImporter.Core.Dtos
 
             AspectRatio = thumbnailFile.Width / thumbnailFile.Height;
             Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
-            Sources = new Dictionary<string, string>() { {$"{thumbBitmap.Width}w", thumbnailFile.UploadedHashReference} };
+            Sources = new Dictionary<string, string>() { { $"{thumbBitmap.Width}w", thumbnailFile.UploadedHashReference } };
         }
 
         public ManifestThumbnailDto(

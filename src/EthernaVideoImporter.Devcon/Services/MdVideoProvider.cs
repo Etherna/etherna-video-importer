@@ -12,19 +12,21 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
-using Etherna.VideoImporter.Devcon.MdDto;
-using Etherna.VideoImporter.Devcon.Models;
+using Etherna.VideoImporter.Devcon.Models.Domain;
+using Etherna.VideoImporter.Devcon.Models.MdDto;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using YoutubeExplode;
+using YoutubeExplode.Exceptions;
 using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Devcon.Services
@@ -33,6 +35,7 @@ namespace Etherna.VideoImporter.Devcon.Services
     {
         // Consts.
         public static readonly string[] _keywordNames = { "IMAGE", "IMAGEURL", "EDITION", "TITLE", "DESCRIPTION", "YOUTUBEURL", "IPFSHASH", "DURATION", "EXPERTISE", "TYPE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "ETHERNAINDEX", "ETHERNAPERMALINK", "SOURCEID" };
+        public static readonly string[] _keywordSkips = { "IMAGE", "IMAGEURL", "IPFSHASH", "EXPERTISE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "SOURCEID" };
 
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
@@ -68,8 +71,12 @@ namespace Etherna.VideoImporter.Devcon.Services
             Console.WriteLine($"Found {mdFilesPaths.Length} videos");
 
             var videosMetadata = new List<(ArchiveMdFileDto mdDto, YoutubeExplode.Videos.Video ytVideo, VideoOnlyStreamInfo ytBestStreamInfo, string mdRelativePath)>();
-            foreach (var mdFilePath in mdFilesPaths)
+            foreach (var (mdFilePath, i) in mdFilesPaths.Select((f, i) => (f, i)))
             {
+                var mdFileRelativePath = Path.GetRelativePath(mdFolderRootPath, mdFilePath);
+
+                Console.WriteLine($"File #{i + 1} of {mdFilesPaths.Length}: {mdFileRelativePath}");
+
                 // Get from md file.
                 var mdConvertedToJson = new StringBuilder();
                 var markerLine = 0;
@@ -79,6 +86,9 @@ namespace Etherna.VideoImporter.Devcon.Services
                 foreach (var line in File.ReadLines(mdFilePath))
                 {
                     if (string.IsNullOrWhiteSpace(line))
+                        continue;
+                    if (_keywordSkips.Any(keyToSkip =>
+                        line.StartsWith(keyToSkip, StringComparison.InvariantCultureIgnoreCase)))
                         continue;
 
                     if (line == "---")
@@ -98,7 +108,10 @@ namespace Etherna.VideoImporter.Devcon.Services
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"{ex.Message} \n Unable to parse file: {mdFilePath}");
+                                Console.ForegroundColor = ConsoleColor.DarkRed;
+                                Console.WriteLine($"Unable to parse file: {mdFileRelativePath}");
+                                Console.WriteLine(ex.Message);
+                                Console.ResetColor();
                             }
 
                             markerLine = 0;
@@ -117,14 +130,37 @@ namespace Etherna.VideoImporter.Devcon.Services
                 if (videoDataInfoDto is null)
                     continue;
 
-                // Get from youtube.
-                var youtubeVideo = await youtubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
-                var youtubeBestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
-                    .GetVideoOnlyStreams()
-                    .OrderByDescending(s => s.VideoResolution.Area)
-                    .First();
+                Console.Write($"\tparsed md file...");
 
-                videosMetadata.Add((videoDataInfoDto, youtubeVideo, youtubeBestStreamInfo, Path.GetRelativePath(mdFilePath, mdFolderRootPath)));
+                // Get from youtube.
+                try
+                {
+                    var youtubeVideo = await youtubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
+                    var youtubeBestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
+                        .GetVideoOnlyStreams()
+                        .OrderByDescending(s => s.VideoResolution.Area)
+                        .First();
+
+                    Console.WriteLine($" and downloaded YouTube metadata.");
+
+                    videosMetadata.Add((videoDataInfoDto, youtubeVideo, youtubeBestStreamInfo, mdFileRelativePath));
+                }
+                catch (HttpRequestException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine();
+                    Console.WriteLine($"Error retrieving video from YouTube. Try again later");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
+                catch (VideoUnplayableException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine();
+                    Console.WriteLine($"Unplayable video from YouTube");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
             }
 
             return videosMetadata.Select(
@@ -145,20 +181,6 @@ namespace Etherna.VideoImporter.Devcon.Services
         {
             if (string.IsNullOrWhiteSpace(line))
                 return "";
-
-            // Fix error declaration of speakers.
-            line = line.Replace("\"G. Nicholas D'Andrea\"", "'G. Nicholas D\"Andrea'", StringComparison.InvariantCultureIgnoreCase);
-            if (line.Contains("", StringComparison.InvariantCultureIgnoreCase))
-                if (_keywordForArrayString.Any(keyArrayString =>
-                        line.StartsWith(keyArrayString, StringComparison.InvariantCultureIgnoreCase) &&
-                        line.Contains("['", StringComparison.InvariantCultureIgnoreCase)))
-                {
-                    //array of string change from ' to "
-                    //use TEMPSINGLEQUOTE for manage the case like 'Piotrek "Viggith" Janiuk'
-                    line = line.Replace("'", "TEMPSINGLEQUOTE", StringComparison.InvariantCultureIgnoreCase);
-                    line = line.Replace("\"", "'", StringComparison.InvariantCultureIgnoreCase);
-                    line = line.Replace("TEMPSINGLEQUOTE", "\"", StringComparison.InvariantCultureIgnoreCase);
-                }
 
             // Prevent multiline description error 
             if (!_keywordNames.Any(keywordName => line.StartsWith(keywordName, StringComparison.InvariantCultureIgnoreCase)))

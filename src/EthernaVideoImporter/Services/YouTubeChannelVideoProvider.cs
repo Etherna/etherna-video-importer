@@ -12,13 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
-using Etherna.VideoImporter.Models;
+using Etherna.VideoImporter.Models.Domain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
@@ -81,6 +82,13 @@ namespace Etherna.VideoImporter.Services
                         metadata.Url));
 
                     Console.WriteLine($"Downloaded metadata for {video.Title}");
+                }
+                catch (HttpRequestException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Error retrieving video: {video.Title}. Try again later");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
                 }
                 catch (VideoUnplayableException ex)
                 {

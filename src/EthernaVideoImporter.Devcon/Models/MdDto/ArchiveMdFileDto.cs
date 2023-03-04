@@ -12,22 +12,24 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-namespace Etherna.VideoImporter.Core.Models
-{
-    public abstract class FileBase
-    {
-        // Constructors.
-        protected FileBase(
-            string downloadedFilePath,
-            long byteSize)
-        {
-            ByteSize = byteSize;
-            DownloadedFilePath = downloadedFilePath;
-        }
+using System.Collections.Generic;
 
+namespace Etherna.VideoImporter.Devcon.Models.MdDto
+{
+    internal sealed class ArchiveMdFileDto
+    {
         // Properties.
-        public long ByteSize { get; }
-        public string DownloadedFilePath { get; }
-        public string? UploadedHashReference { get; set; }
+        public string Description { get; set; } = default!;
+        public string? EthernaIndex { get; set; }
+        public string? EthernaPermalink { get; set; }
+        public string Title { get; set; } = default!;
+        public string YoutubeUrl { get; set; } = default!;
+
+        // Methods.
+        public void AddDescription(IEnumerable<string> descriptions)
+        {
+            Description ??= "";
+            Description += string.Join(". ", descriptions);
+        }
     }
 }

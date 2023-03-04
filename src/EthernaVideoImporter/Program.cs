@@ -17,7 +17,6 @@ using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
-using Etherna.VideoImporter.Models;
 using Etherna.VideoImporter.Services;
 using System;
 using System.Globalization;

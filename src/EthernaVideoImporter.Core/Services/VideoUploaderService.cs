@@ -16,8 +16,8 @@ using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
 using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
-using Etherna.VideoImporter.Core.Dtos;
-using Etherna.VideoImporter.Core.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -136,14 +136,17 @@ namespace Etherna.VideoImporter.Core.Services
             if (offerVideo)
                 await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.EthernaPermalinkHash);
 
+            Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
+
             // List on index.
-            Console.WriteLine($"List on Etherna index: {video.EthernaPermalinkHash}");
 
             video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
                 new VideoCreateInput
                 {
                     ManifestHash = video.EthernaPermalinkHash,
                 });
+
+            Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }
 
         public async Task<string> UploadVideoManifestAsync(
@@ -174,7 +177,7 @@ namespace Etherna.VideoImporter.Core.Services
             var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount);
 
             // Wait until created batch is avaiable.
-            Console.WriteLine("Waiting for batch ready... (it may take a while)");
+            Console.Write("Waiting for batch created... (it may take a while)");
 
             var batchStartWait = DateTime.UtcNow;
             string? batchId = null;
@@ -199,7 +202,11 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             } while (string.IsNullOrWhiteSpace(batchId));
 
+            Console.WriteLine(". Done");
+
             // Wait until created batch is usable.
+            Console.Write("Waiting for batch being usable... (it may take a while)");
+
             batchStartWait = DateTime.UtcNow;
             bool batchIsUsable;
             do
@@ -217,6 +224,8 @@ namespace Etherna.VideoImporter.Core.Services
                 //waiting for batch usable
                 await Task.Delay(BatchCheckTimeSpan);
             } while (!batchIsUsable);
+
+            Console.WriteLine(". Done");
 
             return batchId;
         }

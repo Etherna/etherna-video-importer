@@ -12,20 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System.IO;
-using System.Text;
-
-namespace Etherna.VideoImporter.Core.Extensions
+namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
-    public static class StringExtensions
+    public class ManifestPersonalDataDto
     {
-        public static string ToSafeFileName(this string value)
-        {
-            var strBuilder = new StringBuilder(value);
-            foreach (char c in Path.GetInvalidFileNameChars())
-                strBuilder = strBuilder.Replace(c, '_');
+        public string? ClientName { get; set; }
+        public string? VideoId { get; set; }
 
-            return strBuilder.ToString();
-        }
+        public static ManifestPersonalDataDto BuildNew(string videoId) => new()
+        {
+            ClientName = CommonConsts.ImporterIdentifier,
+            VideoId = videoId
+        };
     }
 }

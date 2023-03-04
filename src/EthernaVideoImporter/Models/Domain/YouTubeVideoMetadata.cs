@@ -12,30 +12,26 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
+using YoutubeExplode.Common;
 
-namespace Etherna.VideoImporter.Core.Models
+namespace Etherna.VideoImporter.Models.Domain
 {
-    public abstract class VideoMetadataBase
+    internal sealed class YouTubeVideoMetadata : YouTubeVideoMetadataBase
     {
-        // Constructor.
-        protected VideoMetadataBase(
+        // Constructors.
+        internal YouTubeVideoMetadata(
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
-            string title)
-        {
-            Description = description;
-            Duration = duration;
-            OriginVideoQualityLabel = originVideoQualityLabel;
-            Title = title;
-        }
+            Thumbnail? thumbnail,
+            string title,
+            string youtubeUrl)
+            : base(description, duration, originVideoQualityLabel, thumbnail, title, youtubeUrl)
+        { }
 
         // Properties.
-        public abstract string Id { get; }
-        public string Description { get; }
-        public TimeSpan Duration { get; }
-        public string OriginVideoQualityLabel { get; }
-        public string Title { get; }
+        public override string Id => YoutubeId;
     }
 }

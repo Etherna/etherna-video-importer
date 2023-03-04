@@ -1,10 +1,26 @@
-﻿using Etherna.VideoImporter.Core.Extensions;
-using Etherna.VideoImporter.Core.Models;
+﻿//   Copyright 2022-present Etherna Sagl
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+using Etherna.VideoImporter.Core.Extensions;
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
@@ -39,7 +55,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 throw new ArgumentNullException(nameof(videoMetadata));
 
             // Get manifest data.
-            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.Id);
+            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
 
             var videoOnlyStreamsInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)
@@ -94,16 +110,23 @@ namespace Etherna.VideoImporter.Core.Utilities
 
                 try
                 {
+                    var downloadStart = DateTime.UtcNow;
                     await youtubeClient.Videos.Streams.DownloadAsync(
                         audioStream,
                         audioFilePath,
                         new Progress<double>((progressStatus) =>
-                        {
-                            Console.Write($"Downloading audio track ({(progressStatus * 100):N0}%) {audioStream.Size.MegaBytes:N2}MB\r");
-                        }));
+                            PrintProgressLine(
+                                "Downloading audio track",
+                                progressStatus,
+                                audioStream.Size.MegaBytes,
+                                downloadStart)));
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry); }
+                catch
+                {
+                    Console.WriteLine();
+                    await Task.Delay(CommonConsts.DownloadTimespanRetry);
+                }
             }
 
             return new AudioFile(
@@ -162,24 +185,55 @@ namespace Etherna.VideoImporter.Core.Utilities
 
                 try
                 {
+                    var downloadStart = DateTime.UtcNow;
                     await youtubeClient.Videos.DownloadAsync(
                         new IStreamInfo[] { audioOnlyStream, videoOnlyStream },
                         new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(ffMpegPath).Build(),
                         new Progress<double>((progressStatus) =>
-                        {
-                            Console.Write($"Downloading and mux {videoQualityLabel} ({(progressStatus * 100):N0}%) " +
-                                $"{videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes:N2}MB\r");
-                        }));
+                            PrintProgressLine(
+                                $"Downloading and mux {videoQualityLabel}",
+                                progressStatus,
+                                videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes,
+                                downloadStart)));
                     Console.WriteLine();
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry); }
+                catch
+                {
+                    Console.WriteLine();
+                    await Task.Delay(CommonConsts.DownloadTimespanRetry);
+                }
             }
 
             return new VideoFile(
                 videoFilePath,
                 videoQualityLabel,
                 new FileInfo(videoFilePath).Length);
+        }
+
+        private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
+        {
+            // Calculate ETA.
+            var elapsedTime = DateTime.UtcNow - startDateTime;
+            TimeSpan? eta = null;
+            if (progressStatus != 0)
+            {
+                var totalRequiredTime = TimeSpan.FromSeconds(elapsedTime.TotalSeconds / progressStatus);
+                eta = totalRequiredTime - elapsedTime;
+            }
+
+            // Print update.
+            var strBuilder = new StringBuilder();
+
+            strBuilder.Append(CultureInfo.InvariantCulture,
+                $"{message} ({(progressStatus * 100):N2}%) {progressStatus * totalSizeMB:N2}MB of {totalSizeMB:N2}MB.");
+
+            if (eta is not null)
+                strBuilder.Append(CultureInfo.InvariantCulture, $" ETA: {eta:hh\\:mm\\:ss}");
+
+            strBuilder.Append('\r');
+
+            Console.Write(strBuilder.ToString());
         }
     }
 }
