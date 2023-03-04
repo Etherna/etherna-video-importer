@@ -57,7 +57,7 @@ jobs:
           tag=$(git describe --tags --abbrev=0)
           release_name="devcon-archive-video-importer-$tag-${{ matrix.kind }}"
           # Build everything
-          dotnet publish src/DevconArchiveVideoImporter/DevconArchiveVideoImporter.csproj --runtime "${{ matrix.target }}" "${{ matrix.frameworktype }}" -c Release -o "$release_name"
+          dotnet publish src/EthernaVideoImporter.Devcon/EthernaVideoImporter.Devcon.csproj --runtime "${{ matrix.target }}" "${{ matrix.frameworktype }}" -c Release -o "$release_name"
           # Pack files
           if [ "${{ matrix.target }}" == "win-x64" ]; then
             7z a -tzip "${release_name}.zip" "./${release_name}/*"
@@ -69,7 +69,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            "etherna-video-importer-*"
-            "devcon-archive-video-importer-*"
+            etherna-video-importer-*
+            devcon-archive-video-importer-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
