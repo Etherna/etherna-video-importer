@@ -29,10 +29,12 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="video">video data</param>
         /// <param name="pinVideo">pin video</param>
         /// <param name="offerVideo">free video</param>
+        /// <param name="updateIndexId">index id to update if not null</param>
         public Task UploadVideoAsync(
             Video video,
             bool pinVideo,
-            bool offerVideo);
+            bool offerVideo,
+            string? updateIndexId);
 
         /// <summary>
         /// Upload a new video manifest

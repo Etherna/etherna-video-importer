@@ -176,7 +176,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Upload video and all related data.
-                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos);
+                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos, alreadyPresentVideo?.IndexId);
 
                         updatedIndexId = video.EthernaIndexId!;
                         updatedPermalinkHash = video.EthernaPermalinkHash!;

@@ -63,7 +63,8 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task UploadVideoAsync(
             Video video,
             bool pinVideo,
-            bool offerVideo)
+            bool offerVideo,
+            string? updateIndexId)
         {
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
@@ -139,12 +140,18 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
 
             // List on index.
-
-            video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
-                new VideoCreateInput
-                {
-                    ManifestHash = video.EthernaPermalinkHash,
-                });
+            if (updateIndexId is null)
+                video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
+                    new VideoCreateInput
+                    {
+                        ManifestHash = video.EthernaPermalinkHash,
+                    });
+            else
+            {
+                await ethernaIndexClient.VideosClient.VideosPutAsync(updateIndexId, video.EthernaPermalinkHash);
+                video.EthernaIndexId = updateIndexId;
+            }
+                
 
             Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }
