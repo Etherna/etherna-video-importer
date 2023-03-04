@@ -69,7 +69,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            "etherna-video-importer-*"
-            "devcon-archive-video-importer-*"
+            etherna-video-importer-*
+            devcon-archive-video-importer-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
