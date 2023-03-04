@@ -12,6 +12,15 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
-
-[assembly: CLSCompliant(false)]
+namespace Etherna.VideoImporter.Core.Models.Domain
+{
+    public class AudioFile : FileBase
+    {
+        // Constructors.
+        public AudioFile(
+            string downloadedFilePath,
+            long byteSize)
+            : base(downloadedFilePath, byteSize)
+        { }
+    }
+}

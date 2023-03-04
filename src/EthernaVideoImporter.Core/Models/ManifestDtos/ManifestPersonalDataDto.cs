@@ -12,6 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
+namespace Etherna.VideoImporter.Core.Models.ManifestDtos
+{
+    public class ManifestPersonalDataDto
+    {
+        public string? ClientName { get; set; }
+        public string? VideoId { get; set; }
 
-[assembly: CLSCompliant(false)]
+        public static ManifestPersonalDataDto BuildNew(string videoId) => new()
+        {
+            ClientName = CommonConsts.ImporterIdentifier,
+            VideoId = videoId
+        };
+    }
+}

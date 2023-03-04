@@ -12,6 +12,19 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
+using Etherna.VideoImporter.Core.Models.Domain;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-[assembly: CLSCompliant(false)]
+namespace Etherna.VideoImporter.Core.Services
+{
+    public interface IVideoProvider
+    {
+        // Properties.
+        string SourceName { get; }
+
+        // Methods.
+        Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata);
+        Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync();
+    }
+}

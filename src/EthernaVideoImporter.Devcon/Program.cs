@@ -17,7 +17,7 @@ using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
-using Etherna.VideoImporter.Services;
+using Etherna.VideoImporter.Devcon.Services;
 using System;
 using System.Globalization;
 using System.IO;
@@ -25,7 +25,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Etherna.VideoImporter
+namespace Etherna.VideoImporter.Devcon
 {
     internal static class Program
     {
@@ -34,11 +34,7 @@ namespace Etherna.VideoImporter
         private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "\n" +
-            "Usage:\tEthernaVideoImporter SOURCE_TYPE SOURCE_URI [OPTIONS]\n" +
-            "\n" +
-            "Source types:\n" +
-            "  ytchannel\tYouTube channel\n" +
-            "  ytvideo\tYouTube video\n" +
+            "Usage:\tEthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]\n" +
             "\n" +
             "Options:\n" +
             $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
@@ -49,13 +45,12 @@ namespace Etherna.VideoImporter
             "  -e\tRemove indexed videos not generated with this tool\n" +
             "  -u\tTry to unpin contents removed from index\n" +
             "\n" +
-            "Run 'EthernaVideoImporter -h' to print help\n";
+            "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
         static async Task Main(string[] args)
         {
             // Parse arguments.
-            SourceType? sourceType = null;
-            string? sourceUri = null;
+            string? mdSourceFolderPath = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
             int ttlPostageStamp = DefaultTTLPostageStamp;
@@ -79,24 +74,18 @@ namespace Etherna.VideoImporter
                     Console.WriteLine(HelpText);
                     return;
 
-                case "ytchannel":
+                case "md":
                     if (args.Length < 2)
                     {
-                        Console.WriteLine("YouTube Channel url is missing");
+                        Console.WriteLine("MD file folder is missing");
                         throw new ArgumentException("Invalid argument");
                     }
-                    sourceType = SourceType.YouTubeChannel;
-                    sourceUri = args[1];
-                    break;
-
-                case "ytvideo":
-                    if (args.Length < 2)
+                    if (string.IsNullOrWhiteSpace(args[1]) || !Directory.Exists(args[1]))
                     {
-                        Console.WriteLine("YouTube Video url is missing");
-                        throw new ArgumentException("Invalid argument");
+                        Console.WriteLine($"Not found MD directory path {args[1]}");
+                        throw new ArgumentException("Not found MD directory path");
                     }
-                    sourceType = SourceType.YouTubeVideo;
-                    sourceUri = args[1];
+                    mdSourceFolderPath = args[1];
                     break;
 
                 default:
@@ -146,13 +135,6 @@ namespace Etherna.VideoImporter
                 return;
             }
 
-            //deny delete video old sources when is single
-            if (sourceType == SourceType.YouTubeVideo && deleteVideosMissingFromSource)
-            {
-                Console.WriteLine($"Cannot delete video removed from source when the source is a single video");
-                return;
-            }
-
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO();
             if (authResult.IsError)
@@ -190,19 +172,6 @@ namespace Etherna.VideoImporter
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp));
 
-            IVideoProvider videoProvider = sourceType switch
-            {
-                SourceType.YouTubeChannel => new YouTubeChannelVideoProvider(
-                    sourceUri,
-                    ffMpegBinaryPath,
-                    includeAudioTrack),
-                SourceType.YouTubeVideo => new YouTubeSingleVideoProvider(
-                    sourceUri,
-                    ffMpegBinaryPath,
-                    includeAudioTrack),
-                _ => throw new InvalidOperationException()
-            };
-
             // Call runner.
             var importer = new EthernaVideoImporter(
                 new CleanerVideoService(
@@ -210,8 +179,11 @@ namespace Etherna.VideoImporter
                     ethernaUserClients.IndexClient),
                 ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
-                new LinkReporterService(),
-                videoProvider,
+                new DevconLinkReporterService(mdSourceFolderPath),
+                new MdVideoProvider(
+                    mdSourceFolderPath,
+                    ffMpegBinaryPath,
+                    includeAudioTrack),
                 videoUploaderService);
 
             await importer.RunAsync(

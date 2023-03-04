@@ -12,6 +12,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
+using Etherna.VideoImporter.Core.Models.Domain;
+using System.Threading.Tasks;
 
-[assembly: CLSCompliant(false)]
+namespace Etherna.VideoImporter.Core.Utilities
+{
+    public interface IYoutubeDownloader
+    {
+        Task<Video> GetVideoAsync(bool includeAudioTrack, YouTubeVideoMetadataBase videoMetadata);
+    }
+}

@@ -12,6 +12,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
+namespace Etherna.VideoImporter.Core.Models.Domain
+{
+    public abstract class FileBase
+    {
+        // Constructors.
+        protected FileBase(
+            string downloadedFilePath,
+            long byteSize)
+        {
+            ByteSize = byteSize;
+            DownloadedFilePath = downloadedFilePath;
+        }
 
-[assembly: CLSCompliant(false)]
+        // Properties.
+        public long ByteSize { get; }
+        public string DownloadedFilePath { get; }
+        public string? UploadedHashReference { get; set; }
+    }
+}

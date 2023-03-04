@@ -12,6 +12,25 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
+using Etherna.VideoImporter.Core.Services;
+using System.Threading.Tasks;
 
-[assembly: CLSCompliant(false)]
+namespace Etherna.VideoImporter.Services
+{
+    public sealed class LinkReporterService : ILinkReporterService
+    {
+        // Constructors.
+        public LinkReporterService()
+        {
+        }
+
+        // Methods.
+        public Task SetEthernaReferencesAsync(
+            string sourceVideoId,
+            string ethernaIndexId,
+            string ethernaPermalinkHash)
+        {
+            return Task.CompletedTask;
+        }
+    }
+}
