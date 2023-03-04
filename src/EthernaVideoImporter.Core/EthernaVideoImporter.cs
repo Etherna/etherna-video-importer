@@ -143,6 +143,16 @@ namespace Etherna.VideoImporter.Core
                                 alreadyPresentVideo.IndexId,
                                 updatedPermalinkHash);
                         }
+
+                        // Pin all.
+                        if (pinVideos)
+                        {
+                            foreach (var video in alreadyPresentVideo.LastValidManifest.Sources)
+                                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.Reference);
+                            foreach (var thumbnail in alreadyPresentVideo.LastValidManifest.Thumbnail.Sources)
+                                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(thumbnail.Value);
+                            await ethernaGatewayClient.ResourcesClient.OffersPostAsync(updatedPermalinkHash);
+                        }
                     }
                     else //try to upload new video on etherna
                     {
