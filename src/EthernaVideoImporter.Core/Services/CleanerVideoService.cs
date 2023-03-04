@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Methods.
-        public async Task DeleteExogenousVideosAsync(
+        public async Task<int> DeleteExogenousVideosAsync(
             IEnumerable<IndexedVideo> indexedVideos,
             IEnumerable<string>? gatewayPinnedHashes,
             bool unpinRemovedVideos)
@@ -51,13 +51,15 @@ namespace Etherna.VideoImporter.Core.Services
 
             Console.WriteLine($"Start removing videos not generated with this tool");
 
-            var exogenousVideos = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName != CommonConsts.ImporterIdentifier);
+            var exogenousVideos = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName != CommonConsts.ImporterIdentifier).ToList();
 
             foreach (var video in exogenousVideos)
                 await RemoveFromIndexAsync(video, gatewayPinnedHashes, unpinRemovedVideos);
+
+            return exogenousVideos.Count;
         }
 
-        public async Task DeleteVideosRemovedFromSourceAsync(
+        public async Task<int> DeleteVideosRemovedFromSourceAsync(
             IEnumerable<VideoMetadataBase> videosMetadataFromSource,
             IEnumerable<IndexedVideo> indexedVideos,
             IEnumerable<string>? gatewayPinnedHashes,
@@ -72,10 +74,12 @@ namespace Etherna.VideoImporter.Core.Services
 
             var indexedVideosFromImporter = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier);
             var sourceRemovedVideos = indexedVideos.Where(
-                v => !videosMetadataFromSource.Any(metadata => metadata.Id == v.LastValidManifest!.PersonalData!.VideoId));
+                v => !videosMetadataFromSource.Any(metadata => metadata.Id == v.LastValidManifest!.PersonalData!.VideoId)).ToList();
 
             foreach (var sourceRemovedVideo in sourceRemovedVideos)
                 await RemoveFromIndexAsync(sourceRemovedVideo, gatewayPinnedHashes, unpinRemovedVideos);
+
+            return sourceRemovedVideos.Count;
         }
 
         // Helpers.

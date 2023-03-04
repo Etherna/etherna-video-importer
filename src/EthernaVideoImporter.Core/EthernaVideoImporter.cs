@@ -16,6 +16,7 @@ using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Etherna.VideoImporter.Core.ModelView;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
@@ -70,6 +71,8 @@ namespace Etherna.VideoImporter.Core
             bool deleteExogenousVideos,
             bool unpinRemovedVideos)
         {
+            var importSummaryModelView = new ImportSummaryModelView();
+
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
 
@@ -93,6 +96,7 @@ namespace Etherna.VideoImporter.Core
             {
                 string updatedIndexId;
                 string updatedPermalinkHash;
+                OperationType operationType;
 
                 try
                 {
@@ -113,11 +117,14 @@ namespace Etherna.VideoImporter.Core
 
                         if (alreadyPresentVideo.IsEqualTo(sourceMetadata))
                         {
+                            operationType = OperationType.Skip;
                             updatedPermalinkHash = alreadyPresentVideo.LastValidManifest!.Hash;
                         }
                         else
                         {
                             Console.WriteLine($"Metadata has changed, update the video manifest");
+
+                            operationType = OperationType.Update;
 
                             var updatedManifest = new ManifestDto(
                                 sourceMetadata.Title,
@@ -142,10 +149,14 @@ namespace Etherna.VideoImporter.Core
                             await ethernaIndexClient.VideosClient.VideosPutAsync(
                                 alreadyPresentVideo.IndexId,
                                 updatedPermalinkHash);
+
+                            importSummaryModelView.UpdatedVideoImported++;
                         }
                     }
                     else //try to upload new video on etherna
                     {
+                        operationType = OperationType.Import;
+
                         // Validate metadata.
                         if (sourceMetadata.Title.Length > ethernaIndexParameters.VideoTitleMaxLength)
                         {
@@ -184,6 +195,20 @@ namespace Etherna.VideoImporter.Core
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine($"#{i + 1} Video imported successfully");
                     Console.ResetColor();
+
+                    // Summary count.
+                    switch (operationType)
+                    {
+                        case OperationType.Import:
+                            importSummaryModelView.SuccessfullyImported++;
+                            break;
+                        case OperationType.Update:
+                            importSummaryModelView.UpdatedVideoImported++;
+                            break;
+                        case OperationType.Skip:
+                            importSummaryModelView.SkippedVideoImported++;
+                            break;
+                    }    
                 }
                 catch (Exception ex)
                 {
@@ -192,6 +217,7 @@ namespace Etherna.VideoImporter.Core
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
 
+                    importSummaryModelView.ErrorVideoImported++;
                     continue;
                 }
 
@@ -224,17 +250,29 @@ namespace Etherna.VideoImporter.Core
                 gatewayPinnedHashes = await ethernaGatewayClient.UsersClient.PinnedResourcesAsync();
 
             if (deleteVideosRemovedFromSource)
-                await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
+               importSummaryModelView.DeleteOldSource = await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
                     sourceVideosMetadata,
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
 
             if (deleteExogenousVideos)
-                await cleanerVideoService.DeleteExogenousVideosAsync(
+                importSummaryModelView.DeletedExogenous = await cleanerVideoService.DeleteExogenousVideosAsync(
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
+
+            // Print summary.
+            Console.WriteLine("Importer completed.");
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
+            Console.WriteLine($"Total video processed: {importSummaryModelView.TotalVideo}");
+            Console.WriteLine($"Successfully imported: {importSummaryModelView.SuccessfullyImported}");
+            Console.WriteLine($"Updated imported: {importSummaryModelView.UpdatedVideoImported}");
+            Console.WriteLine($"Skipped (already present): {importSummaryModelView.SkippedVideoImported}");
+            Console.WriteLine($"Error: {importSummaryModelView.ErrorVideoImported}");
+            Console.WriteLine($"Delete for missing in source: {importSummaryModelView.DeleteOldSource}");
+            Console.WriteLine($"Delete exogenous: {importSummaryModelView.DeletedExogenous}");
+            Console.ResetColor();
         }
 
         // Helpers.
