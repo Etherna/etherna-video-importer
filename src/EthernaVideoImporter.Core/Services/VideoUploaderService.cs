@@ -36,6 +36,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Fields.
         private readonly BeeNodeClient beeNodeClient;
+        private bool confirmPurchaseAllBatches;
         private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly TimeSpan ttlPostageStamp;
@@ -47,12 +48,14 @@ namespace Etherna.VideoImporter.Core.Services
             IUserGatewayClient ethernaGatewayClient,
             IUserIndexClient ethernaIndexClient,
             string userEthAddr,
-            TimeSpan ttlPostageStamp)
+            TimeSpan ttlPostageStamp,
+            bool confirmPurchaseAllBatches)
         {
             if (beeNodeClient is null)
                 throw new ArgumentNullException(nameof(beeNodeClient));
 
             this.beeNodeClient = beeNodeClient;
+            this.confirmPurchaseAllBatches = confirmPurchaseAllBatches;
             this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.userEthAddr = userEthAddr;
@@ -80,6 +83,16 @@ namespace Etherna.VideoImporter.Core.Services
             //calculate amount
             var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
             var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+            if (!confirmPurchaseAllBatches)
+            {
+                Console.WriteLine($"Batch price : {amount}");
+                Console.WriteLine($"Do you want to confirm the purchase? press y (yes) a (confirm all batches) other key for deny.");
+                var actionPurchase = Console.ReadLine();
+                if (actionPurchase?.Trim() == "a")
+                    confirmPurchaseAllBatches = true;
+                else if (actionPurchase?.Trim() != "y")
+                    throw new InvalidOperationException("Batch purchase deny");
+            }
 
             //create batch
             var batchId = await CreatePostageBatchAsync(batchDeep, amount);

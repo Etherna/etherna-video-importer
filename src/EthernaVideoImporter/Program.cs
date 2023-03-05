@@ -48,6 +48,7 @@ namespace Etherna.VideoImporter
             "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
             "  -e\tRemove indexed videos not generated with this tool\n" +
             "  -u\tTry to unpin contents removed from index\n" +
+            "  -c\tConfirm automatically purchase of all batches\n" +
             "\n" +
             "Run 'EthernaVideoImporter -h' to print help\n";
 
@@ -65,6 +66,7 @@ namespace Etherna.VideoImporter
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
+            bool confirmPurchaseAllBatches = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -125,6 +127,7 @@ namespace Etherna.VideoImporter
                     case "-m": deleteVideosMissingFromSource = true; break;
                     case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
+                    case "-c": confirmPurchaseAllBatches = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -188,7 +191,8 @@ namespace Etherna.VideoImporter
                 ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
                 userEthAddr,
-                TimeSpan.FromDays(ttlPostageStamp));
+                TimeSpan.FromDays(ttlPostageStamp),
+                confirmPurchaseAllBatches);
 
             IVideoProvider videoProvider = sourceType switch
             {
