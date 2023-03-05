@@ -26,6 +26,9 @@ namespace Etherna.VideoImporter.Services
 {
     public sealed class YouTubeSingleVideoProvider : IVideoProvider
     {
+        // Consts.
+        private static readonly int[] ThumbnailResponsiveSizes = { 480, 960, 1280 };
+
         // Fields.
         private readonly string videoUrl;
         private readonly bool includeAudioTrack;
@@ -66,7 +69,7 @@ namespace Etherna.VideoImporter.Services
                     metadata.Description,
                     metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
                     bestStreamInfo.VideoQuality.Label,
-                    metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
+                    metadata.Thumbnails.Where(t => ThumbnailResponsiveSizes.Contains(t.Resolution.Width)),
                     metadata.Title,
                     metadata.Url)
             };

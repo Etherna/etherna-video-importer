@@ -83,13 +83,13 @@ namespace Etherna.VideoImporter.Core.Utilities
                     videoMetadata.Title));
 
             // Get thumbnail.
-            ThumbnailFile? thumbnailFile = null;
-            if (videoMetadata.Thumbnail is not null)
-                thumbnailFile = await DownloadThumbnailAsync(
-                    videoMetadata.Thumbnail,
-                    videoMetadata.Title);
+            List<ThumbnailFile> thumbnailFiles = new();
+            foreach (var thumbnailFile in videoMetadata.Thumbnails)
+                thumbnailFiles.Add(await DownloadThumbnailAsync(
+                    thumbnailFile,
+                    videoMetadata.Title));
 
-            return new Video(videoMetadata, encodedFiles, thumbnailFile);
+            return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
 
         // Helpers.

@@ -18,24 +18,40 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestThumbnailDto
     {
         // Constructors.
-        public ManifestThumbnailDto(ThumbnailFile thumbnailFile)
+        public ManifestThumbnailDto(IEnumerable<ThumbnailFile> thumbnailFiles)
         {
-            if (thumbnailFile?.UploadedHashReference is null)
-                throw new ArgumentNullException(nameof(thumbnailFile));
+            if (thumbnailFiles is null)
+                throw new ArgumentNullException(nameof(thumbnailFiles));
 
-            using var thumbFileStream = File.OpenRead(thumbnailFile.DownloadedFilePath);
-            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
-            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+            Sources = new Dictionary<string, string>();
+            foreach (var thumbnailFile in thumbnailFiles)
+            {
+                if (string.IsNullOrWhiteSpace(thumbnailFile.UploadedHashReference))
+                    throw new ArgumentException("Empty data in UploadedHashReference");
 
-            AspectRatio = thumbnailFile.Width / thumbnailFile.Height;
-            Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
-            Sources = new Dictionary<string, string>() { { $"{thumbBitmap.Width}w", thumbnailFile.UploadedHashReference } };
+                Sources.Add($"{thumbnailFile.Width}w", thumbnailFile.UploadedHashReference);
+
+                // Save the best aspect ratio.
+                var currentAspectRatio = thumbnailFile.Width / thumbnailFile.Height;
+                if (currentAspectRatio > AspectRatio)
+                {
+                    using var thumbFileStream = File.OpenRead(thumbnailFile.DownloadedFilePath);
+                    using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+                    using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+                    AspectRatio = currentAspectRatio;
+                    Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(Blurhash))
+                throw new ArgumentException("Empty data in Blurhash");
         }
 
         public ManifestThumbnailDto(

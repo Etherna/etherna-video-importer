@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using YoutubeExplode.Common;
@@ -26,17 +27,17 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
-            Thumbnail? thumbnail,
+            IEnumerable<Thumbnail> thumbnails,
             string title,
             string youtubeUrl)
             : base(description, duration, originVideoQualityLabel, title)
         {
-            Thumbnail = thumbnail;
+            Thumbnails = thumbnails;
             YoutubeUrl = youtubeUrl;
         }
 
         // Properties.
-        public Thumbnail? Thumbnail { get; }
+        public IEnumerable<Thumbnail> Thumbnails { get; }
         public string YoutubeId
         {
             get

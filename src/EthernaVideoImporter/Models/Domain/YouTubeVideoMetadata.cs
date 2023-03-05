@@ -14,6 +14,7 @@
 
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
+using System.Collections.Generic;
 using YoutubeExplode.Common;
 
 namespace Etherna.VideoImporter.Models.Domain
@@ -25,10 +26,10 @@ namespace Etherna.VideoImporter.Models.Domain
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
-            Thumbnail? thumbnail,
+            IEnumerable<Thumbnail> thumbnails,
             string title,
             string youtubeUrl)
-            : base(description, duration, originVideoQualityLabel, thumbnail, title, youtubeUrl)
+            : base(description, duration, originVideoQualityLabel, thumbnails, title, youtubeUrl)
         { }
 
         // Properties.

@@ -109,24 +109,23 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Upload thumbnail.
-            if (video.ThumbnailFile is not null)
+            Console.WriteLine("Uploading thumbnail in progress...");
+            foreach (var thumbnailFile in video.ThumbnailFiles)
             {
-                Console.WriteLine("Uploading thumbnail in progress...");
-
                 var fileThumbnailParameterInput = new FileParameterInput(
-                    File.OpenRead(video.ThumbnailFile.DownloadedFilePath),
-                    Path.GetFileName(video.ThumbnailFile.DownloadedFilePath),
-                    MimeTypes.GetMimeType(Path.GetFileName(video.ThumbnailFile.DownloadedFilePath)));
+                    File.OpenRead(thumbnailFile.DownloadedFilePath),
+                    Path.GetFileName(thumbnailFile.DownloadedFilePath),
+                    MimeTypes.GetMimeType(Path.GetFileName(thumbnailFile.DownloadedFilePath)));
 
                 var thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                     batchId,
                     files: new List<FileParameterInput> { fileThumbnailParameterInput },
                     swarmPin: pinVideo);
 
-                video.ThumbnailFile.UploadedHashReference = thumbnailReference;
+                thumbnailFile.UploadedHashReference = thumbnailReference;
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference);
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(thumbnailFile.UploadedHashReference);
             }
 
             // Manifest.
