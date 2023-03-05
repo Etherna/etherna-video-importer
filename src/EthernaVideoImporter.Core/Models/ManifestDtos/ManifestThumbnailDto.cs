@@ -33,7 +33,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
 
-            AspectRatio = thumbnailFile.Width / thumbnailFile.Height;
+            AspectRatio = (float)thumbnailFile.Width / thumbnailFile.Height;
             Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
             Sources = new Dictionary<string, string>() { { $"{thumbBitmap.Width}w", thumbnailFile.UploadedHashReference } };
         }

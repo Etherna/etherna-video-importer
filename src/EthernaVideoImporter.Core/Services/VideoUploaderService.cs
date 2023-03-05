@@ -84,6 +84,8 @@ namespace Etherna.VideoImporter.Core.Services
             //create batch
             var batchId = await CreatePostageBatchAsync(batchDeep, amount);
 
+            Console.WriteLine($"Postage batch: {batchId}");
+
             // Upload video files.
             foreach (var encodedFile in video.EncodedFiles)
             {
