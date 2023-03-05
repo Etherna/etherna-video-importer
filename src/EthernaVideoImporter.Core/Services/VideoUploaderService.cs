@@ -158,7 +158,10 @@ namespace Etherna.VideoImporter.Core.Services
             if (videoManifest is null)
                 throw new ArgumentNullException(nameof(videoManifest));
 
-            var serializedManifest = JsonSerializer.Serialize(videoManifest);
+            var serializedManifest = JsonSerializer.Serialize(videoManifest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
             using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
 
             // Upload manifest.
