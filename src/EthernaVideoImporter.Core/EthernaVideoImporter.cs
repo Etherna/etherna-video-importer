@@ -188,6 +188,7 @@ namespace Etherna.VideoImporter.Core
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Timestamp: {DateTime.UtcNow}");
                     Console.WriteLine("Video unable to upload");
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
