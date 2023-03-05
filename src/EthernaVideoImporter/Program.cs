@@ -167,6 +167,7 @@ namespace Etherna.VideoImporter
                 Console.WriteLine($"Missing ether address");
                 return;
             }
+            Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == "preferred_username").FirstOrDefault()?.Value} autenticated");
 
             // Inizialize services.
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
