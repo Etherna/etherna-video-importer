@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Etherna" Version="0.3.0-alpha.13" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\EthernaVideoImporter.Core\EthernaVideoImporter.Core.csproj" />
   </ItemGroup>
 
