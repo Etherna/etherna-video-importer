@@ -152,6 +152,8 @@ namespace Etherna.VideoImporter.Devcon
 
             // Inizialize services.
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
+            httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
+
             var ethernaUserClients = new EthernaUserClients(
                 new Uri(CommonConsts.EthernaCreditUrl),
                 new Uri(CommonConsts.EthernaGatewayUrl),
