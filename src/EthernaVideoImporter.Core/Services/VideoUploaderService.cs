@@ -71,8 +71,6 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new ArgumentNullException(nameof(video));
 
             // Create new batch.
-            Console.WriteLine("Creating batch...");
-
             //calculate batch deep
             var totalSize = video.GetTotalByteSize();
             var batchDeep = 17;
@@ -82,6 +80,8 @@ namespace Etherna.VideoImporter.Core.Services
             //calculate amount
             var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
             var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+
+            Console.WriteLine($"Creating batch... Depth: {batchDeep} Amount: {amount}");
 
             //create batch
             var batchId = await CreatePostageBatchAsync(batchDeep, amount);
