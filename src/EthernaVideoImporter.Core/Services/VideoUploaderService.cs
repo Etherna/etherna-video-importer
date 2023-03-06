@@ -141,12 +141,14 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
 
             // List on index.
-
-            video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
-                new VideoCreateInput
-                {
-                    ManifestHash = video.EthernaPermalinkHash,
-                });
+            if (video.EthernaIndexId is null)
+                video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
+                    new VideoCreateInput
+                    {
+                        ManifestHash = video.EthernaPermalinkHash,
+                    });
+            else
+                await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash);
 
             Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }

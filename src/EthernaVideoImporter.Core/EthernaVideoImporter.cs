@@ -69,7 +69,8 @@ namespace Etherna.VideoImporter.Core
             bool pinVideos,
             bool deleteVideosRemovedFromSource,
             bool deleteExogenousVideos,
-            bool unpinRemovedVideos)
+            bool unpinRemovedVideos,
+            bool forceUploadVideo)
         {
             var importSummaryModelView = new ImportSummaryModelView();
 
@@ -108,7 +109,8 @@ namespace Etherna.VideoImporter.Core
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
                         v => v.LastValidManifest?.PersonalData?.VideoId == sourceMetadata.Id);
 
-                    if (alreadyPresentVideo != null)
+                    if (!forceUploadVideo &&
+                        alreadyPresentVideo != null)
                     {
                         Console.WriteLine("Video already uploaded on etherna");
 
@@ -173,6 +175,7 @@ namespace Etherna.VideoImporter.Core
 
                         // Get and encode video from source.
                         var video = await videoProvider.GetVideoAsync(sourceMetadata);
+                        video.EthernaIndexId = alreadyPresentVideo?.IndexId;
 
                         if (!video.EncodedFiles.Any())
                         {
