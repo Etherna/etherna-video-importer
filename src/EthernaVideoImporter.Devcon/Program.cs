@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.Authentication;
 using Etherna.BeeNet;
 using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
@@ -143,13 +144,13 @@ namespace Etherna.VideoImporter.Devcon
                 Console.WriteLine(authResult.Error);
                 return;
             }
-            var userEthAddr = authResult.User.Claims.Where(i => i.Type == "ether_address").FirstOrDefault()?.Value;
+            var userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).FirstOrDefault()?.Value;
             if (string.IsNullOrWhiteSpace(userEthAddr))
             {
                 Console.WriteLine($"Missing ether address");
                 return;
             }
-            Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == "preferred_username").FirstOrDefault()?.Value} autenticated");
+            Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
 
             // Inizialize services.
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
