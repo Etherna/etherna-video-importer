@@ -33,6 +33,8 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
         private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
         private readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
+        private const int UploadMaxRetry = 10;
+        private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
         private readonly BeeNodeClient beeNodeClient;
@@ -69,8 +71,6 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new ArgumentNullException(nameof(video));
 
             // Create new batch.
-            Console.WriteLine("Creating batch...");
-
             //calculate batch deep
             var totalSize = video.GetTotalByteSize();
             var batchDeep = 17;
@@ -80,6 +80,8 @@ namespace Etherna.VideoImporter.Core.Services
             //calculate amount
             var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
             var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+
+            Console.WriteLine($"Creating batch... Depth: {batchDeep} Amount: {amount}");
 
             //create batch
             var batchId = await CreatePostageBatchAsync(batchDeep, amount);
@@ -96,18 +98,37 @@ namespace Etherna.VideoImporter.Core.Services
                     _ => throw new InvalidOperationException()
                 });
 
-                var fileParameterInput = new FileParameterInput(
-                    File.OpenRead(encodedFile.DownloadedFilePath),
-                    Path.GetFileName(encodedFile.DownloadedFilePath),
-                    MimeTypes.GetMimeType(Path.GetFileName(encodedFile.DownloadedFilePath)));
+                var uploadSucceeded = false;
+                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
+                {
+                    try
+                    {
+                        var fileParameterInput = new FileParameterInput(
+                            File.OpenRead(encodedFile.DownloadedFilePath),
+                            Path.GetFileName(encodedFile.DownloadedFilePath),
+                            MimeTypes.GetMimeType(Path.GetFileName(encodedFile.DownloadedFilePath)));
 
-                encodedFile.UploadedHashReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
-                    batchId,
-                    files: new List<FileParameterInput> { fileParameterInput },
-                    swarmPin: pinVideo);
+                        encodedFile.UploadedHashReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                            batchId,
+                            files: new List<FileParameterInput> { fileParameterInput },
+                            swarmPin: pinVideo);
+                        uploadSucceeded = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error: {ex.Message}");
+                        if (i + 1 < UploadMaxRetry)
+                        {
+                            Console.WriteLine("Retry...");
+                            await Task.Delay(UploadRetryTimeSpan);
+                        }
+                    }
+                }
+                if (!uploadSucceeded)
+                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference);
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference!);
             }
 
             // Upload thumbnail.
@@ -115,15 +136,35 @@ namespace Etherna.VideoImporter.Core.Services
             {
                 Console.WriteLine("Uploading thumbnail in progress...");
 
-                var fileThumbnailParameterInput = new FileParameterInput(
-                    File.OpenRead(video.ThumbnailFile.DownloadedFilePath),
-                    Path.GetFileName(video.ThumbnailFile.DownloadedFilePath),
-                    MimeTypes.GetMimeType(Path.GetFileName(video.ThumbnailFile.DownloadedFilePath)));
+                var uploadSucceeded = false;
+                string thumbnailReference = null!;
+                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
+                {
+                    try
+                    {
+                        var fileThumbnailParameterInput = new FileParameterInput(
+                            File.OpenRead(video.ThumbnailFile.DownloadedFilePath),
+                            Path.GetFileName(video.ThumbnailFile.DownloadedFilePath),
+                            MimeTypes.GetMimeType(Path.GetFileName(video.ThumbnailFile.DownloadedFilePath)));
 
-                var thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
-                    batchId,
-                    files: new List<FileParameterInput> { fileThumbnailParameterInput },
-                    swarmPin: pinVideo);
+                        thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                            batchId,
+                            files: new List<FileParameterInput> { fileThumbnailParameterInput },
+                            swarmPin: pinVideo);
+                        uploadSucceeded = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error: {ex.Message}");
+                        if (i + 1 < UploadMaxRetry)
+                        {
+                            Console.WriteLine("Retry...");
+                            await Task.Delay(UploadRetryTimeSpan);
+                        }
+                    }
+                }
+                if (!uploadSucceeded)
+                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
                 video.ThumbnailFile.UploadedHashReference = thumbnailReference;
 
@@ -133,10 +174,31 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Manifest.
             var metadataVideo = new ManifestDto(video, batchId, userEthAddr);
-            video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo);
+            {
+                var uploadSucceeded = false;
+                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
+                {
+                    try
+                    {
+                        video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo);
+                        uploadSucceeded = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error: {ex.Message}");
+                        if (i + 1 < UploadMaxRetry)
+                        {
+                            Console.WriteLine("Retry...");
+                            await Task.Delay(UploadRetryTimeSpan);
+                        }
+                    }
+                }
+                if (!uploadSucceeded)
+                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
+            }
 
             if (offerVideo)
-                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.EthernaPermalinkHash);
+                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.EthernaPermalinkHash!);
 
             Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
 
@@ -145,7 +207,7 @@ namespace Etherna.VideoImporter.Core.Services
             video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
                 new VideoCreateInput
                 {
-                    ManifestHash = video.EthernaPermalinkHash,
+                    ManifestHash = video.EthernaPermalinkHash!,
                 });
 
             Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
@@ -158,19 +220,44 @@ namespace Etherna.VideoImporter.Core.Services
             if (videoManifest is null)
                 throw new ArgumentNullException(nameof(videoManifest));
 
-            var serializedManifest = JsonSerializer.Serialize(videoManifest);
-            using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
-
             // Upload manifest.
-            return await beeNodeClient.GatewayClient!.UploadFileAsync(
-                videoManifest.BatchId,
-                files: new[] {
-                    new FileParameterInput(
-                        manifestStream,
-                        "metadata.json",
-                        "application/json")
-                },
-                swarmPin: pinManifest);
+            var uploadSucceeded = false;
+            string manifestReference = null!;
+            for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
+            {
+                try
+                {
+                    var serializedManifest = JsonSerializer.Serialize(videoManifest, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
+
+                    manifestReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                        videoManifest.BatchId,
+                        files: new[] {
+                            new FileParameterInput(
+                                manifestStream,
+                                "metadata.json",
+                                "application/json")
+                        },
+                        swarmPin: pinManifest);
+                    uploadSucceeded = true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                    if (i + 1 < UploadMaxRetry)
+                    {
+                        Console.WriteLine("Retry...");
+                        await Task.Delay(UploadRetryTimeSpan);
+                    }
+                }
+            }
+            if (!uploadSucceeded)
+                throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
+
+            return manifestReference;
         }
 
         // Helpers.
