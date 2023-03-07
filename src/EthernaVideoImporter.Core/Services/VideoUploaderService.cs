@@ -33,11 +33,14 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
         private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
         private readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
+        private readonly long BzzDecimalPlacesToUnit = (long)Math.Pow(10, 16);
+        private const int ChunkByteSize = 4096;
         private const int UploadMaxRetry = 10;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
         private readonly BeeNodeClient beeNodeClient;
+        private bool acceptPurchaseOfAllBatches;
         private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly TimeSpan ttlPostageStamp;
@@ -49,12 +52,14 @@ namespace Etherna.VideoImporter.Core.Services
             IUserGatewayClient ethernaGatewayClient,
             IUserIndexClient ethernaIndexClient,
             string userEthAddr,
-            TimeSpan ttlPostageStamp)
+            TimeSpan ttlPostageStamp,
+            bool confirmPurchaseAllBatches)
         {
             if (beeNodeClient is null)
                 throw new ArgumentNullException(nameof(beeNodeClient));
 
             this.beeNodeClient = beeNodeClient;
+            this.acceptPurchaseOfAllBatches = confirmPurchaseAllBatches;
             this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.userEthAddr = userEthAddr;
@@ -74,14 +79,41 @@ namespace Etherna.VideoImporter.Core.Services
             //calculate batch deep
             var totalSize = video.GetTotalByteSize();
             var batchDeep = 17;
-            while (Math.Pow(2, batchDeep) * 4096 < totalSize * 1.2) //keep 20% of tollerance
+            while (Math.Pow(2, batchDeep) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
                 batchDeep++;
 
             //calculate amount
             var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
             var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+            var bzzPrice = amount * Math.Pow(2, batchDeep) / BzzDecimalPlacesToUnit;
 
-            Console.WriteLine($"Creating batch... Depth: {batchDeep} Amount: {amount}");
+            Console.WriteLine($"Creating postage batch... Depth: {batchDeep} Amount: {amount} BZZ price: {bzzPrice}");
+
+            if (!acceptPurchaseOfAllBatches)
+            {
+                bool validSelection = false;
+
+                while (validSelection == false)
+                {
+                    Console.WriteLine($"Confirm the batch purchase? Y to confirm, A to confirm all, N to deny [Y|a|n]");
+
+                    switch (Console.ReadKey())
+                    {
+                        case ConsoleKeyInfo yk when yk.Key == ConsoleKey.Y:
+                            validSelection = true;
+                            break;
+                        case ConsoleKeyInfo ak when ak.Key == ConsoleKey.A:
+                            acceptPurchaseOfAllBatches = true;
+                            validSelection = true;
+                            break;
+                        case ConsoleKeyInfo nk when nk.Key == ConsoleKey.N:
+                            throw new InvalidOperationException("Batch purchase denied");
+                        default:
+                            Console.WriteLine("Invalid selection");
+                            break;
+                    }
+                }
+            }
 
             //create batch
             var batchId = await CreatePostageBatchAsync(batchDeep, amount);

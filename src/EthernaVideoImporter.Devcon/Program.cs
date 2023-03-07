@@ -46,6 +46,7 @@ namespace Etherna.VideoImporter.Devcon
             "  -e\tRemove indexed videos not generated with this tool\n" +
             "  -u\tTry to unpin contents removed from index\n" +
             "  -f\tForce upload video if they already has been uploaded\n" +
+            "  -y\tAccept automatically purchase of all batches\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
@@ -63,6 +64,7 @@ namespace Etherna.VideoImporter.Devcon
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
             bool forceUploadVideo = false;
+            bool acceptPurchaseOfAllBatches = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -118,6 +120,7 @@ namespace Etherna.VideoImporter.Devcon
                     case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
                     case "-f": forceUploadVideo = true; break;
+                    case "-y": acceptPurchaseOfAllBatches = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -177,7 +180,8 @@ namespace Etherna.VideoImporter.Devcon
                 ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
                 userEthAddr,
-                TimeSpan.FromDays(ttlPostageStamp));
+                TimeSpan.FromDays(ttlPostageStamp),
+                acceptPurchaseOfAllBatches);
 
             // Call runner.
             var importer = new EthernaVideoImporter(
