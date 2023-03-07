@@ -106,7 +106,7 @@ namespace Etherna.VideoImporter.Core.Services
                         var fileParameterInput = new FileParameterInput(
                             File.OpenRead(encodedFile.DownloadedFilePath),
                             Path.GetFileName(encodedFile.DownloadedFilePath),
-                            MimeTypes.GetMimeType(Path.GetFileName(encodedFile.DownloadedFilePath)));
+                            "video/mp4");
 
                         encodedFile.UploadedHashReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                             batchId,
@@ -145,7 +145,7 @@ namespace Etherna.VideoImporter.Core.Services
                         var fileThumbnailParameterInput = new FileParameterInput(
                             File.OpenRead(video.ThumbnailFile.DownloadedFilePath),
                             Path.GetFileName(video.ThumbnailFile.DownloadedFilePath),
-                            MimeTypes.GetMimeType(Path.GetFileName(video.ThumbnailFile.DownloadedFilePath)));
+                            "image/jpeg");
 
                         thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
                             batchId,
