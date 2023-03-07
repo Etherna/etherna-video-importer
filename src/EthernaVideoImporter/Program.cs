@@ -183,7 +183,7 @@ namespace Etherna.VideoImporter
                 CommonConsts.BeeNodeGatewayVersion,
                 CommonConsts.BeeNodeDebugVersion,
                 httpClient);
-            var videoUploaderService = new VideoUploaderService(
+            var videoUploaderService = new VideoService(
                 beeNodeClient,
                 ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
@@ -205,9 +205,6 @@ namespace Etherna.VideoImporter
 
             // Call runner.
             var importer = new EthernaVideoImporter(
-                new CleanerVideoService(
-                    ethernaUserClients.GatewayClient,
-                    ethernaUserClients.IndexClient),
                 ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),

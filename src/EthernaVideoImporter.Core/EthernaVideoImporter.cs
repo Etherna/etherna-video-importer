@@ -28,37 +28,32 @@ namespace Etherna.VideoImporter.Core
     public class EthernaVideoImporter
     {
         // Fields.
-        private readonly ICleanerVideoService cleanerVideoService;
         private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly ILinkReporterService linkReporterService;
-        private readonly IVideoUploaderService videoUploaderService;
+        private readonly IVideoService videoService;
         private readonly IVideoProvider videoProvider;
 
         // Constructor.
         public EthernaVideoImporter(
-            ICleanerVideoService cleanerVideoService,
             IUserGatewayClient ethernaGatewayClient,
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoProvider videoProvider,
-            IVideoUploaderService videoUploaderService)
+            IVideoService videoService)
         {
-            if (cleanerVideoService is null)
-                throw new ArgumentNullException(nameof(cleanerVideoService));
             if (linkReporterService is null)
                 throw new ArgumentNullException(nameof(linkReporterService));
             if (videoProvider is null)
                 throw new ArgumentNullException(nameof(videoProvider));
-            if (videoUploaderService is null)
-                throw new ArgumentNullException(nameof(videoUploaderService));
+            if (videoService is null)
+                throw new ArgumentNullException(nameof(videoService));
 
-            this.cleanerVideoService = cleanerVideoService;
             this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
             this.videoProvider = videoProvider;
-            this.videoUploaderService = videoUploaderService;
+            this.videoService = videoService;
         }
 
         // Public methods.
@@ -136,7 +131,7 @@ namespace Etherna.VideoImporter.Core
                                 JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(sourceMetadata.Id!)));
 
                             // Upload new manifest.
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(updatedManifest, pinVideos);
+                            updatedPermalinkHash = await videoService.UploadVideoManifestAsync(updatedManifest, pinVideos);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(
@@ -146,13 +141,7 @@ namespace Etherna.VideoImporter.Core
 
                         // Pin all.
                         if (pinVideos)
-                        {
-                            foreach (var video in alreadyPresentVideo.LastValidManifest.Sources)
-                                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.Reference);
-                            foreach (var thumbnail in alreadyPresentVideo.LastValidManifest.Thumbnail.Sources)
-                                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(thumbnail.Value);
-                            await ethernaGatewayClient.ResourcesClient.OffersPostAsync(updatedPermalinkHash);
-                        }
+                            await videoService.PinVideoAsync(alreadyPresentVideo.LastValidManifest, updatedPermalinkHash);
                     }
                     else //try to upload new video on etherna
                     {
@@ -184,7 +173,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Upload video and all related data.
-                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos);
+                        await videoService.UploadVideoAsync(video, pinVideos, offerVideos);
 
                         updatedIndexId = video.EthernaIndexId!;
                         updatedPermalinkHash = video.EthernaPermalinkHash!;
@@ -234,14 +223,14 @@ namespace Etherna.VideoImporter.Core
                 gatewayPinnedHashes = await ethernaGatewayClient.UsersClient.PinnedResourcesAsync();
 
             if (deleteVideosRemovedFromSource)
-                await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
+                await videoService.DeleteVideosRemovedFromSourceAsync(
                     sourceVideosMetadata,
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
 
             if (deleteExogenousVideos)
-                await cleanerVideoService.DeleteExogenousVideosAsync(
+                await videoService.DeleteExogenousVideosAsync(
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
