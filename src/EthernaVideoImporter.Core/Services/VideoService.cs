@@ -114,20 +114,6 @@ namespace Etherna.VideoImporter.Core.Services
             await ethernaGatewayClient.ResourcesClient.PinPostAsync(manifestPermalinkHash);
         }
 
-        public async Task PinVideoAsync(Video video)
-        {
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
-
-            foreach (var videoResolution in video.EncodedFiles)
-                if (!string.IsNullOrWhiteSpace(videoResolution.UploadedHashReference))
-                    await ethernaGatewayClient.ResourcesClient.PinPostAsync(videoResolution.UploadedHashReference);
-            if (!string.IsNullOrWhiteSpace(video.ThumbnailFile?.UploadedHashReference))
-                await ethernaGatewayClient.ResourcesClient.PinPostAsync(video.ThumbnailFile.UploadedHashReference);
-            if (!string.IsNullOrWhiteSpace(video.EthernaPermalinkHash))
-                await ethernaGatewayClient.ResourcesClient.PinPostAsync(video.EthernaPermalinkHash);
-        }
-
         public async Task UploadVideoAsync(
             Video video,
             bool pinVideo,

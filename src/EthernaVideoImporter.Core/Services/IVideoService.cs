@@ -55,12 +55,6 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="indexedVideoManifest">Indexed video manifest</param>
         /// <param name="manifestPermalinkHash">Manifest permalink hash</param>
         public Task PinVideoAsync(IndexedVideoManifest indexedVideoManifest, string manifestPermalinkHash);
-        
-        /// <summary>
-        /// Pin all reference
-        /// </summary>
-        /// <param name="video">video data</param>
-        public Task PinVideoAsync(Video video);
 
         /// <summary>
         /// Start to upload all video data (manifest, video with all avaiable resolutions, thumbnail, index).
