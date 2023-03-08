@@ -36,7 +36,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             OriginalQuality = video.Metadata.OriginVideoQualityLabel;
             OwnerAddress = ownerAddress;
             Duration = (long)video.Metadata.Duration.TotalSeconds;
-            Thumbnail = new ManifestThumbnailDto(video.ThumbnailFiles);
+            Thumbnail = video.ThumbnailFiles.Any() ? new ManifestThumbnailDto(video.ThumbnailFiles) : null;
             Sources = video.EncodedFiles.OfType<VideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             UpdatedAt = null;
