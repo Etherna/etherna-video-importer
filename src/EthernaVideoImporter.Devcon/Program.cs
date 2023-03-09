@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.Authentication;
 using Etherna.BeeNet;
 using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
@@ -44,6 +45,8 @@ namespace Etherna.VideoImporter.Devcon
             "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
             "  -e\tRemove indexed videos not generated with this tool\n" +
             "  -u\tTry to unpin contents removed from index\n" +
+            "  -f\tForce upload video if they already has been uploaded\n" +
+            "  -y\tAccept automatically purchase of all batches\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
@@ -60,6 +63,8 @@ namespace Etherna.VideoImporter.Devcon
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
+            bool forceUploadVideo = false;
+            bool acceptPurchaseOfAllBatches = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -114,6 +119,8 @@ namespace Etherna.VideoImporter.Devcon
                     case "-m": deleteVideosMissingFromSource = true; break;
                     case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
+                    case "-f": forceUploadVideo = true; break;
+                    case "-y": acceptPurchaseOfAllBatches = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -143,15 +150,18 @@ namespace Etherna.VideoImporter.Devcon
                 Console.WriteLine(authResult.Error);
                 return;
             }
-            var userEthAddr = authResult.User.Claims.Where(i => i.Type == "ether_address").FirstOrDefault()?.Value;
+            var userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).FirstOrDefault()?.Value;
             if (string.IsNullOrWhiteSpace(userEthAddr))
             {
                 Console.WriteLine($"Missing ether address");
                 return;
             }
+            Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
 
             // Inizialize services.
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
+            httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
+
             var ethernaUserClients = new EthernaUserClients(
                 new Uri(CommonConsts.EthernaCreditUrl),
                 new Uri(CommonConsts.EthernaGatewayUrl),
@@ -170,7 +180,8 @@ namespace Etherna.VideoImporter.Devcon
                 ethernaUserClients.GatewayClient,
                 ethernaUserClients.IndexClient,
                 userEthAddr,
-                TimeSpan.FromDays(ttlPostageStamp));
+                TimeSpan.FromDays(ttlPostageStamp),
+                acceptPurchaseOfAllBatches);
 
             // Call runner.
             var importer = new EthernaVideoImporter(
@@ -189,7 +200,8 @@ namespace Etherna.VideoImporter.Devcon
                 pinVideos,
                 deleteVideosMissingFromSource,
                 deleteExogenousVideos,
-                unpinRemovedVideos);
+                unpinRemovedVideos,
+                forceUploadVideo);
         }
     }
 }
