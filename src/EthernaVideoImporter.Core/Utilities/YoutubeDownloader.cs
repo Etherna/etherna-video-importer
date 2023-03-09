@@ -12,8 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Blurhash.SkiaSharp;
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -84,10 +86,14 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             // Get thumbnail.
             List<ThumbnailFile> thumbnailFiles = new();
-            foreach (var thumbnailFile in videoMetadata.Thumbnails)
-                thumbnailFiles.Add(await DownloadThumbnailAsync(
-                    thumbnailFile,
-                    videoMetadata.Title));
+            if (videoMetadata.Thumbnail is not null)
+            {
+                var betsResolutionDownlaoded = await DownloadThumbnailAsync(
+                        videoMetadata.Thumbnail,
+                        videoMetadata.Title);
+
+                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionDownlaoded);
+            }
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
@@ -138,7 +144,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 new FileInfo(audioFilePath).Length);
         }
 
-        private async Task<ThumbnailFile> DownloadThumbnailAsync(
+        private async Task<string> DownloadThumbnailAsync(
             Thumbnail thumbnail,
             string videoTitle)
         {
@@ -146,7 +152,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 throw new ArgumentNullException(nameof(thumbnail));
 
             string thumbnailFilePath = Path.Combine(downloadDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
-            
+
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
                 if (i == CommonConsts.DownloadMaxRetry)
@@ -172,11 +178,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new ThumbnailFile(
-                thumbnailFilePath,
-                new FileInfo(thumbnailFilePath).Length,
-                thumbnail.Resolution.Width,
-                thumbnail.Resolution.Height);
+            return thumbnailFilePath;
         }
 
         private async Task<VideoFile> DownloadVideoStreamAsync(
@@ -224,6 +226,37 @@ namespace Etherna.VideoImporter.Core.Utilities
                 videoFilePath,
                 videoQualityLabel,
                 new FileInfo(videoFilePath).Length);
+        }
+
+        private async Task<List<ThumbnailFile>> DownscaleThumbnailAsync(string thumbnailFilePath)
+        {
+            List<ThumbnailFile> thumbnails = new();
+
+            using var thumbFileStream = File.OpenRead(thumbnailFilePath);
+            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+
+            foreach (var responsiveWidthSize in ThumbnailFile.ThumbnailResponsiveSizes)
+            {
+                var originalRatio = (float)thumbBitmap.Width / thumbBitmap.Height;
+                var responsiveHeightSize = (int)(responsiveWidthSize / originalRatio);
+
+                using SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.High);
+                using SKImage scaledImage = SKImage.FromBitmap(scaledBitmap);
+                using SKData data = scaledImage.Encode();
+
+                var thumbnailResized = Path.GetTempFileName();
+                using FileStream outputFileStream = new(thumbnailResized, FileMode.OpenOrCreate);
+                await data.AsStream().CopyToAsync(outputFileStream);
+
+                thumbnails.Add(new ThumbnailFile(
+                    thumbnailFilePath,
+                    new FileInfo(thumbnailFilePath).Length,
+                    responsiveWidthSize,
+                    responsiveHeightSize));
+            }
+
+            return thumbnails;
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)

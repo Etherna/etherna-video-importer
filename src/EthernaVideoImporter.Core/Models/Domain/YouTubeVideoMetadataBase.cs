@@ -27,17 +27,17 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
-            IEnumerable<Thumbnail> thumbnails,
+            Thumbnail? thumbnail,
             string title,
             string youtubeUrl)
             : base(description, duration, originVideoQualityLabel, title)
         {
-            Thumbnails = thumbnails;
+            Thumbnail = thumbnail;
             YoutubeUrl = youtubeUrl;
         }
 
         // Properties.
-        public IEnumerable<Thumbnail> Thumbnails { get; }
+        public Thumbnail? Thumbnail { get; }
         public string YoutubeId
         {
             get

@@ -26,13 +26,13 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
-            IEnumerable<Thumbnail> thumbnails,
+            Thumbnail? thumbnail,
             string title,
             string mdFileRelativePath,
             string youtubeUrl,
             string? ethernaIndexUrl,
             string? ethernaPermalinkUrl)
-            : base(description, duration, originVideoQualityLabel, thumbnails, title, youtubeUrl)
+            : base(description, duration, originVideoQualityLabel, thumbnail, title, youtubeUrl)
         {
             EthernaIndexUrl = ethernaIndexUrl;
             EthernaPermalinkUrl = ethernaPermalinkUrl;

@@ -16,6 +16,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public class ThumbnailFile : FileBase
     {
+        // Consts.
+        public static readonly int[] ThumbnailResponsiveSizes = { 480, 960, 1280 };
+
+        // Constructor.
         public ThumbnailFile(
             string downloadedFilePath,
             long byteSize,

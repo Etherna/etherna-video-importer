@@ -36,7 +36,6 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Consts.
         public static readonly string[] _keywordNames = { "IMAGE", "IMAGEURL", "EDITION", "TITLE", "DESCRIPTION", "YOUTUBEURL", "IPFSHASH", "DURATION", "EXPERTISE", "TYPE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "ETHERNAINDEX", "ETHERNAPERMALINK", "SOURCEID" };
         public static readonly string[] _keywordSkips = { "IMAGE", "IMAGEURL", "IPFSHASH", "EXPERTISE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "SOURCEID" };
-        private static readonly int[] ThumbnailResponsiveSizes = { 480, 960, 1280 };
 
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
@@ -169,7 +168,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     p.mdDto.Description,
                     p.ytVideo.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
                     p.ytBestStreamInfo.VideoQuality.Label,
-                    p.ytVideo.Thumbnails.Where(t => ThumbnailResponsiveSizes.Contains(t.Resolution.Width)),
+                    p.ytVideo.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
                     p.mdDto.Title,
                     p.mdRelativePath,
                     p.mdDto.YoutubeUrl,

@@ -17,6 +17,7 @@ using Etherna.VideoImporter.Core.Models.Domain;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -30,28 +31,18 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             if (thumbnailFiles is null)
                 throw new ArgumentNullException(nameof(thumbnailFiles));
 
-            Sources = new Dictionary<string, string>();
-            foreach (var thumbnailFile in thumbnailFiles)
-            {
-                if (string.IsNullOrWhiteSpace(thumbnailFile.UploadedHashReference))
-                    throw new ArgumentException("Empty data in UploadedHashReference");
+            var thumbnailFilesList = thumbnailFiles.ToList();
+            if (!thumbnailFilesList.Any())
+                throw new ArgumentException($"Empty {nameof(thumbnailFiles)}");
 
-                Sources.Add($"{thumbnailFile.Width}w", thumbnailFile.UploadedHashReference);
-
-                // Save the best aspect ratio.
-                var currentAspectRatio = (float)thumbnailFile.Width / thumbnailFile.Height;
-                if (currentAspectRatio > AspectRatio)
-                {
-                    using var thumbFileStream = File.OpenRead(thumbnailFile.DownloadedFilePath);
-                    using var thumbManagedStream = new SKManagedStream(thumbFileStream);
-                    using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-                    AspectRatio = currentAspectRatio;
-                    Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(Blurhash))
-                throw new ArgumentException("Empty data in Blurhash");
+            Sources = thumbnailFilesList.ToDictionary(t => t.Width.ToString(CultureInfo.InvariantCulture), t => t.UploadedHashReference!);
+           
+            var thumbnailFile = thumbnailFilesList.First();
+            using var thumbFileStream = File.OpenRead(thumbnailFile.DownloadedFilePath);
+            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+            AspectRatio = (float)thumbnailFile.Width / thumbnailFile.Height;
+            Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
         }
 
         public ManifestThumbnailDto(
