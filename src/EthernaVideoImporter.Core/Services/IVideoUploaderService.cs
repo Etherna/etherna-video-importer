@@ -26,9 +26,9 @@ namespace Etherna.VideoImporter.Core.Services
         /// <summary>
         /// Start to upload all video data (manifest, video with all avaiable resolutions, thumbnail, index).
         /// </summary>
-        /// <param name="video">video data</param>
-        /// <param name="pinVideo">pin video</param>
-        /// <param name="offerVideo">free video</param>
+        /// <param name="video">Video data</param>
+        /// <param name="pinVideo">Pin video</param>
+        /// <param name="offerVideo">Free video</param>
         public Task UploadVideoAsync(
             Video video,
             bool pinVideo,

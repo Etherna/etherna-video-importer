@@ -106,7 +106,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
                 if (i == CommonConsts.DownloadMaxRetry)
-                    throw new InvalidOperationException($"Some error during download of audio track");
+                    throw new InvalidOperationException($"Some errors during download of audio track");
 
                 try
                 {
@@ -125,7 +125,11 @@ namespace Etherna.VideoImporter.Core.Utilities
                 catch
                 {
                     Console.WriteLine();
-                    await Task.Delay(CommonConsts.DownloadTimespanRetry);
+                    if (i + 1 < CommonConsts.DownloadMaxRetry)
+                    {
+                        Console.Write("Failed. Retry...\r");
+                        await Task.Delay(CommonConsts.DownloadTimespanRetry);
+                    }
                 }
             }
 
@@ -146,7 +150,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
                 if (i == CommonConsts.DownloadMaxRetry)
-                    throw new InvalidOperationException($"Some error during download of thumbnail");
+                    throw new InvalidOperationException($"Some errors during download of thumbnail");
 
                 try
                 {
@@ -158,7 +162,14 @@ namespace Etherna.VideoImporter.Core.Utilities
                     Console.WriteLine("Downloaded thumbnail");
                     break;
                 }
-                catch { await Task.Delay(CommonConsts.DownloadTimespanRetry); }
+                catch
+                {
+                    if (i + 1 < CommonConsts.DownloadMaxRetry)
+                    {
+                        Console.WriteLine("Failed. Retry...");
+                        await Task.Delay(CommonConsts.DownloadTimespanRetry);
+                    }
+                }
             }
 
             return new ThumbnailFile(
@@ -181,7 +192,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
                 if (i == CommonConsts.DownloadMaxRetry)
-                    throw new InvalidOperationException($"Some error during download of video");
+                    throw new InvalidOperationException($"Some errors during download of video");
 
                 try
                 {
@@ -201,7 +212,11 @@ namespace Etherna.VideoImporter.Core.Utilities
                 catch
                 {
                     Console.WriteLine();
-                    await Task.Delay(CommonConsts.DownloadTimespanRetry);
+                    if (i + 1 < CommonConsts.DownloadMaxRetry)
+                    {
+                        Console.Write("Failed. Retry...\r");
+                        await Task.Delay(CommonConsts.DownloadTimespanRetry);
+                    }
                 }
             }
 

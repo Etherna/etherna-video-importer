@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                 Sources.Add($"{thumbnailFile.Width}w", thumbnailFile.UploadedHashReference);
 
                 // Save the best aspect ratio.
-                var currentAspectRatio = thumbnailFile.Width / thumbnailFile.Height;
+                var currentAspectRatio = (float)thumbnailFile.Width / thumbnailFile.Height;
                 if (currentAspectRatio > AspectRatio)
                 {
                     using var thumbFileStream = File.OpenRead(thumbnailFile.DownloadedFilePath);
