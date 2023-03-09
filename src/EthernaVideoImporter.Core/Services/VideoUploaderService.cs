@@ -164,10 +164,9 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Upload thumbnail.
-            if (video.ThumbnailFile is not null)
+            Console.WriteLine("Uploading thumbnail in progress...");
+            foreach (var thumbnailFile in video.ThumbnailFiles)
             {
-                Console.WriteLine("Uploading thumbnail in progress...");
-
                 var uploadSucceeded = false;
                 string thumbnailReference = null!;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
@@ -175,8 +174,8 @@ namespace Etherna.VideoImporter.Core.Services
                     try
                     {
                         var fileThumbnailParameterInput = new FileParameterInput(
-                            File.OpenRead(video.ThumbnailFile.DownloadedFilePath),
-                            Path.GetFileName(video.ThumbnailFile.DownloadedFilePath),
+                            File.OpenRead(thumbnailFile.DownloadedFilePath),
+                            Path.GetFileName(thumbnailFile.DownloadedFilePath),
                             "image/jpeg");
 
                         thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
