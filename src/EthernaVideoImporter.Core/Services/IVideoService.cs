@@ -31,7 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="video">video data</param>
         /// <param name="pinVideo">pin video</param>
         /// <param name="offerVideo">free video</param>
-        Task DeleteExogenousVideosAsync(
+        Task<int> DeleteExogenousVideosAsync(
             IEnumerable<IndexedVideo> indexedVideos,
             IEnumerable<string>? gatewayPinnedHashes,
             bool unpinRemovedVideos);
@@ -43,7 +43,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="indexedVideos">Indexed videos</param>
         /// <param name="gatewayPinnedHashes">Gateway pinned hashes</param>
         /// <param name="unpinRemovedVideos">Unpin removed videos</param>
-        Task DeleteVideosRemovedFromSourceAsync(
+        Task<int> DeleteVideosRemovedFromSourceAsync(
             IEnumerable<VideoMetadataBase> videosMetadataFromSource,
             IEnumerable<IndexedVideo> indexedVideos,
             IEnumerable<string>? gatewayPinnedHashes,

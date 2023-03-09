@@ -62,7 +62,7 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Public methods.
-        public async Task DeleteExogenousVideosAsync(
+        public async Task<int> DeleteExogenousVideosAsync(
             IEnumerable<IndexedVideo> indexedVideos,
             IEnumerable<string>? gatewayPinnedHashes,
             bool unpinRemovedVideos)
@@ -76,11 +76,27 @@ namespace Etherna.VideoImporter.Core.Services
 
             var exogenousVideos = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName != CommonConsts.ImporterIdentifier);
 
+            var deindexedVideos = 0;
             foreach (var video in exogenousVideos)
-                await RemoveFromIndexAsync(video, gatewayPinnedHashes, unpinRemovedVideos);
+            {
+                try
+                {
+                    await RemoveFromIndexAsync(video, gatewayPinnedHashes, unpinRemovedVideos);
+                    deindexedVideos++;
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Impossible to remove from index video {video.IndexId}");
+                    Console.WriteLine($"Error: {ex.Message}");
+                    Console.ResetColor();
+                }
+            }
+
+            return deindexedVideos;
         }
 
-        public async Task DeleteVideosRemovedFromSourceAsync(
+        public async Task<int> DeleteVideosRemovedFromSourceAsync(
             IEnumerable<VideoMetadataBase> videosMetadataFromSource,
             IEnumerable<IndexedVideo> indexedVideos,
             IEnumerable<string>? gatewayPinnedHashes,
@@ -97,8 +113,24 @@ namespace Etherna.VideoImporter.Core.Services
             var sourceRemovedVideos = indexedVideos.Where(
                 v => !videosMetadataFromSource.Any(metadata => metadata.Id == v.LastValidManifest!.PersonalData!.VideoId));
 
+            var deindexedVideos = 0;
             foreach (var sourceRemovedVideo in sourceRemovedVideos)
-                await RemoveFromIndexAsync(sourceRemovedVideo, gatewayPinnedHashes, unpinRemovedVideos);
+            {
+                try
+                {
+                    await RemoveFromIndexAsync(sourceRemovedVideo, gatewayPinnedHashes, unpinRemovedVideos);
+                    deindexedVideos++;
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Impossible to remove from index video {sourceRemovedVideo.IndexId}");
+                    Console.WriteLine($"Error: {ex.Message}");
+                    Console.ResetColor();
+                }
+            }
+
+            return deindexedVideos;
         }
 
         public async Task PinVideoAsync(IndexedVideoManifest indexedVideoManifest, string manifestPermalinkHash)
