@@ -34,7 +34,6 @@ namespace Etherna.VideoImporter.Core
         public const string EthernaPermalinkContentUrlPrefix = "https://etherna.io/embed/";
         public const string EthernaSsoClientId = "ethernaVideoImporterId";
         public const string EthernaSsoUrl = "https://sso.etherna.io/";
-        public static string ImporterTempDirectory => Path.Combine(Path.GetTempPath() + "EthernaVideoImporter");
         public static string FFMpegBinaryName
         {
             get
@@ -51,5 +50,6 @@ namespace Etherna.VideoImporter.Core
         }
         public static readonly TimeSpan GnosisBlockTime = TimeSpan.FromSeconds(5);
         public const string ImporterIdentifier = "EthernaImporter";
+        public static string ImporterTempDirectory => Path.Combine(Path.GetTempPath() + ImporterIdentifier);
     }
 }
