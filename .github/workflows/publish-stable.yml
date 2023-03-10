@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        kind: ['linux', 'linuxselfcontained', 'macos', 'macosselfcontained', 'windows']
+        kind: ['linux', 'linuxselfcontained', 'macos', 'macosselfcontained', 'windows', 'windowsselfcontained']
         include:
           - kind: linux
             os: ubuntu-latest
@@ -33,6 +33,10 @@ jobs:
             os: windows-latest
             target: win-x64
             frameworktype: --no-self-contained
+          - kind: windowsselfcontained
+            os: windows-latest
+            target: win-x64
+            frameworktype: --self-contained
 
     runs-on: ${{ matrix.os }}
 
