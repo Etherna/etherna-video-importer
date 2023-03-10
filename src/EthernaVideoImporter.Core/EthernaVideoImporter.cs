@@ -20,6 +20,7 @@ using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -73,6 +74,10 @@ namespace Etherna.VideoImporter.Core
             bool forceUploadVideo)
         {
             var importSummaryModelView = new ImportSummaryModelView();
+
+            // Create temp dir.
+            if (!Directory.Exists(CommonConsts.ImporterTempDirectory))
+                Directory.CreateDirectory(CommonConsts.ImporterTempDirectory);
 
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
@@ -221,6 +226,23 @@ namespace Etherna.VideoImporter.Core
 
                     importSummaryModelView.TotErrorVideoImported++;
                     continue;
+                }
+                finally {
+                    try
+                    {
+                        // Clear tmp folder.
+                        var di = new DirectoryInfo(CommonConsts.ImporterTempDirectory);
+                        foreach (var file in di.GetFiles())
+                            file.Delete();
+                        foreach (var dir in di.GetDirectories())
+                            dir.Delete(true);
+                    }
+                    catch
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+                        Console.WriteLine($"Warning: Unable to clear some file insede of {CommonConsts.ImporterTempDirectory} please remove manually\n");
+                        Console.ResetColor();
+                    }
                 }
 
                 // Report etherna new references.

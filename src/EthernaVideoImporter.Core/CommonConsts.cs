@@ -15,6 +15,7 @@
 using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Etherna.VideoImporter.Core
@@ -33,6 +34,7 @@ namespace Etherna.VideoImporter.Core
         public const string EthernaPermalinkContentUrlPrefix = "https://etherna.io/embed/";
         public const string EthernaSsoClientId = "ethernaVideoImporterId";
         public const string EthernaSsoUrl = "https://sso.etherna.io/";
+        public static string ImporterTempDirectory => Path.Combine(Path.GetTempPath() + "EthernaVideoImporter");
         public static string FFMpegBinaryName
         {
             get

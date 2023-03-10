@@ -41,7 +41,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             string ffMpegPath,
             YoutubeClient youtubeClient)
         {
-            downloadDirectory = Directory.CreateTempSubdirectory();
+            downloadDirectory = new DirectoryInfo(CommonConsts.ImporterTempDirectory);
             this.ffMpegPath = ffMpegPath;
             this.youtubeClient = youtubeClient;
         }
