@@ -18,6 +18,7 @@ using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Models.Domain;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -39,12 +40,13 @@ namespace Etherna.VideoImporter.Services
         public YouTubeChannelVideoProvider(
             string channelUrl,
             string ffMpegPath,
-            bool includeAudioTrack)
+            bool includeAudioTrack,
+            DirectoryInfo downloadDirectory)
         {
             this.channelUrl = channelUrl;
             this.includeAudioTrack = includeAudioTrack;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient, downloadDirectory);
         }
 
         // Properties.

@@ -29,13 +29,11 @@ namespace Etherna.VideoImporter.Core
 {
     public class EthernaVideoImporter
     {
-        // Const.
-        public static string ImporterTempDirectory => Path.Combine(Path.GetTempPath(), ImporterIdentifier);
-
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
         private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
+        private readonly DirectoryInfo importerTempDirectoryInfo;
         private readonly ILinkReporterService linkReporterService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
@@ -47,7 +45,8 @@ namespace Etherna.VideoImporter.Core
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoProvider videoProvider,
-            IVideoUploaderService videoUploaderService)
+            IVideoUploaderService videoUploaderService,
+            DirectoryInfo importerTempDirectoryInfo)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
@@ -64,6 +63,7 @@ namespace Etherna.VideoImporter.Core
             this.linkReporterService = linkReporterService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
+            this.importerTempDirectoryInfo = importerTempDirectoryInfo; 
         }
 
         // Public methods.
@@ -77,10 +77,6 @@ namespace Etherna.VideoImporter.Core
             bool forceUploadVideo)
         {
             var importSummaryModelView = new ImportSummaryModelView();
-
-            // Create temp dir.
-            if (!Directory.Exists(CommonConsts.ImporterTempDirectory))
-                Directory.CreateDirectory(CommonConsts.ImporterTempDirectory);
 
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
@@ -234,16 +230,15 @@ namespace Etherna.VideoImporter.Core
                     try
                     {
                         // Clear tmp folder.
-                        var di = new DirectoryInfo(CommonConsts.ImporterTempDirectory);
-                        foreach (var file in di.GetFiles())
+                        foreach (var file in importerTempDirectoryInfo.GetFiles())
                             file.Delete();
-                        foreach (var dir in di.GetDirectories())
+                        foreach (var dir in importerTempDirectoryInfo.GetDirectories())
                             dir.Delete(true);
                     }
                     catch
                     {
                         Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Warning: Unable to clear some file insede of {CommonConsts.ImporterTempDirectory} please remove manually\n");
+                        Console.WriteLine($"Warning: Unable to clear some file insede of {importerTempDirectoryInfo.FullName} please remove manually\n");
                         Console.ResetColor();
                     }
                 }

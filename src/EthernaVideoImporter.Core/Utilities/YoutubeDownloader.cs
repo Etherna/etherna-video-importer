@@ -35,13 +35,12 @@ namespace Etherna.VideoImporter.Core.Utilities
         private readonly DirectoryInfo downloadDirectory;
         private readonly string ffMpegPath;
         private readonly YoutubeClient youtubeClient;
-
-        // Constructor.
         public YoutubeDownloader(
             string ffMpegPath,
-            YoutubeClient youtubeClient)
+            YoutubeClient youtubeClient,
+            DirectoryInfo downloadDirectory)
         {
-            downloadDirectory = new DirectoryInfo(CommonConsts.ImporterTempDirectory);
+            this.downloadDirectory = downloadDirectory;
             this.ffMpegPath = ffMpegPath;
             this.youtubeClient = youtubeClient;
         }
