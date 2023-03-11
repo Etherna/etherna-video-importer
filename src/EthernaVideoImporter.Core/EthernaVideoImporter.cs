@@ -29,6 +29,9 @@ namespace Etherna.VideoImporter.Core
 {
     public class EthernaVideoImporter
     {
+        // Const.
+        public static string ImporterTempDirectory => Path.Combine(Path.GetTempPath(), ImporterIdentifier);
+
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
         private readonly IUserGatewayClient ethernaGatewayClient;
