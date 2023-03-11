@@ -33,6 +33,7 @@ namespace Etherna.VideoImporter.Core
         public const string EthernaPermalinkContentUrlPrefix = "https://etherna.io/embed/";
         public const string EthernaSsoClientId = "ethernaVideoImporterId";
         public const string EthernaSsoUrl = "https://sso.etherna.io/";
+        public static readonly Version EthernaImporterVersion = new("3.0.0");
         public static string FFMpegBinaryName
         {
             get

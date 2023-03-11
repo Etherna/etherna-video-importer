@@ -20,11 +20,15 @@ using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Services;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
+using static System.Net.WebRequestMethods;
 
 namespace Etherna.VideoImporter
 {
@@ -56,6 +60,8 @@ namespace Etherna.VideoImporter
 
         static async Task Main(string[] args)
         {
+            await EthernaVideoImporter.CheckVersionAsync();
+
             // Parse arguments.
             SourceType? sourceType = null;
             string? sourceUri = null;

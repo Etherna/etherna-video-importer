@@ -21,6 +21,8 @@ using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -63,6 +65,47 @@ namespace Etherna.VideoImporter.Core
         }
 
         // Public methods.
+        public static async Task CheckVersionAsync()
+        {
+            try
+            {
+                using var httpClientGit = new HttpClient();
+                var gitUrl = "https://api.github.com/repos/Etherna/etherna-video-importer/releases";
+                var response = await httpClientGit.GetAsync(gitUrl);
+                var gitReleaseVersionsDto = await response.Content.ReadFromJsonAsync<List<GitReleaseVersionDto>>();
+
+                if (gitReleaseVersionsDto is null ||
+                    !gitReleaseVersionsDto.Any())
+                {
+                    throw new InvalidOperationException("GitHub haven't any version");
+                }
+
+                var currentVersion = CommonConsts.EthernaImporterVersion;
+                var lastVersion = gitReleaseVersionsDto
+                    .Select(git => new
+                    {
+                        Version = new Version(git.Tag_name.Replace("v", "", StringComparison.OrdinalIgnoreCase)),
+                        Url = git.Html_url
+                    })
+                    .OrderByDescending(v => v.Version)
+                    .First();
+
+                if (lastVersion.Version > currentVersion)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    Console.WriteLine($"A new version {lastVersion.Version} is avaiable at {lastVersion.Url}");
+                    Console.ResetColor();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("Unable to check last version on GitHub");
+                Console.WriteLine($"Error: {ex.Message}");
+                Console.ResetColor();
+            }
+        }
+
         public async Task RunAsync(
             string userEthAddress,
             bool offerVideos,
@@ -277,7 +320,7 @@ namespace Etherna.VideoImporter.Core
             Console.WriteLine($"Total video deleted because not from this tool: {importSummaryModelView.TotDeletedExogenous}");
             Console.ResetColor();
         }
-
+        
         // Helpers.
         public async Task<IEnumerable<IndexedVideo>> GetUserVideosOnEthernaAsync(string userAddress)
         {

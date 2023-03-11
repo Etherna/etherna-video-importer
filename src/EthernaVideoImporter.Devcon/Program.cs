@@ -52,6 +52,8 @@ namespace Etherna.VideoImporter.Devcon
 
         static async Task Main(string[] args)
         {
+            await EthernaVideoImporter.CheckVersionAsync();
+
             // Parse arguments.
             string? mdSourceFolderPath = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
