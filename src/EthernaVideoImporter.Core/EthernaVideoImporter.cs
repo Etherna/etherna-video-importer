@@ -33,7 +33,7 @@ namespace Etherna.VideoImporter.Core
         private readonly ICleanerVideoService cleanerVideoService;
         private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
-        private readonly DirectoryInfo importerTempDirectoryInfo;
+        private static string ImporterTempDirectory => Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier);
         private readonly ILinkReporterService linkReporterService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
@@ -45,8 +45,7 @@ namespace Etherna.VideoImporter.Core
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoProvider videoProvider,
-            IVideoUploaderService videoUploaderService,
-            DirectoryInfo importerTempDirectoryInfo)
+            IVideoUploaderService videoUploaderService)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
@@ -63,7 +62,6 @@ namespace Etherna.VideoImporter.Core
             this.linkReporterService = linkReporterService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
-            this.importerTempDirectoryInfo = importerTempDirectoryInfo; 
         }
 
         // Public methods.
@@ -77,6 +75,13 @@ namespace Etherna.VideoImporter.Core
             bool forceUploadVideo)
         {
             var importSummaryModelView = new ImportSummaryModelView();
+
+            // Create temp dir.
+            DirectoryInfo importerTempDirectoryInfo;
+            if (!Directory.Exists(ImporterTempDirectory))
+                importerTempDirectoryInfo = Directory.CreateDirectory(ImporterTempDirectory);
+            else
+                importerTempDirectoryInfo = new DirectoryInfo(ImporterTempDirectory);
 
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
@@ -178,7 +183,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Get and encode video from source.
-                        var video = await videoProvider.GetVideoAsync(sourceMetadata);
+                        var video = await videoProvider.GetVideoAsync(sourceMetadata, importerTempDirectoryInfo);
                         video.EthernaIndexId = alreadyPresentVideo?.IndexId;
 
                         if (!video.EncodedFiles.Any())

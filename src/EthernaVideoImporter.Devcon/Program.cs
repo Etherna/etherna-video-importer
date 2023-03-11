@@ -49,7 +49,6 @@ namespace Etherna.VideoImporter.Devcon
             "  -y\tAccept automatically purchase of all batches\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
-        private static string ImporterTempDirectory => Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier);
 
         static async Task Main(string[] args)
         {
@@ -159,13 +158,6 @@ namespace Etherna.VideoImporter.Devcon
             }
             Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
 
-            // Create temp dir.
-            DirectoryInfo importerTempDirectoryInfo;
-            if (!Directory.Exists(ImporterTempDirectory))
-                importerTempDirectoryInfo = Directory.CreateDirectory(ImporterTempDirectory);
-            else
-                importerTempDirectoryInfo = new DirectoryInfo(ImporterTempDirectory);
-
             // Inizialize services.
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
             httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
@@ -202,10 +194,8 @@ namespace Etherna.VideoImporter.Devcon
                 new MdVideoProvider(
                     mdSourceFolderPath,
                     ffMpegBinaryPath,
-                    includeAudioTrack,
-                    importerTempDirectoryInfo),
-                videoUploaderService,
-                importerTempDirectoryInfo);
+                    includeAudioTrack),
+                videoUploaderService);
 
             await importer.RunAsync(
                 userEthAddr,

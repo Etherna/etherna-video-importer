@@ -40,22 +40,22 @@ namespace Etherna.VideoImporter.Services
         public YouTubeChannelVideoProvider(
             string channelUrl,
             string ffMpegPath,
-            bool includeAudioTrack,
-            DirectoryInfo downloadDirectory)
+            bool includeAudioTrack)
         {
             this.channelUrl = channelUrl;
             this.includeAudioTrack = includeAudioTrack;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient, downloadDirectory);
+            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient);
         }
 
         // Properties.
         public string SourceName => channelUrl;
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo importerTempDirectoryInfo) => youtubeDownloader.GetVideoAsync(
             includeAudioTrack,
-            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
+            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)),
+            importerTempDirectoryInfo);
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
