@@ -250,8 +250,8 @@ namespace Etherna.VideoImporter.Core.Utilities
                 await data.AsStream().CopyToAsync(outputFileStream);
 
                 thumbnails.Add(new ThumbnailFile(
-                    thumbnailFilePath,
-                    new FileInfo(thumbnailFilePath).Length,
+                    thumbnailResized,
+                    new FileInfo(thumbnailResized).Length,
                     responsiveWidthSize,
                     responsiveHeightSize));
             }
