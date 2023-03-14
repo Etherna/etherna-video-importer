@@ -169,7 +169,7 @@ namespace Etherna.VideoImporter
             }
 
             // Inizialize services.
-            using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromHours(2) };
+            using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
             httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
 
             var ethernaUserClients = new EthernaUserClients(
