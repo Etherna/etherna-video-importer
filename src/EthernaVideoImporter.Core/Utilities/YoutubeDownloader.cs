@@ -84,7 +84,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     videoMetadata.Title));
 
             // Get thumbnail.
-            List<ThumbnailFile> thumbnailFiles = new();
+            List<ThumbnailLocalFile> thumbnailFiles = new();
             if (videoMetadata.Thumbnail is not null)
             {
                 var betsResolutionDownlaoded = await DownloadThumbnailAsync(
@@ -98,7 +98,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         }
 
         // Helpers.
-        private async Task<AudioFile> DownloadAudioTrackAsync(
+        private async Task<AudioLocalFile> DownloadAudioTrackAsync(
             IStreamInfo audioStream,
             string videoTitle)
         {
@@ -138,7 +138,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new AudioFile(
+            return new AudioLocalFile(
                 audioFilePath,
                 new FileInfo(audioFilePath).Length);
         }
@@ -180,7 +180,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             return thumbnailFilePath;
         }
 
-        private async Task<VideoFile> DownloadVideoStreamAsync(
+        private async Task<VideoLocalFile> DownloadVideoStreamAsync(
             IAudioStreamInfo audioOnlyStream,
             IVideoStreamInfo videoOnlyStream,
             string videoTitle)
@@ -221,21 +221,21 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new VideoFile(
+            return new VideoLocalFile(
                 videoFilePath,
                 videoQualityLabel,
                 new FileInfo(videoFilePath).Length);
         }
 
-        private async Task<List<ThumbnailFile>> DownscaleThumbnailAsync(string thumbnailFilePath)
+        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(string thumbnailFilePath)
         {
-            List<ThumbnailFile> thumbnails = new();
+            List<ThumbnailLocalFile> thumbnails = new();
 
             using var thumbFileStream = File.OpenRead(thumbnailFilePath);
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
 
-            foreach (var responsiveWidthSize in ThumbnailFile.ThumbnailResponsiveSizes)
+            foreach (var responsiveWidthSize in ThumbnailLocalFile.ThumbnailResponsiveSizes)
             {
                 var originalRatio = (float)thumbBitmap.Width / thumbBitmap.Height;
                 var responsiveHeightSize = (int)(responsiveWidthSize / originalRatio);
@@ -248,7 +248,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 using FileStream outputFileStream = new(thumbnailResized, FileMode.OpenOrCreate);
                 await data.AsStream().CopyToAsync(outputFileStream);
 
-                thumbnails.Add(new ThumbnailFile(
+                thumbnails.Add(new ThumbnailLocalFile(
                     thumbnailResized,
                     new FileInfo(thumbnailResized).Length,
                     responsiveWidthSize,

@@ -2,10 +2,10 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class RemoteFile : FileBase
+    public abstract class RemoteFile : FileBase
     {
         // Constructor.
-        public RemoteFile(
+        protected RemoteFile(
             Uri Uri)
         {
             this.Uri = Uri;

@@ -126,8 +126,8 @@ namespace Etherna.VideoImporter.Core.Services
             {
                 Console.WriteLine(encodedFile switch
                 {
-                    AudioFile _ => "Uploading audio track in progress...",
-                    VideoFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
+                    AudioLocalFile _ => "Uploading audio track in progress...",
+                    VideoLocalFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
                     _ => throw new InvalidOperationException()
                 });
 

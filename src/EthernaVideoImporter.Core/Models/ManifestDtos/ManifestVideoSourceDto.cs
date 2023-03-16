@@ -30,7 +30,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             Size = source.Size;
         }
 
-        public ManifestVideoSourceDto(VideoFile videoFile)
+        public ManifestVideoSourceDto(VideoLocalFile videoFile)
         {
             if (videoFile is null)
                 throw new ArgumentNullException(nameof(videoFile));

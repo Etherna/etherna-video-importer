@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.AudioFile">
+    <Position X="5.25" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Models\Domain\AudioFile.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.FileBase">
+    <Position X="9.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAA=</HashCode>
+      <FileName>Models\Domain\FileBase.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.LocalFile">
+    <Position X="7" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA=</HashCode>
+      <FileName>Models\Domain\LocalFile.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.RemoteFile">
+    <Position X="11.5" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAA=</HashCode>
+      <FileName>Models\Domain\RemoteFile.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.SwarmThumbnail">
+    <Position X="11.5" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAgAAAAAgAAAgAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Models\Domain\SwarmThumbnail.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.SwarmVideoMetadata" Collapsed="true">
+    <Position X="14.25" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAAAAAAAAAAACAAAAIAACAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Models\Domain\SwarmVideoMetadata.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.ThumbnailFile">
+    <Position X="8.75" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEAAAABAAAAAAAAAAAAEAAAAAAAAAAAAAAAQAAAAA=</HashCode>
+      <FileName>Models\Domain\ThumbnailFile.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.Video">
+    <Position X="15.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAQAAAAAAAAAAAAAAABAAAAQAgIAAEAAA=</HashCode>
+      <FileName>Models\Domain\Video.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.VideoFile">
+    <Position X="7" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Models\Domain\VideoFile.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.VideoMetadataBase" Collapsed="true">
+    <Position X="15.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAAiAEAAAAAgAAAAIAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Models\Domain\VideoMetadataBase.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Etherna.VideoImporter.Core.Models.Domain.YouTubeVideoMetadataBase" Collapsed="true">
+    <Position X="16.25" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAACAAAAAAAIAAAAAAAACAAAAA=</HashCode>
+      <FileName>Models\Domain\YouTubeVideoMetadataBase.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

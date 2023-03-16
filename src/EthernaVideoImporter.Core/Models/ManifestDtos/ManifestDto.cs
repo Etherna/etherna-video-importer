@@ -36,8 +36,8 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             else
             {
                 // Check thumbnail homogeneous type
-                var swarmThumbnail = video.ThumbnailFiles.All(i => i is SwarmThumbnail);
-                var thumbnailFile = video.ThumbnailFiles.All(i => i is ThumbnailFile);
+                var swarmThumbnail = video.ThumbnailFiles.All(i => i is ThumbnailSwarmFile);
+                var thumbnailFile = video.ThumbnailFiles.All(i => i is ThumbnailLocalFile);
 
                 if (!swarmThumbnail &&
                     !thumbnailFile)
@@ -46,11 +46,11 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                 }
                 if (swarmThumbnail)
                 {
-                    var thumbnailFiles = video.ThumbnailFiles.Cast<SwarmThumbnail>().ToList();
+                    var thumbnailFiles = video.ThumbnailFiles.Cast<ThumbnailSwarmFile>().ToList();
                     Thumbnail = new ManifestThumbnailDto(thumbnailFiles.First().AspectRatio, thumbnailFiles.First().Blurhash, thumbnailFiles.ToDictionary(t => t.Resolution!, t => t.UploadedHashReference!));
                 }
                 else
-                    Thumbnail = new ManifestThumbnailDto(video.ThumbnailFiles.Cast<ThumbnailFile>());
+                    Thumbnail = new ManifestThumbnailDto(video.ThumbnailFiles.Cast<ThumbnailLocalFile>());
             }
 
             Title = video.Metadata.Title;
@@ -58,7 +58,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             OriginalQuality = video.Metadata.OriginVideoQualityLabel;
             OwnerAddress = ownerAddress;
             Duration = (long)video.Metadata.Duration.TotalSeconds;
-            Sources = video.EncodedFiles.OfType<VideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
+            Sources = video.EncodedFiles.OfType<VideoLocalFile>().Select(vf => new ManifestVideoSourceDto(vf));
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             UpdatedAt = null;
             BatchId = batchId;

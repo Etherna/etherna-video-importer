@@ -144,15 +144,14 @@ namespace Etherna.VideoImporter.Core
 
                             // Get remote sources.
                             var videoFiles = alreadyPresentVideo.LastValidManifest.Sources
-                                .Select(video => new RemoteFile(new Uri(video.Reference)));
+                                .Select(video => new VideoSwarmFile(video.Size, video.Quality, new Uri(video.Reference))); // Can or will it have audio files in the future? 
 
                             var thumbnailFiles = alreadyPresentVideo.LastValidManifest.Thumbnail.Sources
                                 .Select(thumbnail => 
-                                    new SwarmThumbnail(videoMetadata.Thumbnail!.AspectRatio,
+                                    new ThumbnailSwarmFile(videoMetadata.Thumbnail!.AspectRatio,
                                     videoMetadata.Thumbnail.Blurhash, 
                                     thumbnail.Key, 
-                                    new Uri(thumbnail.Value)))
-                                .Cast<RemoteFile>();
+                                    new Uri(thumbnail.Value)));
                             
                             var video = new Video(videoMetadata, videoFiles, thumbnailFiles);
 

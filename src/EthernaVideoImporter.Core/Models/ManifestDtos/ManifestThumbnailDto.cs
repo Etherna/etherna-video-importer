@@ -26,7 +26,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
     public sealed class ManifestThumbnailDto
     {
         // Constructors.
-        public ManifestThumbnailDto(IEnumerable<ThumbnailFile> thumbnailFiles)
+        public ManifestThumbnailDto(IEnumerable<ThumbnailLocalFile> thumbnailFiles)
         {
             if (thumbnailFiles is null)
                 throw new ArgumentNullException(nameof(thumbnailFiles));

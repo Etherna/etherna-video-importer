@@ -14,10 +14,10 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class AudioFile : LocalFile
+    public class AudioLocalFile : LocalFile
     {
         // Constructors.
-        public AudioFile(
+        public AudioLocalFile(
             string downloadedFilePath,
             long byteSize)
             : base(downloadedFilePath, byteSize)
