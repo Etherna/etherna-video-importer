@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -67,9 +68,36 @@ namespace Etherna.VideoImporter.Core
         // Public methods.
         public static async Task CheckVersionAsync()
         {
+            Version? currentVersion;
+            Console.Write("Etherna Video Importer");
+
+            // Get current version.
+            try
+            {
+                var assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+                var gitVersionInformationType = Assembly.GetExecutingAssembly().GetType("GitVersionInformation");
+                var versionField = gitVersionInformationType!.GetField("MajorMinorPatch");
+                var versionString = versionField?.GetValue(null)?.ToString();
+                currentVersion = !string.IsNullOrWhiteSpace(versionString) ? new Version(versionString) : null;
+                if (currentVersion is not null)
+                    Console.Write($" (v{currentVersion})");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("Unable to check current version");
+                Console.WriteLine($"Error: {ex.Message}");
+                Console.ResetColor();
+                currentVersion = null;
+            }
+            Console.WriteLine("");
+            Console.WriteLine("");
+
+            // Get last version.
             try
             {
                 using var httpClientGit = new HttpClient();
+                httpClientGit.DefaultRequestHeaders.Add("User-Agent", "EthernaImportClient");
                 var gitUrl = "https://api.github.com/repos/Etherna/etherna-video-importer/releases";
                 var response = await httpClientGit.GetAsync(gitUrl);
                 var gitReleaseVersionsDto = await response.Content.ReadFromJsonAsync<List<GitReleaseVersionDto>>();
@@ -80,7 +108,6 @@ namespace Etherna.VideoImporter.Core
                     throw new InvalidOperationException("GitHub haven't any version");
                 }
 
-                var currentVersion = CommonConsts.EthernaImporterVersion;
                 var lastVersion = gitReleaseVersionsDto
                     .Select(git => new
                     {
@@ -90,11 +117,10 @@ namespace Etherna.VideoImporter.Core
                     .OrderByDescending(v => v.Version)
                     .First();
 
-                if (lastVersion.Version > currentVersion)
+                if (currentVersion is not null &&
+                    lastVersion.Version > currentVersion)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"A new version {lastVersion.Version} is avaiable at {lastVersion.Url}");
-                    Console.ResetColor();
+                    Console.WriteLine($"Install the latest version {lastVersion.Version} for new features and improvements! {lastVersion.Url}");
                 }
             }
             catch (Exception ex)
