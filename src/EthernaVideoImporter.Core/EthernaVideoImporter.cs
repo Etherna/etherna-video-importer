@@ -129,6 +129,7 @@ namespace Etherna.VideoImporter.Core
 
                             operationType = OperationType.Update;
 
+                            // Create manifest.
                             var videoMetadata = new SwarmVideoMetadata(
                                 sourceMetadata.Description,
                                 new TimeSpan(0, 0, (int)alreadyPresentVideo.LastValidManifest!.Duration),
@@ -138,12 +139,22 @@ namespace Etherna.VideoImporter.Core
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Sources),
                                 sourceMetadata.Title,
-                                alreadyPresentVideo.LastValidManifest.Hash);
+                                alreadyPresentVideo.LastValidManifest.Hash,
+                                sourceMetadata.Id);
 
-                            var remoteFiles = alreadyPresentVideo.LastValidManifest.Thumbnail.Sources.Select(thumbnail => new SwarmThumbnail(videoMetadata.Thumbnail!.AspectRatio, videoMetadata.Thumbnail.Blurhash, thumbnail.Key, new Uri(thumbnail.Value))).ToList<RemoteFile>();
-                            remoteFiles.AddRange(alreadyPresentVideo.LastValidManifest.Sources.Select(video => new RemoteFile(new Uri(video.Reference))));
+                            // Get remote sources.
+                            var videoFiles = alreadyPresentVideo.LastValidManifest.Sources
+                                .Select(video => new RemoteFile(new Uri(video.Reference)));
 
-                            var video = new Video(videoMetadata, remoteFiles, alreadyPresentVideo.LastValidManifest.Thumbnail.Sources.Select(t=> new ThumbnailFile("", 0, 0, 0)));
+                            var thumbnailFiles = alreadyPresentVideo.LastValidManifest.Thumbnail.Sources
+                                .Select(thumbnail => 
+                                    new SwarmThumbnail(videoMetadata.Thumbnail!.AspectRatio,
+                                    videoMetadata.Thumbnail.Blurhash, 
+                                    thumbnail.Key, 
+                                    new Uri(thumbnail.Value)))
+                                .Cast<RemoteFile>();
+                            
+                            var video = new Video(videoMetadata, videoFiles, thumbnailFiles);
 
                             // Upload new manifest.
                             updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress, pinVideos);
@@ -210,7 +221,7 @@ namespace Etherna.VideoImporter.Core
                         case OperationType.Skip:
                             importSummaryModelView.TotSkippedVideoImported++;
                             break;
-                    }    
+                    }
                 }
                 catch (Exception ex)
                 {

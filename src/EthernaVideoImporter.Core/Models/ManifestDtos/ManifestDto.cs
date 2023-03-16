@@ -42,7 +42,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                 if (!swarmThumbnail &&
                     !thumbnailFile)
                 {
-                    throw new InvalidOperationException("Mixed source");
+                    throw new InvalidOperationException("Mixed source in thumbnails");
                 }
                 if (swarmThumbnail)
                 {

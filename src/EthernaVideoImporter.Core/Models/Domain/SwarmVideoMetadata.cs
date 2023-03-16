@@ -1,6 +1,5 @@
 ﻿using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
-using YoutubeExplode.Common;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
@@ -13,16 +12,19 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             string originVideoQualityLabel,
             ManifestThumbnailDto? thumbnail,
             string title,
-            string swarmUrl)
+            string swarmUrl,
+            string videoId)
             : base(description, duration, originVideoQualityLabel, title)
         {
             SwarmUrl = swarmUrl;
             Thumbnail = thumbnail;
+            VideoId = videoId;
         }
 
         // Properties.
         public override string Id => SwarmUrl;
         public string SwarmUrl { get; }
         public ManifestThumbnailDto? Thumbnail { get; }
+        public string VideoId { get; }
     }
 }
