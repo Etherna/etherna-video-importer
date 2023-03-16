@@ -26,7 +26,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public Video(
             VideoMetadataBase metadata,
             IEnumerable<FileBase> encodedFiles,
-            IEnumerable<ThumbnailFile> thumbnailFiles)
+            IEnumerable<FileBase> thumbnailFiles)
         {
             if (!encodedFiles.Any())
                 throw new ArgumentException("Must exist at least a stream");
@@ -41,7 +41,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public string? EthernaIndexId { get; set; }
         public string? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
-        public IEnumerable<ThumbnailFile> ThumbnailFiles { get; }
+        public IEnumerable<FileBase> ThumbnailFiles { get; }
 
         // Methods.
         public long GetTotalByteSize() =>

@@ -21,6 +21,7 @@ using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -121,7 +122,7 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
-            foreach (var encodedFile in video.EncodedFiles)
+            foreach (var encodedFile in video.EncodedFiles.Cast<LocalFile>())
             {
                 Console.WriteLine(encodedFile switch
                 {
@@ -165,7 +166,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Upload thumbnail.
             Console.WriteLine("Uploading thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles)
+            foreach (var thumbnailFile in video.ThumbnailFiles.Cast<LocalFile>())
             {
                 var uploadSucceeded = false;
                 string thumbnailReference = null!;
@@ -203,30 +204,26 @@ namespace Etherna.VideoImporter.Core.Services
                     await ethernaGatewayClient.ResourcesClient.OffersPostAsync(thumbnailFile.UploadedHashReference);
             }
 
-            // Manifest.
-            var metadataVideo = new ManifestDto(video, batchId, userEthAddr);
+            var uploadManifestSucceeded = false;
+            for (int i = 0; i < UploadMaxRetry && !uploadManifestSucceeded; i++)
             {
-                var uploadSucceeded = false;
-                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
+                try
                 {
-                    try
+                    video.EthernaPermalinkHash = await UploadVideoManifestAsync(video, batchId, userEthAddr, pinVideo);
+                    uploadManifestSucceeded = true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                    if (i + 1 < UploadMaxRetry)
                     {
-                        video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo);
-                        uploadSucceeded = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error: {ex.Message}");
-                        if (i + 1 < UploadMaxRetry)
-                        {
-                            Console.WriteLine("Retry...");
-                            await Task.Delay(UploadRetryTimeSpan);
-                        }
+                        Console.WriteLine("Retry...");
+                        await Task.Delay(UploadRetryTimeSpan);
                     }
                 }
-                if (!uploadSucceeded)
-                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
             }
+            if (!uploadManifestSucceeded)
+                throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
             if (offerVideo)
                 await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.EthernaPermalinkHash!);
@@ -247,11 +244,15 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         public async Task<string> UploadVideoManifestAsync(
-            ManifestDto videoManifest,
+            Video video,
+            string batchId,
+            string userEthAddr,
             bool pinManifest)
         {
-            if (videoManifest is null)
-                throw new ArgumentNullException(nameof(videoManifest));
+            if (video is null)
+                throw new ArgumentNullException(nameof(video));
+
+            var videoManifest = new ManifestDto(video, batchId, userEthAddr);
 
             // Upload manifest.
             var uploadSucceeded = false;

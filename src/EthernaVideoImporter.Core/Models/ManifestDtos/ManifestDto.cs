@@ -31,43 +31,38 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
 
+            if (!video.ThumbnailFiles.Any())
+                Thumbnail = null;
+            else
+            {
+                // Check thumbnail homogeneous type
+                var swarmThumbnail = video.ThumbnailFiles.All(i => i is SwarmThumbnail);
+                var thumbnailFile = video.ThumbnailFiles.All(i => i is ThumbnailFile);
+
+                if (!swarmThumbnail &&
+                    !thumbnailFile)
+                {
+                    throw new InvalidOperationException("Mixed source");
+                }
+                if (swarmThumbnail)
+                {
+                    var thumbnailFiles = video.ThumbnailFiles.Cast<SwarmThumbnail>().ToList();
+                    Thumbnail = new ManifestThumbnailDto(thumbnailFiles.First().AspectRatio, thumbnailFiles.First().Blurhash, thumbnailFiles.ToDictionary(t => t.Resolution!, t => t.UploadedHashReference!));
+                }
+                else
+                    Thumbnail = new ManifestThumbnailDto(video.ThumbnailFiles.Cast<ThumbnailFile>());
+            }
+
             Title = video.Metadata.Title;
             Description = video.Metadata.Description;
             OriginalQuality = video.Metadata.OriginVideoQualityLabel;
             OwnerAddress = ownerAddress;
             Duration = (long)video.Metadata.Duration.TotalSeconds;
-            Thumbnail = video.ThumbnailFiles.Any() ? new ManifestThumbnailDto(video.ThumbnailFiles) : null;
             Sources = video.EncodedFiles.OfType<VideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             UpdatedAt = null;
             BatchId = batchId;
             PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id));
-        }
-
-        public ManifestDto(
-            string title,
-            string description,
-            string originalQuality,
-            string ownerAddress,
-            long duration,
-            ManifestThumbnailDto? thumbnail,
-            IEnumerable<ManifestVideoSourceDto> sources,
-            long createdAt,
-            long? updatedAt,
-            string batchId,
-            string? personalData)
-        {
-            Title = title;
-            Description = description;
-            OriginalQuality = originalQuality;
-            OwnerAddress = ownerAddress;
-            Duration = duration;
-            Thumbnail = thumbnail;
-            Sources = sources;
-            CreatedAt = createdAt;
-            UpdatedAt = updatedAt;
-            BatchId = batchId;
-            PersonalData = personalData;
         }
 
         // Properties.

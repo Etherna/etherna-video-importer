@@ -14,6 +14,7 @@
 
 using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Models.ModelView;
@@ -128,24 +129,24 @@ namespace Etherna.VideoImporter.Core
 
                             operationType = OperationType.Update;
 
-                            var updatedManifest = new ManifestDto(
-                                sourceMetadata.Title,
+                            var videoMetadata = new SwarmVideoMetadata(
                                 sourceMetadata.Description,
+                                new TimeSpan(0, 0, (int)alreadyPresentVideo.LastValidManifest!.Duration),
                                 alreadyPresentVideo.LastValidManifest!.OriginalQuality,
-                                userEthAddress,
-                                alreadyPresentVideo.LastValidManifest.Duration,
                                 new ManifestThumbnailDto(
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Sources),
-                                alreadyPresentVideo.LastValidManifest.Sources.Select(s => new ManifestVideoSourceDto(s)),
-                                alreadyPresentVideo.CreationDateTime.ToUnixTimeMilliseconds(), //this should be retrieved from manifest. See: https://etherna.atlassian.net/browse/EVI-60
-                                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                                alreadyPresentVideo.LastValidManifest.BatchId,
-                                JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(sourceMetadata.Id!)));
+                                sourceMetadata.Title,
+                                alreadyPresentVideo.LastValidManifest.Hash);
+
+                            var remoteFiles = alreadyPresentVideo.LastValidManifest.Thumbnail.Sources.Select(thumbnail => new SwarmThumbnail(videoMetadata.Thumbnail!.AspectRatio, videoMetadata.Thumbnail.Blurhash, thumbnail.Key, new Uri(thumbnail.Value))).ToList<RemoteFile>();
+                            remoteFiles.AddRange(alreadyPresentVideo.LastValidManifest.Sources.Select(video => new RemoteFile(new Uri(video.Reference))));
+
+                            var video = new Video(videoMetadata, remoteFiles, alreadyPresentVideo.LastValidManifest.Thumbnail.Sources.Select(t=> new ThumbnailFile("", 0, 0, 0)));
 
                             // Upload new manifest.
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(updatedManifest, pinVideos);
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress, pinVideos);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(

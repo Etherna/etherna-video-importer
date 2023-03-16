@@ -13,7 +13,6 @@
 //   limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -37,11 +36,15 @@ namespace Etherna.VideoImporter.Core.Services
         /// <summary>
         /// Upload a new video manifest
         /// </summary>
-        /// <param name="videoManifest">The video manifest</param>
+        /// <param name="video">The video</param>
+        /// <param name="batchId">The batch id</param>
+        /// <param name="userEthAddr">The user eth address</param>
         /// <param name="pinManifest">True if need to pin manifest</param>
         /// <returns>The new manifest hash</returns>
         Task<string> UploadVideoManifestAsync(
-            ManifestDto videoManifest,
+            Video video,
+            string batchId,
+            string userEthAddr,
             bool pinManifest);
     }
 }
