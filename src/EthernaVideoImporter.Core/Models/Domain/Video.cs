@@ -44,9 +44,17 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public IEnumerable<FileBase> ThumbnailFiles { get; }
 
         // Methods.
-        public long GetTotalByteSize() =>
-            EncodedFiles.Sum(f => f.ByteSize) +
-            ThumbnailFiles.Sum(t => t.ByteSize) +
-            JsonSerializer.Serialize(new ManifestDto(this, "0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000")).Length;
+        public long GetTotalByteSize()
+        {
+            if (EncodedFiles.Any(file => file is not LocalFile) ||
+                ThumbnailFiles.Any(file => file is not LocalFile))
+            {
+                throw new InvalidOperationException("Unable to calculate total byte size when some file not LocalFile type");
+            }
+
+            return   EncodedFiles.Sum(f => ((LocalFile)f).ByteSize) +
+                    ThumbnailFiles.Sum(t => ((LocalFile)t).ByteSize) +
+                    JsonSerializer.Serialize(new ManifestDto(this, "0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000")).Length;
+        }
     }
 }
