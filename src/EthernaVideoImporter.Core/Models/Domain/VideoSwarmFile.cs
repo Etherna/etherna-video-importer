@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public partial class VideoSwarmFile : RemoteFile
+    public partial class VideoSwarmFile : SwarmFileBase
     {
         // Consts.
         [GeneratedRegex("^(?<label>\\d+p)\\d*$")]

@@ -122,7 +122,7 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
-            foreach (var encodedFile in video.EncodedFiles.Cast<LocalFile>())
+            foreach (var encodedFile in video.EncodedFiles.Cast<LocalFileBase>())
             {
                 Console.WriteLine(encodedFile switch
                 {
@@ -166,7 +166,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Upload thumbnail.
             Console.WriteLine("Uploading thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles.Cast<LocalFile>())
+            foreach (var thumbnailFile in video.ThumbnailFiles.Cast<LocalFileBase>())
             {
                 var uploadSucceeded = false;
                 string thumbnailReference = null!;

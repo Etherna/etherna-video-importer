@@ -7,13 +7,13 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     {
         // Constructors.
         internal SwarmVideoMetadata(
+            string videoId,
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
             ManifestThumbnailDto? thumbnail,
             string title,
-            string swarmUrl,
-            string videoId)
+            string swarmUrl)
             : base(description, duration, originVideoQualityLabel, title)
         {
             SwarmUrl = swarmUrl;

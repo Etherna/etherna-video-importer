@@ -14,7 +14,7 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class AudioLocalFile : LocalFile
+    public class AudioLocalFile : LocalFileBase
     {
         // Constructors.
         public AudioLocalFile(

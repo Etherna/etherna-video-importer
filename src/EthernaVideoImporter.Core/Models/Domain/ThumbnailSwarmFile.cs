@@ -2,7 +2,7 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public sealed class ThumbnailSwarmFile : RemoteFile
+    public sealed class ThumbnailSwarmFile : SwarmFileBase
     {
         // Constructor.
         public ThumbnailSwarmFile(

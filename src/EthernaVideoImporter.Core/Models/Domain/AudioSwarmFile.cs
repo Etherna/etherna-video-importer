@@ -2,7 +2,7 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class AudioSwarmFile : RemoteFile
+    public class AudioSwarmFile : SwarmFileBase
     {
         // Constructor.
         public AudioSwarmFile(

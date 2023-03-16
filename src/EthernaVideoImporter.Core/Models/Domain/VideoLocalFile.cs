@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public partial class VideoLocalFile : LocalFile
+    public partial class VideoLocalFile : LocalFileBase
     {
         // Consts.
         [GeneratedRegex("^(?<label>\\d+p)\\d*$")]

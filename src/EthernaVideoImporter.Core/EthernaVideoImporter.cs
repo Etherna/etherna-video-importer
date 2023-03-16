@@ -131,6 +131,7 @@ namespace Etherna.VideoImporter.Core
 
                             // Create manifest.
                             var videoMetadata = new SwarmVideoMetadata(
+                                sourceMetadata.Id,
                                 sourceMetadata.Description,
                                 new TimeSpan(0, 0, (int)alreadyPresentVideo.LastValidManifest!.Duration),
                                 alreadyPresentVideo.LastValidManifest!.OriginalQuality,
@@ -139,12 +140,11 @@ namespace Etherna.VideoImporter.Core
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Sources),
                                 sourceMetadata.Title,
-                                alreadyPresentVideo.LastValidManifest.Hash,
-                                sourceMetadata.Id);
+                                alreadyPresentVideo.LastValidManifest.Hash);
 
                             // Get remote sources.
-                            var videoFiles = alreadyPresentVideo.LastValidManifest.Sources
-                                .Select(video => new VideoSwarmFile(video.Size, video.Quality, new Uri(video.Reference))); // Can or will it have audio files in the future? 
+                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources
+                                .Select(v => new VideoSwarmFile(v.Size, v.Quality, new Uri(v.Reference))); // Can or will it have audio files in the future? 
 
                             var thumbnailFiles = alreadyPresentVideo.LastValidManifest.Thumbnail.Sources
                                 .Select(thumbnail => 
@@ -153,7 +153,7 @@ namespace Etherna.VideoImporter.Core
                                     thumbnail.Key, 
                                     new Uri(thumbnail.Value)));
                             
-                            var video = new Video(videoMetadata, videoFiles, thumbnailFiles);
+                            var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
                             // Upload new manifest.
                             updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress, pinVideos);

@@ -2,10 +2,10 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract class LocalFile : FileBase
+    public abstract class LocalFileBase : FileBase
     {
         // Constructor.
-        protected LocalFile(
+        protected LocalFileBase(
             string downloadedFilePath,
             long byteSize)
         {
