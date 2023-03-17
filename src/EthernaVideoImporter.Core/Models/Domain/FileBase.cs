@@ -17,11 +17,13 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public abstract class FileBase
     {
         // Constructors.
-        protected FileBase()
+        protected FileBase(long? byteSize)
         {
+            ByteSize = byteSize;
         }
 
         // Properties.
+        public long? ByteSize { get; }
         public string? UploadedHashReference { get; set; }
     }
 }

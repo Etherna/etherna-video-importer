@@ -46,14 +46,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Methods.
         public long GetTotalByteSize()
         {
-            if (EncodedFiles.Any(file => file is not LocalFileBase) ||
-                ThumbnailFiles.Any(file => file is not LocalFileBase))
-            {
-                throw new InvalidOperationException("Unable to calculate total byte size when some file not LocalFile type");
-            }
-
-            return   EncodedFiles.Sum(f => ((LocalFileBase)f).ByteSize) + // EncodedFiles have the ByteSize. The problem is ThumbnailFiles Swarm
-                    ThumbnailFiles.Sum(t => ((LocalFileBase)t).ByteSize) +
+            return   EncodedFiles.Sum(f => f.ByteSize ?? 0) + 
+                    ThumbnailFiles.Sum(t => t.ByteSize ?? 0) +
                     JsonSerializer.Serialize(new ManifestDto(this, "0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000")).Length;
         }
     }

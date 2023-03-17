@@ -1,17 +1,17 @@
-﻿using System;
-
-namespace Etherna.VideoImporter.Core.Models.Domain
+﻿namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public abstract class SwarmFileBase : FileBase
     {
         // Constructor.
         protected SwarmFileBase(
-            Uri Uri)
+            string hash,
+            long? byteSize)
+            : base(byteSize)
         {
-            this.Uri = Uri;
+            this.Hash = hash;
         }
 
         // Properties.
-        public Uri Uri { get; }
+        public string Hash { get; }
     }
 }

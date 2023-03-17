@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 
@@ -20,24 +19,16 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestVideoSourceDto
     {
-        public ManifestVideoSourceDto(SourceDto source)
-        {
-            if (source is null)
-                throw new ArgumentNullException(nameof(source));
-
-            Quality = source.Quality;
-            Reference = source.Reference;
-            Size = source.Size;
-        }
-
         public ManifestVideoSourceDto(VideoLocalFile videoFile)
         {
             if (videoFile is null)
                 throw new ArgumentNullException(nameof(videoFile));
+            if (videoFile.ByteSize is null)
+                throw new ArgumentException($"{nameof(videoFile.ByteSize)} is required");
 
             Quality = videoFile.VideoQualityLabel;
             Reference = videoFile.UploadedHashReference ?? throw new InvalidOperationException();
-            Size = videoFile.ByteSize;
+            Size = videoFile.ByteSize.Value;
         }
 
         public int Bitrate => 420; //fake place holder, will be removed on manifest 2.0

@@ -12,19 +12,16 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             TimeSpan duration,
             string originVideoQualityLabel,
             ManifestThumbnailDto? thumbnail,
-            string title,
-            string swarmUrl)
+            string title)
             : base(description, duration, originVideoQualityLabel, title)
         {
-            SwarmUrl = swarmUrl;
             Thumbnail = thumbnail;
             VideoId = videoId;
         }
 
         // Properties.
-        public override string Id => SwarmUrl;
-        public string SwarmUrl { get; }
-        public ManifestThumbnailDto? Thumbnail { get; }
+        public override string Id => VideoId;
+        public ManifestThumbnailDto? Thumbnail { get; } // DTO is used even in YoutubeManifest and MdManifest.
         public string VideoId { get; }
     }
 }

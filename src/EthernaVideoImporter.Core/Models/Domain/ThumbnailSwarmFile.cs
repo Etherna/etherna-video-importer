@@ -9,8 +9,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             float aspectRatio,
             string blurhash,
             string resolution,
-            Uri uri)
-            : base(uri)
+            string hash,
+            long? byteSize)
+            : base(hash, byteSize)
         {
             AspectRatio = aspectRatio;
             Blurhash = blurhash;

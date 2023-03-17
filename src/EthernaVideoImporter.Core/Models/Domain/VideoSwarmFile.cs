@@ -13,20 +13,17 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public VideoSwarmFile(
             long byteSize,
             string videoQualityLabel,
-            Uri uri)
-            : base(uri)
+            string hash)
+            : base(hash, byteSize)
         {
             var originVideoQualityLabelMatch = QualityLabelRegex().Match(videoQualityLabel);
             if (originVideoQualityLabelMatch.Success)
                 VideoQualityLabel = originVideoQualityLabelMatch.Groups["label"].Value;
             else
                 throw new ArgumentException("Invalid quality label", nameof(videoQualityLabel));
-
-            ByteSize = byteSize;
         }
 
         // Properties.
-        public long ByteSize { get; }
         public string VideoQualityLabel { get; }
     }
 }

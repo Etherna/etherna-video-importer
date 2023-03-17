@@ -139,24 +139,25 @@ namespace Etherna.VideoImporter.Core
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Sources),
-                                sourceMetadata.Title,
-                                alreadyPresentVideo.LastValidManifest.Hash);
+                                sourceMetadata.Title);
 
                             // Get remote sources.
                             var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources
-                                .Select(v => new VideoSwarmFile(v.Size, v.Quality, new Uri(v.Reference))); // Can or will it have audio files in the future? 
+                                .Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference)); // Can or will it have audio files in the future? 
 
                             var thumbnailFiles = alreadyPresentVideo.LastValidManifest.Thumbnail.Sources
                                 .Select(thumbnail => 
                                     new ThumbnailSwarmFile(videoMetadata.Thumbnail!.AspectRatio,
                                     videoMetadata.Thumbnail.Blurhash, 
-                                    thumbnail.Key, 
-                                    new Uri(thumbnail.Value)));
+                                    thumbnail.Key,
+                                    thumbnail.Value,
+                                    null));
                             
                             var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
                             // Upload new manifest.
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress, pinVideos);
+                            var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(

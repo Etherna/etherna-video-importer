@@ -122,7 +122,7 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
-            foreach (var encodedFile in video.EncodedFiles.Cast<LocalFileBase>())
+            foreach (var encodedFile in video.EncodedFiles.OfType<LocalFileBase>())
             {
                 Console.WriteLine(encodedFile switch
                 {
@@ -166,7 +166,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Upload thumbnail.
             Console.WriteLine("Uploading thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles.Cast<LocalFileBase>())
+            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<LocalFileBase>())
             {
                 var uploadSucceeded = false;
                 string thumbnailReference = null!;
@@ -204,12 +204,13 @@ namespace Etherna.VideoImporter.Core.Services
                     await ethernaGatewayClient.ResourcesClient.OffersPostAsync(thumbnailFile.UploadedHashReference);
             }
 
+            var metadataVideo = new ManifestDto(video, batchId, userEthAddr);
             var uploadManifestSucceeded = false;
             for (int i = 0; i < UploadMaxRetry && !uploadManifestSucceeded; i++)
             {
                 try
                 {
-                    video.EthernaPermalinkHash = await UploadVideoManifestAsync(video, batchId, userEthAddr, pinVideo);
+                    video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo);
                     uploadManifestSucceeded = true;
                 }
                 catch (Exception ex)
@@ -244,15 +245,11 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         public async Task<string> UploadVideoManifestAsync(
-            Video video,
-            string batchId,
-            string userEthAddr,
+            ManifestDto videoManifest,
             bool pinManifest)
         {
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
-
-            var videoManifest = new ManifestDto(video, batchId, userEthAddr);
+            if (videoManifest is null)
+                throw new ArgumentNullException(nameof(videoManifest));
 
             // Upload manifest.
             var uploadSucceeded = false;

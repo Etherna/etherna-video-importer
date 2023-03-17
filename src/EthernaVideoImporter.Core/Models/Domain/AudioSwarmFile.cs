@@ -7,13 +7,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Constructor.
         public AudioSwarmFile(
             long byteSize,
-            Uri uri)
-            : base(uri)
+            string hash)
+            : base(hash, byteSize)
         {
-            ByteSize = byteSize;
         }
 
         // Properties.
-        public long ByteSize { get; }
     }
 }
