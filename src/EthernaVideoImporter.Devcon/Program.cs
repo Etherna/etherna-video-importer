@@ -47,6 +47,7 @@ namespace Etherna.VideoImporter.Devcon
             "  -u\tTry to unpin contents removed from index\n" +
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
+            "  -i\tIgnore new version of import\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
@@ -67,6 +68,7 @@ namespace Etherna.VideoImporter.Devcon
             bool unpinRemovedVideos = false;
             bool forceUploadVideo = false;
             bool acceptPurchaseOfAllBatches = false;
+            bool ignoreNewVersionOfImporter = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -123,9 +125,14 @@ namespace Etherna.VideoImporter.Devcon
                     case "-u": unpinRemovedVideos = true; break;
                     case "-f": forceUploadVideo = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
+                    case "-i": ignoreNewVersionOfImporter = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
+
+            // Check for new version
+            if (!ignoreNewVersionOfImporter)
+                await EthernaVideoImporter.CheckVersionAsync();
 
             // Input validation.
             //FFmpeg
