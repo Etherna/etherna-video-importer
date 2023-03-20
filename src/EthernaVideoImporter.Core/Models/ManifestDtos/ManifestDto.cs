@@ -22,6 +22,12 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestDto
     {
+        // Consts.
+        private const int PersonalDataMaxLength = 200;
+
+        // Fields.
+        private string? _personalData;
+
         // Constructors.
         public ManifestDto(
             Video video,
@@ -81,7 +87,16 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         public long CreatedAt { get; }
         public long? UpdatedAt { get; }
         public string BatchId { get; }
-        public string? PersonalData { get; }
+        public string? PersonalData
+        {
+            get => _personalData;
+            set
+            {
+                if (value is not null && value.Length > PersonalDataMaxLength)
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                _personalData = value;
+            }
+        }
         public string V => "1.2";
     }
 }
