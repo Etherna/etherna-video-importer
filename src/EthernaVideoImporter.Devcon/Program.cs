@@ -47,14 +47,12 @@ namespace Etherna.VideoImporter.Devcon
             "  -u\tTry to unpin contents removed from index\n" +
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
-            "  -i\tIgnore new version of import\n" +
+            "  -i\tIgnore new version of EthernaVideoImporter.Devcon\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
         static async Task Main(string[] args)
         {
-            await EthernaVideoImporter.CheckVersionAsync();
-
             // Parse arguments.
             string? mdSourceFolderPath = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
@@ -131,8 +129,10 @@ namespace Etherna.VideoImporter.Devcon
             }
 
             // Check for new version
-            if (!ignoreNewVersionOfImporter)
-                await EthernaVideoImporter.CheckVersionAsync();
+            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
+            if (newVersionAvaiable &&
+                !ignoreNewVersionOfImporter)
+                return;
 
             // Input validation.
             //FFmpeg

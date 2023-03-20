@@ -51,7 +51,7 @@ namespace Etherna.VideoImporter
             "  -u\tTry to unpin contents removed from index\n" +
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
-            "  -i\tIgnore new version of import\n" +
+            "  -i\tIgnore new version of EthernaVideoImporter\n" +
             "\n" +
             "Run 'EthernaVideoImporter -h' to print help\n";
 
@@ -140,8 +140,10 @@ namespace Etherna.VideoImporter
             }
 
             // Check for new version
-            if (!ignoreNewVersionOfImporter)
-                await EthernaVideoImporter.CheckVersionAsync();
+            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
+            if (newVersionAvaiable &&
+                !ignoreNewVersionOfImporter)
+                return;
 
             // Input validation.
             //FFmpeg
