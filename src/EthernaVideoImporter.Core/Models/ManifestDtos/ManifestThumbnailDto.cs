@@ -56,8 +56,8 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         }
 
         // Properties.
-        public float AspectRatio { get; set; }
-        public string Blurhash { get; set; }
+        public float AspectRatio { get; }
+        public string Blurhash { get; }
         public IDictionary<string, string> Sources { get; }
     }
 }
