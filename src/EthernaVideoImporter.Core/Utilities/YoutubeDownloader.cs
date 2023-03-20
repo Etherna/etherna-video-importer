@@ -143,7 +143,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 new FileInfo(audioFilePath).Length);
         }
 
-        private async Task<string> DownloadThumbnailAsync(
+        private async Task<ThumbnailLocalFile> DownloadThumbnailAsync(
             Thumbnail thumbnail,
             string videoTitle)
         {
@@ -177,7 +177,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return thumbnailFilePath;
+            return new ThumbnailLocalFile(thumbnailFilePath, new FileInfo(thumbnailFilePath).Length,  thumbnail.Resolution.Width, thumbnail.Resolution.Height);
         }
 
         private async Task<VideoLocalFile> DownloadVideoStreamAsync(
@@ -227,11 +227,11 @@ namespace Etherna.VideoImporter.Core.Utilities
                 new FileInfo(videoFilePath).Length);
         }
 
-        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(string thumbnailFilePath)
+        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(ThumbnailLocalFile thumbnailLocalFile)
         {
             List<ThumbnailLocalFile> thumbnails = new();
 
-            using var thumbFileStream = File.OpenRead(thumbnailFilePath);
+            using var thumbFileStream = File.OpenRead(thumbnailLocalFile.DownloadedFilePath);
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
 

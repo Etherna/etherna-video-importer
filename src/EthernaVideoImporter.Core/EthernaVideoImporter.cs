@@ -130,29 +130,24 @@ namespace Etherna.VideoImporter.Core
                             operationType = OperationType.Update;
 
                             // Create manifest.
+                            var thumbnailFiles = alreadyPresentVideo.LastValidManifest!.Thumbnail.Sources.Select(t =>
+                                    new ThumbnailSwarmFile(
+                                        alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
+                                        alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
+                                        t.Key,
+                                        t.Value,
+                                        null));
+
                             var videoMetadata = new SwarmVideoMetadata(
                                 sourceMetadata.Id,
                                 sourceMetadata.Description,
                                 new TimeSpan(0, 0, (int)alreadyPresentVideo.LastValidManifest!.Duration),
                                 alreadyPresentVideo.LastValidManifest!.OriginalQuality,
-                                new ManifestThumbnailDto(
-                                    alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
-                                    alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
-                                    alreadyPresentVideo.LastValidManifest.Thumbnail.Sources),
+                                thumbnailFiles,
                                 sourceMetadata.Title);
 
                             // Get remote sources.
-                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources
-                                .Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference)); // Can or will it have audio files in the future? 
-
-                            var thumbnailFiles = alreadyPresentVideo.LastValidManifest.Thumbnail.Sources
-                                .Select(thumbnail => 
-                                    new ThumbnailSwarmFile(videoMetadata.Thumbnail!.AspectRatio,
-                                    videoMetadata.Thumbnail.Blurhash, 
-                                    thumbnail.Key,
-                                    thumbnail.Value,
-                                    null));
-                            
+                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference));
                             var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
                             // Upload new manifest.
