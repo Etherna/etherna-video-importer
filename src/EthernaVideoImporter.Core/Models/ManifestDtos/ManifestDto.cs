@@ -35,22 +35,23 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                 Thumbnail = null;
             else
             {
-                // Check thumbnail homogeneous type
-                var swarmThumbnail = video.ThumbnailFiles.All(i => i is ThumbnailSwarmFile);
-                var thumbnailFile = video.ThumbnailFiles.All(i => i is ThumbnailLocalFile);
+                // Mix thumbnails from swarm and local.
+                var swarmFiles = video.ThumbnailFiles.OfType<ThumbnailSwarmFile>().ToList();
+                if (swarmFiles.Any())
+                {
+                    Thumbnail = new ManifestThumbnailDto(swarmFiles.First().AspectRatio, swarmFiles.First().Blurhash, swarmFiles.ToDictionary(t => t.Resolution!, t => t.UploadedHashReference!));
+                }
 
-                if (!swarmThumbnail &&
-                    !thumbnailFile)
+                var localFiles = video.ThumbnailFiles.OfType<ThumbnailLocalFile>().ToList();
+                if (localFiles.Any())
                 {
-                    throw new InvalidOperationException("Mixed source in thumbnails");
+                    var localThumbnail = new ManifestThumbnailDto(localFiles);
+                    if (Thumbnail is not null)
+                        foreach (var item in localThumbnail.Sources)
+                            Thumbnail.Sources.Add(item);
+                    else
+                        Thumbnail = localThumbnail;
                 }
-                if (swarmThumbnail)
-                {
-                    var thumbnailFiles = video.ThumbnailFiles.Cast<ThumbnailSwarmFile>().ToList();
-                    Thumbnail = new ManifestThumbnailDto(thumbnailFiles.First().AspectRatio, thumbnailFiles.First().Blurhash, thumbnailFiles.ToDictionary(t => t.Resolution!, t => t.UploadedHashReference!));
-                }
-                else
-                    Thumbnail = new ManifestThumbnailDto(video.ThumbnailFiles.Cast<ThumbnailLocalFile>());
             }
 
             Title = video.Metadata.Title;
