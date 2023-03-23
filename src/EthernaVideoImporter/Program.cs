@@ -64,8 +64,8 @@ namespace Etherna.VideoImporter
             string? sourceUri = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
-            string gatewayUrl = "CommonConsts.EthernaGatewayUrl";
-            string indexUrl = "CommonConsts.EthernaIndexUrl";
+            string gatewayUrl = CommonConsts.EthernaGatewayUrl;
+            string indexUrl = CommonConsts.EthernaIndexUrl;
             int ttlPostageStamp = DefaultTTLPostageStamp;
             bool offerVideos = false;
             bool pinVideos = false;
