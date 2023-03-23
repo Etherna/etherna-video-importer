@@ -52,8 +52,8 @@ namespace Etherna.VideoImporter
             "  -u\tTry to unpin contents removed from index\n" +
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
-            $"  -gateway\t Url of gateway Bee node (default value: {CommonConsts.EthernaGatewayUrl} days)\n" + //Choose also BeeNodeGatewayPort?
-            $"  -index\t(days) Url of index (default value: {CommonConsts.EthernaIndexUrl} days)\n\n" +
+            $"  -gateway\t Url of gateway Bee node (default value: {CommonConsts.EthernaGatewayUrl})\n" + //Choose also BeeNodeGatewayPort?
+            $"  -index\t Url of index (default value: {CommonConsts.EthernaIndexUrl})\n" +
             "\n" +
             "Run 'EthernaVideoImporter -h' to print help\n";
 
