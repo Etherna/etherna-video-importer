@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
@@ -26,15 +25,15 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class CleanerVideoService : ICleanerVideoService
     {
         // Fields.
-        private readonly IUserGatewayClient ethernaGatewayClient;
+        private readonly IGatewayService gatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
 
         // Constructor.
         public CleanerVideoService(
-            IUserGatewayClient ethernaGatewayClient,
+            IGatewayService ethernaGatewayClient,
             IUserIndexClient ethernaIndexClient)
         {
-            this.ethernaGatewayClient = ethernaGatewayClient;
+            this.gatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
         }
 
@@ -160,7 +159,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             try
             {
-                await ethernaGatewayClient.ResourcesClient.PinDeleteAsync(hash);
+                await gatewayClient.PinDeleteAsync(hash);
 
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
                 Console.WriteLine($"Resource with hash {hash} unpinned from gateway");

@@ -16,6 +16,7 @@ using Etherna.Authentication;
 using Etherna.BeeNet;
 using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Factories;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Services;
@@ -51,6 +52,8 @@ namespace Etherna.VideoImporter
             "  -u\tTry to unpin contents removed from index\n" +
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
+            $"  -gateway\t Url of gateway Bee node (default value: {CommonConsts.EthernaGatewayUrl} days)\n" + //Choose also BeeNodeGatewayPort?
+            $"  -index\t(days) Url of index (default value: {CommonConsts.EthernaIndexUrl} days)\n\n" +
             "\n" +
             "Run 'EthernaVideoImporter -h' to print help\n";
 
@@ -61,6 +64,8 @@ namespace Etherna.VideoImporter
             string? sourceUri = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
+            string gatewayUrl = "CommonConsts.EthernaGatewayUrl";
+            string indexUrl = "CommonConsts.EthernaIndexUrl";
             int ttlPostageStamp = DefaultTTLPostageStamp;
             bool offerVideos = false;
             bool pinVideos = false;
@@ -125,6 +130,16 @@ namespace Etherna.VideoImporter
                             throw new InvalidOperationException("TTL value is missing");
                         ttlPostageStampStr = args[++i];
                         break;
+                    case "-gatewayUrl":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("Gateway value is missing");
+                        gatewayUrl = args[++i];
+                        break;
+                    case "-index":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("Index value is missing");
+                        indexUrl = args[++i];
+                        break;
                     case "-o": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
                     case "-m": deleteVideosMissingFromSource = true; break;
@@ -150,6 +165,35 @@ namespace Etherna.VideoImporter
                 !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
             {
                 Console.WriteLine($"Invalid value for TTL Postage Stamp");
+                return;
+            }
+
+            //gateway avaiaibilty and type
+            if (!gatewayUrl.EndsWith("/", StringComparison.InvariantCulture))
+                gatewayUrl += "/";
+            using var httpCheckClient = new HttpClient();
+            //check for etherna gateway
+            var nativeBeeGateway = false;
+            var responseGateway = await httpCheckClient.GetAsync($"{gatewayUrl}api/v0.3/System/chainstate");
+            if (responseGateway.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                //check for native bee node 
+                responseGateway = await httpCheckClient.GetAsync($"{gatewayUrl}welcome-message");
+                if (responseGateway.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    Console.WriteLine($"Gateway {gatewayUrl} not found");
+                    return;
+                }
+                nativeBeeGateway = true;
+            }
+
+            //index avaiaibilty
+            if (!indexUrl.EndsWith("/", StringComparison.InvariantCulture))
+                indexUrl += "/";
+            var responseIndex = await httpCheckClient.GetAsync($"{indexUrl}api/v0.3/System/parameters");
+            if (responseIndex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                Console.WriteLine($"Index {indexUrl} not found");
                 return;
             }
 
@@ -180,23 +224,31 @@ namespace Etherna.VideoImporter
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
             httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
 
-            var ethernaUserClients = new EthernaUserClients(
-                new Uri(CommonConsts.EthernaCreditUrl),
-                new Uri(CommonConsts.EthernaGatewayUrl),
-                new Uri(CommonConsts.EthernaIndexUrl),
-                new Uri(CommonConsts.EthernaSsoUrl),
-                () => httpClient);
+            //bee
             using var beeNodeClient = new BeeNodeClient(
-                CommonConsts.EthernaGatewayUrl,
+                gatewayUrl,
                 CommonConsts.BeeNodeGatewayPort,
                 null,
                 CommonConsts.BeeNodeGatewayVersion,
                 CommonConsts.BeeNodeDebugVersion,
                 httpClient);
+
+            //index
+            var ethernaIndexUserClients = new EthernaUserClients(
+                new Uri(CommonConsts.EthernaCreditUrl),
+                new Uri(gatewayUrl),
+                new Uri(indexUrl),
+                new Uri(CommonConsts.EthernaSsoUrl),
+                () => httpClient);
+
+            //gateway
+            var gatewayService = GatewayBuilder.Build(nativeBeeGateway, beeNodeClient, ethernaIndexUserClients);
+
+            //video uploader service
             var videoUploaderService = new VideoUploaderService(
                 beeNodeClient,
-                ethernaUserClients.GatewayClient,
-                ethernaUserClients.IndexClient,
+                gatewayService,
+                ethernaIndexUserClients.IndexClient,
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
@@ -217,10 +269,10 @@ namespace Etherna.VideoImporter
             // Call runner.
             var importer = new EthernaVideoImporter(
                 new CleanerVideoService(
-                    ethernaUserClients.GatewayClient,
-                    ethernaUserClients.IndexClient),
-                ethernaUserClients.GatewayClient,
-                ethernaUserClients.IndexClient,
+                    gatewayService,
+                    ethernaIndexUserClients.IndexClient),
+                gatewayService,
+                ethernaIndexUserClients.IndexClient,
                 new LinkReporterService(),
                 videoProvider,
                 videoUploaderService);

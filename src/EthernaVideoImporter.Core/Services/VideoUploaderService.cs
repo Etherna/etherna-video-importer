@@ -30,9 +30,9 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class VideoUploaderService : IVideoUploaderService
     {
         // Const.
-        private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
-        private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
-        private readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
+        //private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
+        //private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
+        //private readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
         private readonly long BzzDecimalPlacesToUnit = (long)Math.Pow(10, 16);
         private const int ChunkByteSize = 4096;
         private const int UploadMaxRetry = 10;
@@ -41,7 +41,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly BeeNodeClient beeNodeClient;
         private bool acceptPurchaseOfAllBatches;
-        private readonly IUserGatewayClient ethernaGatewayClient;
+        private readonly IGatewayService gatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly TimeSpan ttlPostageStamp;
         private readonly string userEthAddr;
@@ -49,7 +49,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Constructor.
         public VideoUploaderService(
             BeeNodeClient beeNodeClient,
-            IUserGatewayClient ethernaGatewayClient,
+            IGatewayService gatewayClient,
             IUserIndexClient ethernaIndexClient,
             string userEthAddr,
             TimeSpan ttlPostageStamp,
@@ -60,7 +60,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             this.beeNodeClient = beeNodeClient;
             this.acceptPurchaseOfAllBatches = confirmPurchaseAllBatches;
-            this.ethernaGatewayClient = ethernaGatewayClient;
+            this.gatewayClient = gatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.userEthAddr = userEthAddr;
             this.ttlPostageStamp = ttlPostageStamp;
@@ -83,8 +83,8 @@ namespace Etherna.VideoImporter.Core.Services
                 batchDeep++;
 
             //calculate amount
-            var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
-            var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+            var currentPrice = await gatewayClient.ChainCurrentPriceAsync();
+            var amount = (long)(ttlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
             var bzzPrice = amount * Math.Pow(2, batchDeep) / BzzDecimalPlacesToUnit;
 
             Console.WriteLine($"Creating postage batch... Depth: {batchDeep} Amount: {amount} BZZ price: {bzzPrice}");
@@ -116,7 +116,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             //create batch
-            var batchId = await CreatePostageBatchAsync(batchDeep, amount);
+            var batchId = await gatewayClient.CreatePostageBatchAsync(batchDeep, amount);
 
             Console.WriteLine($"Postage batch: {batchId}");
 
@@ -160,7 +160,7 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference!);
+                    await gatewayClient.OffersPostAsync(encodedFile.UploadedHashReference!);
             }
 
             // Upload thumbnail.
@@ -201,7 +201,7 @@ namespace Etherna.VideoImporter.Core.Services
                 video.ThumbnailFile.UploadedHashReference = thumbnailReference;
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference);
+                    await gatewayClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference);
             }
 
             // Manifest.
@@ -230,7 +230,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             if (offerVideo)
-                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.EthernaPermalinkHash!);
+                await gatewayClient.OffersPostAsync(video.EthernaPermalinkHash!);
 
             Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
 
@@ -295,9 +295,10 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Helpers.
+        /*
         private async Task<string> CreatePostageBatchAsync(int batchDeep, long amount)
         {
-            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount);
+            var batchReferenceId = await gatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount);
 
             // Wait until created batch is avaiable.
             Console.Write("Waiting for batch created... (it may take a while)");
@@ -316,7 +317,7 @@ namespace Etherna.VideoImporter.Core.Services
 
                 try
                 {
-                    batchId = await ethernaGatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
+                    batchId = await gatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
                 }
                 catch (GatewayApiException)
                 {
@@ -342,7 +343,7 @@ namespace Etherna.VideoImporter.Core.Services
                     throw ex;
                 }
 
-                batchIsUsable = (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
+                batchIsUsable = (await gatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
 
                 //waiting for batch usable
                 await Task.Delay(BatchCheckTimeSpan);
@@ -352,5 +353,6 @@ namespace Etherna.VideoImporter.Core.Services
 
             return batchId;
         }
+        */
     }
 }
