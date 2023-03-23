@@ -22,6 +22,7 @@ namespace Etherna.VideoImporter.Core
     public sealed class CommonConsts
     {
         public const int BeeNodeGatewayPort = 443;
+        public const int BeeNodeDebugGatewayPort = 442;
         public const GatewayApiVersion BeeNodeGatewayVersion = GatewayApiVersion.v4_0_0;
         public const DebugApiVersion BeeNodeDebugVersion = DebugApiVersion.v4_0_0;
         public const int DownloadMaxRetry = 3;

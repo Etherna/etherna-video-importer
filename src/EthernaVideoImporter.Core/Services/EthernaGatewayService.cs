@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    internal sealed class EthernaGatewayService : IGatewayService
+    public class EthernaGatewayService : IGatewayService
     {
         // Const.
         private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);

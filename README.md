@@ -29,15 +29,16 @@ Source types:
   ytvideo       YouTube video
 
 Options:
-  -ff       Path FFmpeg (default dir: .\FFmpeg\)
-  -t        TTL (days) Postage Stamp (default value: 365 days)
-  -o        Offer video downloads to everyone
-  -p        Pin videos
-  -m        Remove indexed videos generated with this tool but missing from source
-  -e        Remove indexed videos not generated with this tool
-  -u        Try to unpin contents removed from index
-  -gateway  Url of gateway Bee node (default url: https://gateway.etherna.io/)
-  -index    Url of index (default value: https://index.etherna.io/)
+  -ff   Path FFmpeg (default dir: .\FFmpeg\)
+  -t    TTL (days) Postage Stamp (default value: 365 days)
+  -o    Offer video downloads to everyone
+  -p    Pin videos
+  -m    Remove indexed videos generated with this tool but missing from source
+  -e    Remove indexed videos not generated with this tool
+  -u    Try to unpin contents removed from index
+  --BeeGatewayUrl           Url of gateway Bee node (default value: https://gateway.etherna.io/)
+  --BeeGatewayApiPort       Port used by API Gateway (default value: 443)
+  --BeeGatewayDebugPort     Port used by Debug Gateway (default value: 442)
 
 Run 'EthernaVideoImporter -h' to print help
 ```
@@ -47,15 +48,16 @@ Run 'EthernaVideoImporter -h' to print help
 Usage:  EthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]
 
 Options:
-  -ff       Path FFmpeg (default dir: .\FFmpeg\)
-  -t        TTL (days) Postage Stamp (default value: 365 days)
-  -o        Offer video downloads to everyone
-  -p        Pin videos
-  -m        Remove indexed videos generated with this tool but missing from source
-  -e        Remove indexed videos not generated with this tool
-  -u        Try to unpin contents removed from index
-  -gateway  Url of gateway Bee node (default url: https://gateway.etherna.io/)
-  -index    Url of index (default value: https://index.etherna.io/)
+  -ff   Path FFmpeg (default dir: .\FFmpeg\)
+  -t    TTL (days) Postage Stamp (default value: 365 days)
+  -o    Offer video downloads to everyone
+  -p    Pin videos
+  -m    Remove indexed videos generated with this tool but missing from source
+  -e    Remove indexed videos not generated with this tool
+  -u    Try to unpin contents removed from index
+  --BeeGatewayUrl           Url of gateway Bee node (default value: https://gateway.etherna.io/)
+  --BeeGatewayApiPort       Port used by API Gateway (default value: 443)
+  --BeeGatewayDebugPort     Port used by Debug Gateway (default value: 442)
 
 Run 'EthernaVideoImporter.Devcon -h' to print help
 ```
