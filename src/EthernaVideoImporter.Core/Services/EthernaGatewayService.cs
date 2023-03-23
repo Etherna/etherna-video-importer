@@ -10,7 +10,6 @@ namespace Etherna.VideoImporter.Core.Services
         // Const.
         private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
         private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
-        private readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
 
         // Fields.
         private readonly IUserGatewayClient ethernaGatewayClient;
@@ -19,6 +18,11 @@ namespace Etherna.VideoImporter.Core.Services
         public EthernaGatewayService(IUserGatewayClient ethernaGatewayClient) 
         {
             this.ethernaGatewayClient = ethernaGatewayClient;
+        }
+
+        public async Task<bool> BatchIsUsableAsync(string batchId)
+        {
+            return (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
         }
 
         // Methods.
@@ -56,29 +60,6 @@ namespace Etherna.VideoImporter.Core.Services
                     await Task.Delay(BatchCheckTimeSpan);
                 }
             } while (string.IsNullOrWhiteSpace(batchId));
-
-            Console.WriteLine(". Done");
-
-            // Wait until created batch is usable.
-            Console.Write("Waiting for batch being usable... (it may take a while)");
-
-            batchStartWait = DateTime.UtcNow;
-            bool batchIsUsable;
-            do
-            {
-                //timeout throw exception
-                if (DateTime.UtcNow - batchStartWait >= BatchUsableTimeout)
-                {
-                    var ex = new InvalidOperationException("Batch not usable after timeout");
-                    ex.Data.Add("BatchId", batchId);
-                    throw ex;
-                }
-
-                batchIsUsable = (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
-
-                //waiting for batch usable
-                await Task.Delay(BatchCheckTimeSpan);
-            } while (!batchIsUsable);
 
             Console.WriteLine(". Done");
 

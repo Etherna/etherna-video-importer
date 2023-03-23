@@ -6,6 +6,12 @@ namespace Etherna.VideoImporter.Core.Services
     public interface IGatewayService
     {
         /// <summary>
+        /// Get usable batch.
+        /// </summary>
+        /// <param name="batchId">batch id</param>
+        Task<bool> BatchIsUsableAsync(string batchId);
+
+        /// <summary>
         /// Get the current price.
         /// </summary>
         Task<long> ChainCurrentPriceAsync();

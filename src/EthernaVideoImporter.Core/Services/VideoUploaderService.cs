@@ -30,9 +30,8 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class VideoUploaderService : IVideoUploaderService
     {
         // Const.
-        //private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
-        //private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
-        //private readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
+        private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
+        private readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
         private readonly long BzzDecimalPlacesToUnit = (long)Math.Pow(10, 16);
         private const int ChunkByteSize = 4096;
         private const int UploadMaxRetry = 10;
@@ -117,7 +116,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             //create batch
             var batchId = await gatewayClient.CreatePostageBatchAsync(batchDeep, amount);
-
+            await WaitForBatchUsable(batchId);
             Console.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
@@ -245,6 +244,32 @@ namespace Etherna.VideoImporter.Core.Services
                 await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash!);
 
             Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
+        }
+
+        private async Task WaitForBatchUsable(string batchId)
+        {
+            // Wait until created batch is usable.
+            Console.Write("Waiting for batch being usable... (it may take a while)");
+
+            var batchStartWait = DateTime.UtcNow;
+            bool batchIsUsable;
+            do
+            {
+                //timeout throw exception
+                if (DateTime.UtcNow - batchStartWait >= BatchUsableTimeout)
+                {
+                    var ex = new InvalidOperationException("Batch not usable after timeout");
+                    ex.Data.Add("BatchId", batchId);
+                    throw ex;
+                }
+
+                batchIsUsable = await gatewayClient.BatchIsUsableAsync(batchId);
+
+                //waiting for batch usable
+                await Task.Delay(BatchCheckTimeSpan);
+            } while (!batchIsUsable);
+
+            Console.WriteLine(". Done");
         }
 
         public async Task<string> UploadVideoManifestAsync(
