@@ -10,7 +10,7 @@ Currently exists two versions:
 * `EthernaVideoImporter` for a generic use
 * `EthernaVideoImporter.Devcon` to import specifically Devcon Archive's videos
 
-Etherna Video Importer requires at least [.NET 7 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/7.0) and [ASP.NET Core 7 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/7.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
+Etherna Video Importer requires at least [.NET 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) and [ASP.NET Core 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
 
 **Warning**: this client still requires to be able to open a browser to provide authentication.  
 Future releases will improve this aspect accepting API keys instead.
