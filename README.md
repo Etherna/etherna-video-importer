@@ -36,7 +36,7 @@ Options:
   -m    Remove indexed videos generated with this tool but missing from source
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
-
+  -i    Ignore new version of EthernaVideoImporter
 Run 'EthernaVideoImporter -h' to print help
 ```
 
@@ -52,6 +52,7 @@ Options:
   -m    Remove indexed videos generated with this tool but missing from source
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
+  -i    Ignore new version of EthernaVideoImporter.Devcon
 
 Run 'EthernaVideoImporter.Devcon -h' to print help
 ```
