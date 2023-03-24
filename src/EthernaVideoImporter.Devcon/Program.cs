@@ -73,7 +73,7 @@ namespace Etherna.VideoImporter.Devcon
             bool unpinRemovedVideos = false;
             bool forceUploadVideo = false;
             bool acceptPurchaseOfAllBatches = false;
-            var nativeBeeGateway = false;
+            bool nativeBeeGateway = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -123,7 +123,7 @@ namespace Etherna.VideoImporter.Devcon
                             throw new InvalidOperationException("TTL value is missing");
                         ttlPostageStampStr = args[++i];
                         break;
-                    case "--BeeGateway":
+                    case "--beegateway":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("Gateway value is missing");
                         gatewayUrl = args[++i];
@@ -131,12 +131,12 @@ namespace Etherna.VideoImporter.Devcon
                         if (!gatewayUrl.EndsWith("/", StringComparison.InvariantCulture))
                             gatewayUrl += "/";
                         break;
-                    case "--BeeGatewayApiPort":
+                    case "--beegatewayapiport":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("Gateway API port missing");
                         gatewayApiPortStr = args[++i];
                         break;
-                    case "--BeeGatewayDebugPort":
+                    case "--beegatewaydebugport":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("Gateway Debug port missing");
                         gatewayDebugPortStr = args[++i];

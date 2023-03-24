@@ -78,7 +78,7 @@ namespace Etherna.VideoImporter
             bool unpinRemovedVideos = false;
             bool forceUploadVideo = false;
             bool acceptPurchaseOfAllBatches = false;
-            var nativeBeeGateway = false;
+            bool nativeBeeGateway = false;
 
             // Parse input.
             if (args.Length == 0)
