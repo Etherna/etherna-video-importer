@@ -169,6 +169,14 @@ namespace Etherna.VideoImporter.Devcon
                 return;
             }
 
+            //offer video
+            if (offerVideos &&
+                nativeBeeGateway)
+            {
+                Console.WriteLine($"Only Etherna Gateway support offer video downloads to everyone");
+                return;
+            }
+
             //gateway api port
             if (!string.IsNullOrEmpty(gatewayApiPortStr) &&
                 !int.TryParse(gatewayApiPortStr, CultureInfo.InvariantCulture, out gatewayApiPort))

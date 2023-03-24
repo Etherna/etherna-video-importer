@@ -160,7 +160,7 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.SwarmHash!);
+                    await gatewayClient.OffersPostAsync(encodedFile.SwarmHash!);
             }
 
             // Upload thumbnail.
@@ -200,7 +200,7 @@ namespace Etherna.VideoImporter.Core.Services
                 thumbnailFile.SetSwarmHash(thumbnailReference);
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(thumbnailReference);
+                    await gatewayClient.OffersPostAsync(thumbnailReference);
             }
 
             // Manifest.
