@@ -26,14 +26,14 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public Video(
             VideoMetadataBase metadata,
             IEnumerable<FileBase> encodedFiles,
-            ThumbnailFile? thumbnailFile)
+            IEnumerable<IThumbnailFile> thumbnailFiles)
         {
             if (!encodedFiles.Any())
                 throw new ArgumentException("Must exist at least a stream");
 
             EncodedFiles = encodedFiles;
             Metadata = metadata;
-            ThumbnailFile = thumbnailFile;
+            ThumbnailFiles = thumbnailFiles;
         }
 
         // Properties.
@@ -41,12 +41,12 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public string? EthernaIndexId { get; set; }
         public string? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
-        public ThumbnailFile? ThumbnailFile { get; }
+        public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }
 
         // Methods.
         public long GetTotalByteSize() =>
             EncodedFiles.Sum(f => f.ByteSize) +
-            ThumbnailFile?.ByteSize ?? 0 +
+            ThumbnailFiles.Sum(t => t.ByteSize) +
             JsonSerializer.Serialize(new ManifestDto(this, "0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000")).Length;
     }
 }

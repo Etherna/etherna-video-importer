@@ -14,6 +14,7 @@
 
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -84,18 +85,22 @@ namespace Etherna.VideoImporter.Core.Utilities
                     importerTempDirectoryInfo));
 
             // Get thumbnail.
-            ThumbnailFile? thumbnailFile = null;
+            List<ThumbnailLocalFile> thumbnailFiles = new();
             if (videoMetadata.Thumbnail is not null)
-                thumbnailFile = await DownloadThumbnailAsync(
+            {
+                var betsResolutionThumbnail = await DownloadThumbnailAsync(
                     videoMetadata.Thumbnail,
                     videoMetadata.Title,
                     importerTempDirectoryInfo);
 
-            return new Video(videoMetadata, encodedFiles, thumbnailFile);
+                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail);
+            }
+
+            return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
 
         // Helpers.
-        private async Task<AudioFile> DownloadAudioTrackAsync(
+        private async Task<AudioLocalFile> DownloadAudioTrackAsync(
             IStreamInfo audioStream,
             string videoTitle,
             DirectoryInfo importerTempDirectoryInfo)
@@ -136,12 +141,12 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new AudioFile(
+            return new AudioLocalFile(
                 audioFilePath,
                 new FileInfo(audioFilePath).Length);
         }
 
-        private async Task<ThumbnailFile> DownloadThumbnailAsync(
+        private async Task<ThumbnailLocalFile> DownloadThumbnailAsync(
             Thumbnail thumbnail,
             string videoTitle,
             DirectoryInfo importerTempDirectoryInfo)
@@ -176,14 +181,14 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new ThumbnailFile(
+            return new ThumbnailLocalFile(
                 thumbnailFilePath,
                 new FileInfo(thumbnailFilePath).Length,
-                thumbnail.Resolution.Width,
-                thumbnail.Resolution.Height);
+                thumbnail.Resolution.Height,
+                thumbnail.Resolution.Width);
         }
 
-        private async Task<VideoFile> DownloadVideoStreamAsync(
+        private async Task<VideoLocalFile> DownloadVideoStreamAsync(
             IAudioStreamInfo audioOnlyStream,
             IVideoStreamInfo videoOnlyStream,
             string videoTitle,
@@ -225,10 +230,40 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new VideoFile(
+            return new VideoLocalFile(
                 videoFilePath,
                 videoQualityLabel,
                 new FileInfo(videoFilePath).Length);
+        }
+
+        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(ThumbnailLocalFile betsResolutionThumbnail)
+        {
+            List<ThumbnailLocalFile> thumbnails = new();
+
+            using var thumbFileStream = File.OpenRead(betsResolutionThumbnail.FilePath);
+            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+
+            foreach (var responsiveWidthSize in ThumbnailLocalFile.ThumbnailResponsiveSizes)
+            {
+                var responsiveHeightSize = (int)(responsiveWidthSize / betsResolutionThumbnail.AspectRatio);
+
+                using SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.High);
+                using SKImage scaledImage = SKImage.FromBitmap(scaledBitmap);
+                using SKData data = scaledImage.Encode();
+
+                var thumbnailResizedPath = Path.GetTempFileName();
+                using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.OpenOrCreate);
+                await data.AsStream().CopyToAsync(outputFileStream);
+
+                thumbnails.Add(new ThumbnailLocalFile(
+                    thumbnailResizedPath,
+                    new FileInfo(thumbnailResizedPath).Length,
+                    responsiveHeightSize,
+                    responsiveWidthSize));
+            }
+
+            return thumbnails;
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
