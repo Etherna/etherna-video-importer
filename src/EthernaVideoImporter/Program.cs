@@ -122,7 +122,7 @@ namespace Etherna.VideoImporter
             // Get params.
             for (int i = 2; i < args.Length; i++)
             {
-                switch (args[i])
+                switch (args[i].ToLower(CultureInfo.InvariantCulture))
                 {
                     case "-ff":
                         if (args.Length == i + 1)
@@ -134,7 +134,7 @@ namespace Etherna.VideoImporter
                             throw new InvalidOperationException("TTL value is missing");
                         ttlPostageStampStr = args[++i];
                         break;
-                    case "--BeeGateway":
+                    case "--beegateway":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("Gateway value is missing");
                         gatewayUrl = args[++i];
@@ -142,12 +142,12 @@ namespace Etherna.VideoImporter
                         if (!gatewayUrl.EndsWith("/", StringComparison.InvariantCulture))
                             gatewayUrl += "/";
                         break;
-                    case "--BeeGatewayApiPort":
+                    case "--beegatewayapiport":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("Gateway API port missing");
                         gatewayApiPortStr = args[++i];
                         break;
-                    case "--BeeGatewayDebugPort":
+                    case "--beegatewaydebugport":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("Gateway Debug port missing");
                         gatewayDebugPortStr = args[++i];

@@ -82,7 +82,7 @@ namespace Etherna.VideoImporter.Devcon
                 return;
             }
 
-            switch (args[0])
+            switch (args[0].ToLower(CultureInfo.InvariantCulture))
             {
                 case "-h":
                     Console.WriteLine(HelpText);

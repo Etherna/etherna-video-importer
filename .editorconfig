@@ -31,6 +31,9 @@ dotnet_diagnostic.CA1056.severity = none    # Asp.Net Core Pages uses strings na
 # CA1303: Do not pass literals as localized parameters
 dotnet_diagnostic.CA1303.severity = none    # Don't need translated exceptions
 
+# CA1308: Normalize strings to uppercase
+dotnet_diagnostic.CA1308.severity = none    # We don't use characters that can't make a round trip
+
 # CA1707: Identifiers should not contain underscores
 dotnet_diagnostic.CA1707.severity = none    # I like underscores into constants name
 
