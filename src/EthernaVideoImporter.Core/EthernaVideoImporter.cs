@@ -14,14 +14,15 @@
 
 using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core
@@ -128,24 +129,29 @@ namespace Etherna.VideoImporter.Core
 
                             operationType = OperationType.Update;
 
-                            var updatedManifest = new ManifestDto(
-                                sourceMetadata.Title,
-                                sourceMetadata.Description,
-                                alreadyPresentVideo.LastValidManifest!.OriginalQuality,
-                                userEthAddress,
-                                alreadyPresentVideo.LastValidManifest.Duration,
-                                new ManifestThumbnailDto(
+                            // Create manifest.
+                            var thumbnailFiles = alreadyPresentVideo.LastValidManifest!.Thumbnail.Sources.Select(t =>
+                                new ThumbnailSwarmFile(
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
-                                    alreadyPresentVideo.LastValidManifest.Thumbnail.Sources),
-                                alreadyPresentVideo.LastValidManifest.Sources.Select(s => new ManifestVideoSourceDto(s)),
-                                alreadyPresentVideo.CreationDateTime.ToUnixTimeMilliseconds(), //this should be retrieved from manifest. See: https://etherna.atlassian.net/browse/EVI-60
-                                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                                alreadyPresentVideo.LastValidManifest.BatchId,
-                                JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(sourceMetadata.Id!)));
+                                    t.Value,
+                                    0,/*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
+                                    int.Parse(t.Key.Replace("w", "", StringComparison.OrdinalIgnoreCase), CultureInfo.InvariantCulture))); 
+
+                            var videoMetadata = new SwarmVideoMetadata(
+                                sourceMetadata.Id,
+                                sourceMetadata.Description,
+                                TimeSpan.FromSeconds(alreadyPresentVideo.LastValidManifest!.Duration),
+                                alreadyPresentVideo.LastValidManifest!.OriginalQuality,
+                                sourceMetadata.Title);
+
+                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference));
+
+                            var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
                             // Upload new manifest.
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(updatedManifest, pinVideos);
+                            var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(
@@ -209,7 +215,7 @@ namespace Etherna.VideoImporter.Core
                         case OperationType.Skip:
                             importSummaryModelView.TotSkippedVideoImported++;
                             break;
-                    }    
+                    }
                 }
                 catch (Exception ex)
                 {
