@@ -12,45 +12,36 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Blurhash.SkiaSharp;
 using Etherna.VideoImporter.Core.Models.Domain;
-using SkiaSharp;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestThumbnailDto
     {
         // Constructors.
-        public ManifestThumbnailDto(ThumbnailFile thumbnailFile)
+        [SuppressMessage("Performance", "CA1851:Possible multiple enumerations of 'IEnumerable' collection", Justification = "Is acceptable here")]
+        public ManifestThumbnailDto(IEnumerable<IThumbnailFile> thumbnailFiles)
         {
-            if (thumbnailFile?.UploadedHashReference is null)
-                throw new ArgumentNullException(nameof(thumbnailFile));
+            if (thumbnailFiles is null)
+                throw new ArgumentNullException(nameof(thumbnailFiles));
+            if (!thumbnailFiles.Any())
+                throw new ArgumentOutOfRangeException(nameof(thumbnailFiles), "Thumbnail list can't be empty");
 
-            using var thumbFileStream = File.OpenRead(thumbnailFile.DownloadedFilePath);
-            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
-            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-
-            AspectRatio = (float)thumbnailFile.Width / thumbnailFile.Height;
-            Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
-            Sources = new Dictionary<string, string>() { { $"{thumbBitmap.Width}w", thumbnailFile.UploadedHashReference } };
-        }
-
-        public ManifestThumbnailDto(
-            float aspectRatio,
-            string blurhash,
-            IDictionary<string, string> sources)
-        {
-            AspectRatio = aspectRatio;
-            Blurhash = blurhash;
-            Sources = sources;
+            var maxQualityThumb = thumbnailFiles.OrderByDescending(t => t.Width).First();
+            AspectRatio = maxQualityThumb.AspectRatio;
+            Blurhash = maxQualityThumb.Blurhash;
+            Sources = thumbnailFiles.ToDictionary(
+                t => $"{t.Width}w",
+                t => t.SwarmHash!);
         }
 
         // Properties.
-        public float AspectRatio { get; set; }
-        public string Blurhash { get; set; }
+        public float AspectRatio { get; }
+        public string Blurhash { get; }
         public IDictionary<string, string> Sources { get; }
     }
 }

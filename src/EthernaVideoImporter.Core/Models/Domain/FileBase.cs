@@ -14,20 +14,16 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract class FileBase
+    public abstract class FileBase : IFile
     {
         // Constructors.
-        protected FileBase(
-            string downloadedFilePath,
-            long byteSize)
+        protected FileBase(long byteSize)
         {
             ByteSize = byteSize;
-            DownloadedFilePath = downloadedFilePath;
         }
 
         // Properties.
         public long ByteSize { get; }
-        public string DownloadedFilePath { get; }
-        public string? UploadedHashReference { get; set; }
+        public string? SwarmHash { get; protected set; }
     }
 }

@@ -17,18 +17,18 @@ using System.Text.RegularExpressions;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public partial class VideoFile : FileBase
+    public partial class VideoLocalFile : LocalFileBase, IVideoFile
     {
         // Consts.
         [GeneratedRegex("^(?<label>\\d+p)\\d*$")]
         private static partial Regex QualityLabelRegex();
 
         // Constructors.
-        public VideoFile(
-            string downloadedFilePath,
+        public VideoLocalFile(
+            string filePath,
             string videoQualityLabel,
             long byteSize)
-            : base(downloadedFilePath, byteSize)
+            : base(filePath, byteSize)
         {
             var originVideoQualityLabelMatch = QualityLabelRegex().Match(videoQualityLabel);
             if (originVideoQualityLabelMatch.Success)

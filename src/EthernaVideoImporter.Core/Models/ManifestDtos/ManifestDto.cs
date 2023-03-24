@@ -22,6 +22,12 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestDto
     {
+        // Consts.
+        private const int PersonalDataMaxLength = 200;
+
+        // Fields.
+        private string? _personalData;
+
         // Constructors.
         public ManifestDto(
             Video video,
@@ -36,38 +42,14 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             OriginalQuality = video.Metadata.OriginVideoQualityLabel;
             OwnerAddress = ownerAddress;
             Duration = (long)video.Metadata.Duration.TotalSeconds;
-            Thumbnail = video.ThumbnailFile is null ? null : new ManifestThumbnailDto(video.ThumbnailFile);
-            Sources = video.EncodedFiles.OfType<VideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
+            Sources = video.EncodedFiles.OfType<IVideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
+            Thumbnail = video.ThumbnailFiles.Any() ?
+                new ManifestThumbnailDto(video.ThumbnailFiles) :
+                null;
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             UpdatedAt = null;
             BatchId = batchId;
             PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id));
-        }
-
-        public ManifestDto(
-            string title,
-            string description,
-            string originalQuality,
-            string ownerAddress,
-            long duration,
-            ManifestThumbnailDto? thumbnail,
-            IEnumerable<ManifestVideoSourceDto> sources,
-            long createdAt,
-            long? updatedAt,
-            string batchId,
-            string? personalData)
-        {
-            Title = title;
-            Description = description;
-            OriginalQuality = originalQuality;
-            OwnerAddress = ownerAddress;
-            Duration = duration;
-            Thumbnail = thumbnail;
-            Sources = sources;
-            CreatedAt = createdAt;
-            UpdatedAt = updatedAt;
-            BatchId = batchId;
-            PersonalData = personalData;
         }
 
         // Properties.
@@ -81,7 +63,16 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         public long CreatedAt { get; }
         public long? UpdatedAt { get; }
         public string BatchId { get; }
-        public string? PersonalData { get; }
+        public string? PersonalData
+        {
+            get => _personalData;
+            set
+            {
+                if (value is not null && value.Length > PersonalDataMaxLength)
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                _personalData = value;
+            }
+        }
         public string V => "1.2";
     }
 }

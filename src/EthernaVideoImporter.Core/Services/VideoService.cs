@@ -207,12 +207,12 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
-            foreach (var encodedFile in video.EncodedFiles)
+            foreach (var encodedFile in video.EncodedFiles.OfType<LocalFileBase>())
             {
                 Console.WriteLine(encodedFile switch
                 {
-                    AudioFile _ => "Uploading audio track in progress...",
-                    VideoFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
+                    AudioLocalFile _ => "Uploading audio track in progress...",
+                    VideoLocalFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
                     _ => throw new InvalidOperationException()
                 });
 
@@ -222,14 +222,14 @@ namespace Etherna.VideoImporter.Core.Services
                     try
                     {
                         var fileParameterInput = new FileParameterInput(
-                            File.OpenRead(encodedFile.DownloadedFilePath),
-                            Path.GetFileName(encodedFile.DownloadedFilePath),
+                            File.OpenRead(encodedFile.FilePath),
+                            Path.GetFileName(encodedFile.FilePath),
                             "video/mp4");
 
-                        encodedFile.UploadedHashReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                        encodedFile.SetSwarmHash(await beeNodeClient.GatewayClient!.UploadFileAsync(
                             batchId,
                             files: new List<FileParameterInput> { fileParameterInput },
-                            swarmPin: pinVideo);
+                            swarmPin: pinVideo));
                         uploadSucceeded = true;
                     }
                     catch (Exception ex)
@@ -246,14 +246,13 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.UploadedHashReference!);
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.SwarmHash!);
             }
 
             // Upload thumbnail.
-            if (video.ThumbnailFile is not null)
+            Console.WriteLine("Uploading thumbnail in progress...");
+            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<LocalFileBase>())
             {
-                Console.WriteLine("Uploading thumbnail in progress...");
-
                 var uploadSucceeded = false;
                 string thumbnailReference = null!;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
@@ -261,8 +260,8 @@ namespace Etherna.VideoImporter.Core.Services
                     try
                     {
                         var fileThumbnailParameterInput = new FileParameterInput(
-                            File.OpenRead(video.ThumbnailFile.DownloadedFilePath),
-                            Path.GetFileName(video.ThumbnailFile.DownloadedFilePath),
+                            File.OpenRead(thumbnailFile.FilePath),
+                            Path.GetFileName(thumbnailFile.FilePath),
                             "image/jpeg");
 
                         thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
@@ -284,10 +283,10 @@ namespace Etherna.VideoImporter.Core.Services
                 if (!uploadSucceeded)
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
-                video.ThumbnailFile.UploadedHashReference = thumbnailReference;
+                thumbnailFile.SetSwarmHash(thumbnailReference);
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.ThumbnailFile.UploadedHashReference);
+                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(thumbnailReference);
             }
 
             // Manifest.
