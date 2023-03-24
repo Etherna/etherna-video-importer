@@ -42,38 +42,14 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             OriginalQuality = video.Metadata.OriginVideoQualityLabel;
             OwnerAddress = ownerAddress;
             Duration = (long)video.Metadata.Duration.TotalSeconds;
-            Thumbnail = video.ThumbnailFile is null ? null : new ManifestThumbnailDto(video.ThumbnailFile);
-            Sources = video.EncodedFiles.OfType<VideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
+            Sources = video.EncodedFiles.OfType<IVideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
+            Thumbnail = video.ThumbnailFiles.Any() ?
+                new ManifestThumbnailDto(video.ThumbnailFiles) :
+                null;
             CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             UpdatedAt = null;
             BatchId = batchId;
             PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id));
-        }
-
-        public ManifestDto(
-            string title,
-            string description,
-            string originalQuality,
-            string ownerAddress,
-            long duration,
-            ManifestThumbnailDto? thumbnail,
-            IEnumerable<ManifestVideoSourceDto> sources,
-            long createdAt,
-            long? updatedAt,
-            string batchId,
-            string? personalData)
-        {
-            Title = title;
-            Description = description;
-            OriginalQuality = originalQuality;
-            OwnerAddress = ownerAddress;
-            Duration = duration;
-            Thumbnail = thumbnail;
-            Sources = sources;
-            CreatedAt = createdAt;
-            UpdatedAt = updatedAt;
-            BatchId = batchId;
-            PersonalData = personalData;
         }
 
         // Properties.

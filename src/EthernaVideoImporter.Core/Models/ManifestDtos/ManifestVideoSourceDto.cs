@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 
@@ -20,23 +19,13 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestVideoSourceDto
     {
-        public ManifestVideoSourceDto(SourceDto source)
-        {
-            if (source is null)
-                throw new ArgumentNullException(nameof(source));
-
-            Quality = source.Quality;
-            Reference = source.Reference;
-            Size = source.Size;
-        }
-
-        public ManifestVideoSourceDto(VideoFile videoFile)
+        public ManifestVideoSourceDto(IVideoFile videoFile)
         {
             if (videoFile is null)
                 throw new ArgumentNullException(nameof(videoFile));
 
             Quality = videoFile.VideoQualityLabel;
-            Reference = videoFile.UploadedHashReference ?? throw new InvalidOperationException();
+            Reference = videoFile.SwarmHash ?? throw new InvalidOperationException();
             Size = videoFile.ByteSize;
         }
 
