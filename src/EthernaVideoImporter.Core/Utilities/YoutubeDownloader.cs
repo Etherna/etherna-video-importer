@@ -93,7 +93,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     videoMetadata.Title,
                     importerTempDirectoryInfo);
 
-                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail);
+                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, importerTempDirectoryInfo);
             }
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
@@ -236,7 +236,9 @@ namespace Etherna.VideoImporter.Core.Utilities
                 new FileInfo(videoFilePath).Length);
         }
 
-        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(ThumbnailLocalFile betsResolutionThumbnail)
+        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(
+            ThumbnailLocalFile betsResolutionThumbnail,
+            DirectoryInfo importerTempDirectoryInfo)
         {
             List<ThumbnailLocalFile> thumbnails = new();
 
@@ -252,8 +254,8 @@ namespace Etherna.VideoImporter.Core.Utilities
                 using SKImage scaledImage = SKImage.FromBitmap(scaledBitmap);
                 using SKData data = scaledImage.Encode();
 
-                var thumbnailResizedPath = Path.GetTempFileName();
-                using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.OpenOrCreate);
+                string thumbnailResizedPath = Path.Combine(importerTempDirectoryInfo.FullName, $"thumb_{responsiveWidthSize}_{responsiveHeightSize}_{Guid.NewGuid}.jpg");
+                using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew);
                 await data.AsStream().CopyToAsync(outputFileStream);
 
                 thumbnails.Add(new ThumbnailLocalFile(
