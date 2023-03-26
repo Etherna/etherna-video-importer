@@ -35,13 +35,13 @@ namespace Etherna.VideoImporter.Services
         // Constructor.
         public YouTubeSingleVideoProvider(
             string videoUrl,
-            string ffMpegPath,
+            IMuxingService muxingService,
             bool includeAudioTrack)
         {
             this.videoUrl = videoUrl;
             this.includeAudioTrack = includeAudioTrack;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(muxingService, youtubeClient);
         }
 
         // Properties.

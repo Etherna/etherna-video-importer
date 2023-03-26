@@ -14,6 +14,7 @@
 
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Services;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -25,7 +26,6 @@ using System.Text;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
-using YoutubeExplode.Converter;
 using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Core.Utilities
@@ -34,16 +34,16 @@ namespace Etherna.VideoImporter.Core.Utilities
     {
         // Fields.
         private readonly DirectoryInfo downloadDirectory;
-        private readonly string ffMpegPath;
+        private readonly IMuxingService videoMuxingService;
         private readonly YoutubeClient youtubeClient;
 
         // Constructor.
         public YoutubeDownloader(
-            string ffMpegPath,
+            IMuxingService videoMuxingService,
             YoutubeClient youtubeClient)
         {
             downloadDirectory = Directory.CreateTempSubdirectory();
-            this.ffMpegPath = ffMpegPath;
+            this.videoMuxingService = videoMuxingService;
             this.youtubeClient = youtubeClient;
         }
 

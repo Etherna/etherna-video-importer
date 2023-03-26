@@ -181,6 +181,7 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
+            var ffMpegMuxingService = new FFMpegMuxingService(ffMpegBinaryPath);
 
             // Call runner.
             var importer = new EthernaVideoImporter(
@@ -192,7 +193,7 @@ namespace Etherna.VideoImporter.Devcon
                 new DevconLinkReporterService(mdSourceFolderPath),
                 new MdVideoProvider(
                     mdSourceFolderPath,
-                    ffMpegBinaryPath,
+                    ffMpegMuxingService,
                     includeAudioTrack),
                 videoUploaderService);
 
