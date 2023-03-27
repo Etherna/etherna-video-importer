@@ -12,6 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System;
+
 namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public class ManifestPersonalDataDto
@@ -22,7 +24,19 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         public static ManifestPersonalDataDto BuildNew(string videoId) => new()
         {
             ClientName = CommonConsts.ImporterIdentifier,
-            VideoId = videoId
+            VideoId = Keccak256(videoId)
         };
+
+        private static string Keccak256(string input)
+        {
+            var hashAlgorithm = new Org.BouncyCastle.Crypto.Digests.Sha3Digest(256);
+            byte[] byte_array = System.Text.Encoding.UTF8.GetBytes(input);
+            hashAlgorithm.BlockUpdate(byte_array, 0, byte_array.Length);
+            byte[] result = new byte[32]; // 256 / 8 = 32
+            hashAlgorithm.DoFinal(result, 0);
+            string hashString = BitConverter.ToString(result);
+            hashString = hashString.Replace("-", "", StringComparison.InvariantCulture).ToUpperInvariant();
+            return hashString;
+        }
     }
 }
