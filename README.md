@@ -36,6 +36,7 @@ Options:
   -m    Remove indexed videos generated with this tool but missing from source
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
+  -i    Ignore new version of EthernaVideoImporter
   --BeeGatewayUrl           Url of gateway Bee node (default value: https://gateway.etherna.io/)
   --BeeGatewayApiPort       Port used by API Gateway (default value: 443)
   --BeeGatewayDebugPort     Port used by Debug Gateway (default value: 442)
@@ -55,6 +56,7 @@ Options:
   -m    Remove indexed videos generated with this tool but missing from source
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
+  -i    Ignore new version of EthernaVideoImporter.Devcon
   --BeeGatewayUrl           Url of gateway Bee node (default value: https://gateway.etherna.io/)
   --BeeGatewayApiPort       Port used by API Gateway (default value: 443)
   --BeeGatewayDebugPort     Port used by Debug Gateway (default value: 442)

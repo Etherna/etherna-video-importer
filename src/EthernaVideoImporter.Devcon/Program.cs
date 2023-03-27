@@ -47,6 +47,7 @@ namespace Etherna.VideoImporter.Devcon
             "  -u\tTry to unpin contents removed from index\n" +
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
+            "  -i\tIgnore new version of EthernaVideoImporter.Devcon\n" +
             $"  --BeeGatewayUrl\tUrl of gateway Bee node (default value: {CommonConsts.EthernaGatewayUrl})\n" +
             $"  --BeeGatewayApiPort\tPort used by API Gateway (default value: {CommonConsts.BeeNodeGatewayPort})\n" +
             $"  --BeeGatewayDebugPort\tPort used by Debug Gateway (default value: {CommonConsts.BeeNodeDebugGatewayPort})\n" +
@@ -73,6 +74,7 @@ namespace Etherna.VideoImporter.Devcon
             bool unpinRemovedVideos = false;
             bool forceUploadVideo = false;
             bool acceptPurchaseOfAllBatches = false;
+            bool ignoreNewVersionOfImporter = false;
             bool nativeBeeGateway = false;
 
             // Parse input.
@@ -148,6 +150,7 @@ namespace Etherna.VideoImporter.Devcon
                     case "-u": unpinRemovedVideos = true; break;
                     case "-f": forceUploadVideo = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
+                    case "-i": ignoreNewVersionOfImporter = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -242,6 +245,11 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
+
+            // Check for new version
+            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);
+            if (newVersionAvaiable && !ignoreNewVersionOfImporter)
+                return;
 
             // Call runner.
             var importer = new EthernaVideoImporter(
