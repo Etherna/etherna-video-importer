@@ -11,6 +11,17 @@ namespace Etherna.VideoImporter.Core
 {
     public static class EthernaVersionControl
     {
+        // Properties.
+        public static Version CurrentVersion
+        {
+            get
+            {
+                var assemblyVersion = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ??
+                    throw new InvalidOperationException("Invalid assembly version");
+                return new Version(assemblyVersion);
+            }
+        }
+
         // Public methods.
         public static async Task<bool> CheckNewVersionAsync(HttpClient httpClient)
         {
@@ -18,9 +29,7 @@ namespace Etherna.VideoImporter.Core
                 throw new ArgumentNullException(nameof(httpClient));
 
             // Get current version.
-            var assemblyVersion = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ??
-                throw new InvalidOperationException("Invalid assembly version");
-            var currentVersion = new Version(assemblyVersion);
+            var currentVersion = CurrentVersion;
 
             Console.WriteLine();
             Console.WriteLine($"Etherna Video Importer (v{currentVersion})");
