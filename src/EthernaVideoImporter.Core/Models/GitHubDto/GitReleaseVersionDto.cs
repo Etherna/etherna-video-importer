@@ -4,6 +4,7 @@ namespace Etherna.VideoImporter.Core.Models.GitHubDto
 {
     public class GitReleaseVersionDto
     {
+        // Properties.
         public string Assets_url { get; set; } = default!;
         public DateTime Created_at { get; set; }
         public bool Draft { get; set; }

@@ -16,12 +16,16 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public class ManifestPersonalDataDto
     {
+        // Properties.
         public string? ClientName { get; set; }
+        public string? ClientVersion { get; set; }
         public string? VideoId { get; set; }
 
+        // Public methods.
         public static ManifestPersonalDataDto BuildNew(string videoId) => new()
         {
             ClientName = CommonConsts.ImporterIdentifier,
+            ClientVersion = EthernaVersionControl.CurrentVersion.ToString(),
             VideoId = videoId
         };
     }
