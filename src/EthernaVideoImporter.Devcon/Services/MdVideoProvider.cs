@@ -60,9 +60,10 @@ namespace Etherna.VideoImporter.Devcon.Services
         public string SourceName => mdFolderRootPath;
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo importerTempDirectoryInfo) => youtubeDownloader.GetVideoAsync(
             includeAudioTrack,
-            videoMetadata as MdFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(MdFileVideoMetadata)}", nameof(videoMetadata)));
+            videoMetadata as MdFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(MdFileVideoMetadata)}", nameof(videoMetadata)),
+            importerTempDirectoryInfo);
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
