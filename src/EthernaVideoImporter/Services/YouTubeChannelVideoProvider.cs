@@ -18,6 +18,7 @@ using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Models.Domain;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -51,9 +52,10 @@ namespace Etherna.VideoImporter.Services
         public string SourceName => channelUrl;
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo importerTempDirectoryInfo) => youtubeDownloader.GetVideoAsync(
             includeAudioTrack,
-            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
+            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)),
+            importerTempDirectoryInfo);
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
