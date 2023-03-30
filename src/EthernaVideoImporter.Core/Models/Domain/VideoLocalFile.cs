@@ -27,6 +27,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public VideoLocalFile(
             string filePath,
             string videoQualityLabel,
+            int height,
+            int width,
             long byteSize)
             : base(filePath, byteSize)
         {
@@ -35,9 +37,13 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 VideoQualityLabel = originVideoQualityLabelMatch.Groups["label"].Value;
             else
                 throw new ArgumentException("Invalid quality label", nameof(videoQualityLabel));
+            Height = height;
+            Width = width;
         }
 
         // Properties.
+        public int Height { get; }
         public string VideoQualityLabel { get; }
+        public int Width { get; }
     }
 }

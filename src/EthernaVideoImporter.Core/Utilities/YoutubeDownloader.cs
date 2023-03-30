@@ -62,17 +62,16 @@ namespace Etherna.VideoImporter.Core.Utilities
             //video streams
             var videoOnlyStreamInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)
-                .GetWithHighestVideoQuality() ?? throw new InvalidOperationException("Unable to found video stream on source dataa");
+                .GetWithHighestVideoQuality() ?? throw new InvalidOperationException("Unable to found video stream on source data");
             var videoLocalFile = await DownloadVideoStreamAsync(videoOnlyStreamInfo, videoMetadata.Title);
 
             //audio only stream
             var audioOnlyStreamInfo = youtubeStreamsManifest.GetAudioOnlyStreams()
                 .GetWithHighestBitrate() ?? throw new InvalidOperationException("Unable to found audio stream on source dataa");
-            if (includeAudioTrack)
-                await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title);
+            var audioLocalFile = await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title);
 
             // Transcode video resolutions.
-
+            var encodedFiles = videoMuxingService.TranscodeVideos(videoLocalFile, audioLocalFile, null);
 
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
@@ -218,6 +217,8 @@ namespace Etherna.VideoImporter.Core.Utilities
             return new VideoLocalFile(
                 videoFilePath,
                 videoQualityLabel,
+                videoOnlyStream.VideoResolution.Height,
+                videoOnlyStream.VideoResolution.Width,
                 new FileInfo(videoFilePath).Length);
         }
 

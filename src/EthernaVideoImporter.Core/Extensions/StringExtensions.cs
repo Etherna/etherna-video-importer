@@ -19,11 +19,6 @@ namespace Etherna.VideoImporter.Core.Extensions
 {
     public static class StringExtensions
     {
-        public static string? NullIfWhiteSpace(this string s) =>
-            !string.IsNullOrWhiteSpace(s)
-                ? s
-                : null;
-
         public static string ToSafeFileName(this string value)
         {
             var strBuilder = new StringBuilder(value);

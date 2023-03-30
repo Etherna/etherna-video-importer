@@ -1,28 +1,17 @@
-﻿/*
- * 
- * Based on YoutubeExplode.Converter
- * https://github.com/Tyrrrz/YoutubeExplode/blob/master/License.txt
- * 
- */
-using CliWrap;
-using CliWrap.Builders;
-using Etherna.VideoImporter.Core.Extensions;
-using Etherna.VideoImporter.Core.Models.Domain;
+﻿using Etherna.VideoImporter.Core.Models.Domain;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Globalization;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using YoutubeExplode.Converter.Utils.Extensions;
-using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Core.Services
 {
     public partial class FFMpegMuxingService : IMuxingService
     {
         // Fields.
+        private static readonly ReadOnlyCollection<int> SupportedResolutions = new(new List<int> { 1440, 1080, 720, 480, 360 });
         private readonly string ffMpegBinaryPath;
 
         // Constructor.
@@ -32,201 +21,75 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Methods.
-        public async Task TranscodeVideoAsync(
-            VideoLocalFile sourceVideo, 
-            string resolutionTarget, 
-            CancellationToken cancellationToken = default)
-        {
-            var arguments = new ArgumentsBuilder();
-
-            // Stream inputs
-            foreach (var streamInput in streamInputs)
-                arguments.Add("-i").Add(streamInput.FilePath);
-
-            // Subtitle inputs
-            foreach (var subtitleInput in subtitleInputs)
-                arguments.Add("-i").Add(subtitleInput.FilePath);
-
-            // Input mapping
-            for (var i = 0; i < streamInputs.Count + subtitleInputs.Count; i++)
-                arguments.Add("-map").Add(i);
-
-            // Format
-            arguments.Add("-f").Add(container.Name);
-
-            // Preset
-            arguments.Add("-preset").Add(_preset);
-
-            // Avoid transcoding where possible
-            {
-                var lastAudioStreamIndex = 0;
-                var lastVideoStreamIndex = 0;
-                foreach (var streamInput in streamInputs)
-                {
-                    // Note: a muxed stream input will map to two separate audio and video streams
-
-                    if (streamInput.Info is IAudioStreamInfo audioStreamInfo)
-                    {
-                        if (audioStreamInfo.Container == container)
-                        {
-                            arguments
-                                .Add($"-c:a:{lastAudioStreamIndex}")
-                                .Add("copy");
-                        }
-
-                        lastAudioStreamIndex++;
-                    }
-
-                    if (streamInput.Info is IVideoStreamInfo videoStreamInfo)
-                    {
-                        if (videoStreamInfo.Container == container)
-                        {
-                            arguments
-                                .Add($"-c:v:{lastVideoStreamIndex}")
-                                .Add("copy");
-                        }
-
-                        lastVideoStreamIndex++;
-                    }
-                }
-            }
-
-            // MP4: specify the codec for subtitles manually, otherwise they may not get injected
-            if (container == Container.Mp4 && subtitleInputs.Any())
-                arguments.Add("-c:s").Add("mov_text");
-
-            // MP3: set constant bitrate for audio streams, otherwise the metadata may contain invalid total duration
-            // https://superuser.com/a/893044
-            if (container == Container.Mp3)
-            {
-                var lastAudioStreamIndex = 0;
-                foreach (var streamInput in streamInputs)
-                {
-                    if (streamInput.Info is IAudioStreamInfo audioStreamInfo)
-                    {
-                        arguments
-                            .Add($"-b:a:{lastAudioStreamIndex++}")
-                            .Add(Math.Round(audioStreamInfo.Bitrate.KiloBitsPerSecond) + "K");
-                    }
-                }
-            }
-
-            // Metadata for stream inputs
-            {
-                var lastAudioStreamIndex = 0;
-                var lastVideoStreamIndex = 0;
-                foreach (var streamInput in streamInputs)
-                {
-                    // Note: a muxed stream input will map to two separate audio and video streams
-
-                    if (streamInput.Info is IAudioStreamInfo audioStreamInfo)
-                    {
-                        arguments
-                            .Add($"-metadata:s:a:{lastAudioStreamIndex++}")
-                            .Add($"title={audioStreamInfo.Bitrate}");
-                    }
-
-                    if (streamInput.Info is IVideoStreamInfo videoStreamInfo)
-                    {
-                        arguments
-                            .Add($"-metadata:s:v:{lastVideoStreamIndex++}")
-                            .Add($"title={videoStreamInfo.VideoQuality.Label} | {videoStreamInfo.Bitrate}");
-                    }
-                }
-            }
-
-            // Metadata for subtitles
-            for (var i = 0; i < subtitleInputs.Count; i++)
-            {
-                arguments
-                    .Add($"-metadata:s:s:{i}")
-                    .Add($"language={subtitleInputs[i].Info.Language.Code}")
-                    .Add($"-metadata:s:s:{i}")
-                    .Add($"title={subtitleInputs[i].Info.Language.Name}");
-            }
-
-            // Misc settings
-            arguments
-                .Add("-threads").Add(Environment.ProcessorCount)
-                .Add("-nostdin")
-                .Add("-y");
-
-            // Output
-            arguments.Add(filePath);
-
-            await ExecuteFFMpeg(arguments.Build(), progress, cancellationToken);
-        }
-
-        // Helpers.
-        private static PipeTarget CreateProgressRouter(IProgress<double> progress)
-        {
-            var totalDuration = default(TimeSpan?);
-
-            return PipeTarget.ToDelegate(l =>
-            {
-                totalDuration ??= DurationRegex().Match(l)
-                    .Groups[1]
-                    .Value
-                    .NullIfWhiteSpace()?
-                    .Pipe(s => TimeSpan.ParseExact(s, "c", CultureInfo.InvariantCulture));
-
-                if (totalDuration is null || totalDuration == TimeSpan.Zero)
-                    return;
-
-                var processedDuration = TimeRegex().Match(l)
-                    .Groups[1]
-                    .Value
-                    .NullIfWhiteSpace()?
-                    .Pipe(s => TimeSpan.ParseExact(s, "c", CultureInfo.InvariantCulture));
-
-                if (processedDuration is null)
-                    return;
-
-                progress.Report((
-                    processedDuration.Value.TotalMilliseconds /
-                    totalDuration.Value.TotalMilliseconds
-                ).Clamp(0, 1));
-            });
-        }
-
-        [GeneratedRegex("Duration:\\s(\\d\\d:\\d\\d:\\d\\d.\\d\\d)")]
-        private static partial Regex DurationRegex();
-
-        private async ValueTask ExecuteFFMpeg(
-            string arguments,
+        public IEnumerable<VideoLocalFile> TranscodeVideos(
+            VideoLocalFile videoLocalFile,
+            AudioLocalFile audioLocalFile,
             IProgress<double>? progress,
             CancellationToken cancellationToken = default)
         {
-            var stdErrBuffer = new StringBuilder();
+            if (videoLocalFile is null)
+                throw new ArgumentNullException(nameof(videoLocalFile));
+            if (audioLocalFile is null)
+                throw new ArgumentNullException(nameof(audioLocalFile));
 
-            var stdErrPipe = PipeTarget.Merge(
-                // Collect error output in case of failure
-                PipeTarget.ToStringBuilder(stdErrBuffer),
-            // Collect progress output if requested
-                progress?.Pipe(CreateProgressRouter) ?? PipeTarget.Null
-            );
-
-            var result = await Cli.Wrap(ffMpegBinaryPath)
-                .WithArguments(arguments)
-                .WithStandardErrorPipe(stdErrPipe)
-                .WithValidation(CommandResultValidation.None)
-                .ExecuteAsync(cancellationToken);
-
-            if (result.ExitCode != 0)
+            // Get video need transcoding or muxed video
+            var supportedTranscodes = new Dictionary<int, bool>();
+            foreach (var resolution in SupportedResolutions)
             {
-                throw new InvalidOperationException(
-                    $"""
-                FFmpeg exited with a non-zero exit code ({result.ExitCode}).
-                Arguments:
-                {arguments}
-                Standard error:
-                {stdErrBuffer}
-                """
-                );
+                if (videoLocalFile.Height > resolution)
+                    supportedTranscodes.Add(resolution, true);
+                else if (videoLocalFile.Height == resolution)
+                    supportedTranscodes.Add(resolution, false);
             }
-        }
+            if (!supportedTranscodes.Any())
+                throw new InvalidOperationException("Original video source don't support any transcoding resolutions");
 
-        [GeneratedRegex("time=(\\d\\d:\\d\\d:\\d\\d.\\d\\d)")]
-        private static partial Regex TimeRegex();
+            foreach (var transcode in supportedTranscodes)
+            {
+                Console.WriteLine($"Processing resolution {transcode.Key} in progress...");
+                var procStartInfo = new ProcessStartInfo
+                {
+                    FileName = ffMpegBinaryPath,
+                    Arguments = transcode.Value ?
+                    $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx265 -filter:v scale={transcode.Key}:-1 {Guid.NewGuid()}_Muxed_{transcode.Key}.mp4 -loglevel info" :
+                    $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx265 {Guid.NewGuid()}_Transcoded_{transcode.Key}.mp4 -loglevel info",
+
+                    // The following commands are needed to redirect the standard output.
+                    // This means that it will be redirected to the Process.StandardOutput StreamReader.
+                    UseShellExecute = false,
+                    RedirectStandardInput = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    // Do not create the black window.
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    CreateNoWindow = true
+                };
+
+                using var FFmpegProcess = Process.Start(procStartInfo) ?? throw new InvalidOperationException("null process");
+                FFmpegProcess.OutputDataReceived += delegate (object sender, DataReceivedEventArgs received)
+                {
+                    Console.WriteLine(received.Data);
+                };
+                FFmpegProcess.ErrorDataReceived += delegate (object sender, DataReceivedEventArgs received)
+                {
+                    if (received?.Data is not null &&
+                        received.Data.StartsWith("frame=", StringComparison.InvariantCulture))
+                    {
+                        Console.WriteLine(received.Data);
+                        Console.SetCursorPosition(0, Console.CursorTop - 1);
+                    }
+                };
+                FFmpegProcess.BeginErrorReadLine();
+                FFmpegProcess.WaitForExit();
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                Console.Write(new String(' ', Console.BufferWidth));
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                Console.Write(new String(' ', Console.BufferWidth));
+                Console.WriteLine();
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                Console.WriteLine($"Processing resolution {transcode.Key} completed...");
+            }
+            return new List<VideoLocalFile>();
+        }
     }
 }
