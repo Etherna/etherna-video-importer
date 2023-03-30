@@ -33,9 +33,7 @@ namespace Etherna.VideoImporter.Core.Utilities
     public class YoutubeDownloader : IYoutubeDownloader
     {
         // Fields.
-        private readonly DirectoryInfo downloadDirectory;
         private readonly IMuxingService videoMuxingService;
-        private readonly string ffMpegPath;
         private readonly YoutubeClient youtubeClient;
 
         // Constructor.
@@ -43,9 +41,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             IMuxingService videoMuxingService,
             YoutubeClient youtubeClient)
         {
-            downloadDirectory = Directory.CreateTempSubdirectory();
             this.videoMuxingService = videoMuxingService;
-            this.ffMpegPath = ffMpegPath;
             this.youtubeClient = youtubeClient;
         }
 
@@ -68,15 +64,15 @@ namespace Etherna.VideoImporter.Core.Utilities
             var videoOnlyStreamInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)
                 .GetWithHighestVideoQuality() ?? throw new InvalidOperationException("Unable to found video stream on source data");
-            var videoLocalFile = await DownloadVideoStreamAsync(videoOnlyStreamInfo, videoMetadata.Title);
+            var videoLocalFile = await DownloadVideoStreamAsync(videoOnlyStreamInfo, videoMetadata.Title, importerTempDirectoryInfo);
 
             //audio only stream
             var audioOnlyStreamInfo = youtubeStreamsManifest.GetAudioOnlyStreams()
                 .GetWithHighestBitrate() ?? throw new InvalidOperationException("Unable to found audio stream on source dataa");
-            var audioLocalFile = await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title);
+            var audioLocalFile = await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title, importerTempDirectoryInfo);
 
             // Transcode video resolutions.
-            var encodedFiles = videoMuxingService.TranscodeVideos(videoLocalFile, audioLocalFile, null);
+            var encodedFiles = videoMuxingService.TranscodeVideos(videoLocalFile, audioLocalFile, importerTempDirectoryInfo, null);
 
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
@@ -122,6 +118,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                                 progressStatus,
                                 audioStream.Size.MegaBytes,
                                 downloadStart)));
+                    Console.WriteLine();
                     break;
                 }
                 catch
