@@ -77,18 +77,18 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new ArgumentNullException(nameof(video));
 
             // Create new batch.
-            //calculate batch deep
+            //calculate batch depth
             var totalSize = video.GetTotalByteSize();
-            var batchDeep = 17;
-            while (Math.Pow(2, batchDeep) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
-                batchDeep++;
+            var batchDepth = 17;
+            while (Math.Pow(2, batchDepth) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
+                batchDepth++;
 
             //calculate amount
             var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
             var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
-            var bzzPrice = amount * Math.Pow(2, batchDeep) / BzzDecimalPlacesToUnit;
+            var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
-            Console.WriteLine($"Creating postage batch... Depth: {batchDeep} Amount: {amount} BZZ price: {bzzPrice}");
+            Console.WriteLine($"Creating postage batch... Depth: {batchDepth} Amount: {amount} BZZ price: {bzzPrice}");
 
             if (!acceptPurchaseOfAllBatches)
             {
@@ -117,7 +117,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             //create batch
-            var batchId = await CreatePostageBatchAsync(batchDeep, amount);
+            var batchId = await CreatePostageBatchAsync(batchDepth, amount);
 
             Console.WriteLine($"Postage batch: {batchId}");
 
@@ -295,9 +295,9 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Helpers.
-        private async Task<string> CreatePostageBatchAsync(int batchDeep, long amount)
+        private async Task<string> CreatePostageBatchAsync(int batchDepth, long amount)
         {
-            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount);
+            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDepth, amount);
 
             // Wait until created batch is avaiable.
             Console.Write("Waiting for batch created... (it may take a while)");
