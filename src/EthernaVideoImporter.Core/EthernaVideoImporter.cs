@@ -155,6 +155,8 @@ namespace Etherna.VideoImporter.Core
                             // Upload new manifest.
                             var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
                             updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos);
+                            if (offerVideos)
+                                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(updatedPermalinkHash);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(
