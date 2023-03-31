@@ -11,13 +11,16 @@ namespace Etherna.VideoImporter.Core.Services
     public partial class FFMpegMuxingService : IMuxingService
     {
         // Fields.
-        private static readonly ReadOnlyCollection<int> SupportedResolutions = new(new List<int> { 1440, 1080, 720, 480, 360 });
+        private readonly ReadOnlyCollection<int> SupportedResolutions;
         private readonly string ffMpegBinaryPath;
 
         // Constructor.
-        public FFMpegMuxingService(string ffMpegBinaryPath)
+        public FFMpegMuxingService(
+            string ffMpegBinaryPath,
+            IEnumerable<int> supportedResolutions)
         {
             this.ffMpegBinaryPath = ffMpegBinaryPath;
+            SupportedResolutions = new(supportedResolutions.ToList());
         }
 
         // Methods.

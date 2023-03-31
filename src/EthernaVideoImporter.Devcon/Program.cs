@@ -20,6 +20,8 @@ using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Devcon.Services;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -184,7 +186,7 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var ffMpegMuxingService = new FFMpegMuxingService(ffMpegBinaryPath);
+            var ffMpegMuxingService = new FFMpegMuxingService(ffMpegBinaryPath, new List<int> { 1440, 1080, 720, 480, 360 });
 
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);

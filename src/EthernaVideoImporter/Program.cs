@@ -20,6 +20,7 @@ using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Services;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -203,7 +204,7 @@ namespace Etherna.VideoImporter
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var ffMpegMuxingService = new FFMpegMuxingService(ffMpegBinaryPath);
+            var ffMpegMuxingService = new FFMpegMuxingService(ffMpegBinaryPath, new List<int> { 1440, 1080, 720, 480, 360 });
 
             IVideoProvider videoProvider = sourceType switch
             {
