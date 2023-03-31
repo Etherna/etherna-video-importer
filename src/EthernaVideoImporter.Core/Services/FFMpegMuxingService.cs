@@ -63,8 +63,8 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     FileName = ffMpegBinaryPath,
                     Arguments = transcode.Value ?
-                    $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx264 -movflags faststart -sc_threshold 0 -r 25 -hls_time 2 -speed 6 -vf scale={scaledWidth}:{transcode.Key} {fileName} -loglevel info" :
-                    $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx264 -movflags faststart -sc_threshold 0 -r 25 -hls_time 2 -speed 6 {fileName} -loglevel info",
+                    $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx264 -movflags faststart -sc_threshold 0 -r 25 -hls_time 2 -speed 6 -threads {Environment.ProcessorCount} -vf scale={scaledWidth}:{transcode.Key} {fileName} -loglevel info" :
+                    $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx264 -movflags faststart -sc_threshold 0 -r 25 -hls_time 2 -speed 6 -threads {Environment.ProcessorCount} {fileName} -loglevel info",
 
                     // The following commands are needed to redirect the standard output.
                     // This means that it will be redirected to the Process.StandardOutput StreamReader.
