@@ -12,8 +12,6 @@ namespace Etherna.VideoImporter.Core.Services
         IEnumerable<VideoLocalFile> TranscodeVideos(
             VideoLocalFile videoLocalFile,
             AudioLocalFile audioLocalFile,
-            DirectoryInfo importerTempDirectoryInfo,
-            IProgress<double>? progress,
-            CancellationToken cancellationToken = default);
+            DirectoryInfo importerTempDirectoryInfo);
     }
 }

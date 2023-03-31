@@ -25,9 +25,7 @@ namespace Etherna.VideoImporter.Core.Services
         public IEnumerable<VideoLocalFile> TranscodeVideos(
             VideoLocalFile videoLocalFile,
             AudioLocalFile audioLocalFile,
-            DirectoryInfo importerTempDirectoryInfo,
-            IProgress<double>? progress,
-            CancellationToken cancellationToken = default)
+            DirectoryInfo importerTempDirectoryInfo)
         {
             if (videoLocalFile is null)
                 throw new ArgumentNullException(nameof(videoLocalFile));
@@ -48,6 +46,8 @@ namespace Etherna.VideoImporter.Core.Services
             if (!supportedTranscodes.Any())
                 throw new InvalidOperationException("Original video source don't support any transcoding resolutions");
 
+            var videoEncoded = new List<VideoLocalFile>();
+
             var fileNameGuid = Guid.NewGuid().ToString();
             var resolutionRatio = Math.Round((decimal)videoLocalFile.Width / videoLocalFile.Height, 5);
             foreach (var transcode in supportedTranscodes)
@@ -55,16 +55,16 @@ namespace Etherna.VideoImporter.Core.Services
                 Console.WriteLine($"Processing resolution {transcode.Key} in progress...");
 
                 // Get scaled height
-                var scaledHeight = Math.Round(transcode.Key * resolutionRatio);
-                if (scaledHeight % 2 != 0)
-                    scaledHeight++;
+                var scaledWidth = (int)Math.Round(transcode.Key * resolutionRatio, 0);
+                if (scaledWidth % 2 != 0)
+                    scaledWidth++;
 
                 var fileName = $"{importerTempDirectoryInfo.FullName}/{fileNameGuid}_{(transcode.Value ? "Transcoded" : "Muxed")}_{transcode.Key}.mp4";
                 var procStartInfo = new ProcessStartInfo
                 {
                     FileName = ffMpegBinaryPath,
                     Arguments = transcode.Value ?
-                    $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx264 -movflags faststart -sc_threshold 0 -r 25 -hls_time 2 -speed 6 -vf scale={scaledHeight}:{transcode.Key} {fileName} -loglevel info" :
+                    $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx264 -movflags faststart -sc_threshold 0 -r 25 -hls_time 2 -speed 6 -vf scale={scaledWidth}:{transcode.Key} {fileName} -loglevel info" :
                     $"-i \"{audioLocalFile.FilePath}\" -i \"{videoLocalFile.FilePath}\" -c:a aac -c:v libx264 -movflags faststart -sc_threshold 0 -r 25 -hls_time 2 -speed 6 {fileName} -loglevel info",
 
                     // The following commands are needed to redirect the standard output.
@@ -94,18 +94,23 @@ namespace Etherna.VideoImporter.Core.Services
                 };
                 FFmpegProcess.BeginErrorReadLine();
                 FFmpegProcess.WaitForExit();
+
+                // Print result of ffMpeg
                 Console.Write(new String(' ', Console.BufferWidth));
                 Console.SetCursorPosition(0, Console.CursorTop - 1);
                 Console.Write(new String(' ', Console.BufferWidth));
                 Console.SetCursorPosition(0, Console.CursorTop - 1);
                 Console.WriteLine();
+                var fileInfo = new FileInfo(fileName);
                 if (!File.Exists(fileName) ||
-                    new FileInfo(fileName).Length <= 0)
+                    fileInfo.Length <= 0)
                     throw new InvalidOperationException($"Some error when processing resolution {transcode.Key}");
-                else
-                    Console.WriteLine($"Processing resolution {transcode.Key} completed...");
+                Console.WriteLine($"Processing resolution {transcode.Key} completed...");
+
+                videoEncoded.Add(new VideoLocalFile(fileName, $"{transcode.Key}p", transcode.Key, scaledWidth, fileInfo.Length));
             }
-            return new List<VideoLocalFile>();
+
+            return videoEncoded;
         }
     }
 }

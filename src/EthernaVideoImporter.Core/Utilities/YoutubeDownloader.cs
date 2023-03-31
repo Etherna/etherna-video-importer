@@ -72,7 +72,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             var audioLocalFile = await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title, importerTempDirectoryInfo);
 
             // Transcode video resolutions.
-            var encodedFiles = videoMuxingService.TranscodeVideos(videoLocalFile, audioLocalFile, importerTempDirectoryInfo, null);
+            var encodedFiles = videoMuxingService.TranscodeVideos(videoLocalFile, audioLocalFile, importerTempDirectoryInfo);
 
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
