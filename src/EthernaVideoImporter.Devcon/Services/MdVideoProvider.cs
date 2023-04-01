@@ -47,13 +47,13 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Constructor.
         public MdVideoProvider(
             string mdFolderRootPath,
-            IMuxingService videoMuxingService,
+            IEncoderService encoderService,
             bool includeAudioTrack)
         {
             this.mdFolderRootPath = mdFolderRootPath;
             this.includeAudioTrack = includeAudioTrack;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(videoMuxingService, youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
         }
 
         // Properties.

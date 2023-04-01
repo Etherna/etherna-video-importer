@@ -39,13 +39,13 @@ namespace Etherna.VideoImporter.Services
         // Constructor.
         public YouTubeChannelVideoProvider(
             string channelUrl,
-            IMuxingService muxingService,
+            IEncoderService encoderService,
             bool includeAudioTrack)
         {
             this.channelUrl = channelUrl;
             this.includeAudioTrack = includeAudioTrack;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(muxingService, youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
         }
 
         // Properties.

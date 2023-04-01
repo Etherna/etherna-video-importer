@@ -186,7 +186,7 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var ffMpegMuxingService = new FFMpegMuxingService(ffMpegBinaryPath, new List<int> { 1440, 1080, 720, 480, 360 });
+            var ffMpegMuxingService = new EncoderService(ffMpegBinaryPath, new List<int> { 1440, 1080, 720, 480, 360 });
 
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);

@@ -33,15 +33,15 @@ namespace Etherna.VideoImporter.Core.Utilities
     public class YoutubeDownloader : IYoutubeDownloader
     {
         // Fields.
-        private readonly IMuxingService videoMuxingService;
+        private readonly IEncoderService encoderService;
         private readonly YoutubeClient youtubeClient;
 
         // Constructor.
         public YoutubeDownloader(
-            IMuxingService videoMuxingService,
+            IEncoderService encoderService,
             YoutubeClient youtubeClient)
         {
-            this.videoMuxingService = videoMuxingService;
+            this.encoderService = encoderService;
             this.youtubeClient = youtubeClient;
         }
 
@@ -72,7 +72,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             var audioLocalFile = await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title, importerTempDirectoryInfo);
 
             // Transcode video resolutions.
-            var encodedFiles = videoMuxingService.TranscodeVideos(videoLocalFile, audioLocalFile, importerTempDirectoryInfo);
+            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile, audioLocalFile, importerTempDirectoryInfo);
 
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
