@@ -185,6 +185,9 @@ namespace Etherna.VideoImporter.Devcon
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
 
+            // Migration service.
+            var migrationService = new MigrationService();
+
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);
             if (newVersionAvaiable && !ignoreNewVersionOfImporter)
@@ -202,7 +205,8 @@ namespace Etherna.VideoImporter.Devcon
                     mdSourceFolderPath,
                     ffMpegBinaryPath,
                     includeAudioTrack),
-                videoUploaderService);
+                videoUploaderService,
+                migrationService);
 
             await importer.RunAsync(
                 userEthAddr,

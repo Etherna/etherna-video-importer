@@ -35,6 +35,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly ILinkReporterService linkReporterService;
+        private readonly IMigrationService migrationService;
         private readonly DirectoryInfo tempDirectoryInfo;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
@@ -46,7 +47,8 @@ namespace Etherna.VideoImporter.Core
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoProvider videoProvider,
-            IVideoUploaderService videoUploaderService)
+            IVideoUploaderService videoUploaderService,
+            IMigrationService migrationService)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
@@ -61,6 +63,7 @@ namespace Etherna.VideoImporter.Core
             this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
+            this.migrationService = migrationService;
             tempDirectoryInfo = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier));
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
@@ -113,15 +116,20 @@ namespace Etherna.VideoImporter.Core
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
                         v => v.LastValidManifest?.PersonalData?.VideoId == sourceMetadata.Id);
 
+                    // Check if migration operation need.
+                    var migrationType = migrationService.CalculateOperation(alreadyPresentVideo?.LastValidManifest?.PersonalData);
+
                     if (!forceUploadVideo &&
-                        alreadyPresentVideo != null)
+                        alreadyPresentVideo != null &&
+                        migrationType != MigrationType.Import)
                     {
                         Console.WriteLine("Video already uploaded on etherna");
 
                         // Verify if manifest needs to be updated with new metadata.
                         updatedIndexId = alreadyPresentVideo.IndexId;
 
-                        if (alreadyPresentVideo.IsEqualTo(sourceMetadata))
+                        if (migrationType != MigrationType.Nothing &&
+                            alreadyPresentVideo.IsEqualTo(sourceMetadata))
                         {
                             operationType = OperationType.Skip;
                             updatedPermalinkHash = alreadyPresentVideo.LastValidManifest!.Hash;
