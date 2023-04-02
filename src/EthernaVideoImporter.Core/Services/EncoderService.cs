@@ -1,12 +1,10 @@
 ﻿using Etherna.VideoImporter.Core.Models.Domain;
 using Medallion.Shell;
-using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -18,42 +16,42 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Fields.
         private readonly string ffMpegBinaryPath;
-        private readonly IEnumerable<int> supportedResolutions;
+        private readonly IEnumerable<int> supportedHeightResolutions;
         private MemoryStream? memoryStream;
         private MemoryStream? memoryStream2;
 
         // Constructor.
         public EncoderService(
             string ffMpegBinaryPath,
-            IEnumerable<int> supportedResolutions)
+            IEnumerable<int> supportedHeightResolutions)
         {
             this.ffMpegBinaryPath = ffMpegBinaryPath;
-            this.supportedResolutions = supportedResolutions;
+            this.supportedHeightResolutions = supportedHeightResolutions;
         }
 
         // Methods.
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
-            VideoLocalFile videoLocalFile,
-            AudioLocalFile audioLocalFile,
+            VideoLocalFile originalVideoLocalFile,
+            AudioLocalFile originalAudioLocalFile,
             DirectoryInfo importerTempDirectoryInfo)
         {
-            if (videoLocalFile is null)
-                throw new ArgumentNullException(nameof(videoLocalFile));
-            if (audioLocalFile is null)
-                throw new ArgumentNullException(nameof(audioLocalFile));
+            if (originalVideoLocalFile is null)
+                throw new ArgumentNullException(nameof(originalVideoLocalFile));
+            if (originalAudioLocalFile is null)
+                throw new ArgumentNullException(nameof(originalAudioLocalFile));
             if (importerTempDirectoryInfo is null)
                 throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
 
 
             var videoEncoded = new List<VideoLocalFile>();
             var fileNameGuid = Guid.NewGuid().ToString();
-            var resolutionRatio = Math.Round((decimal)videoLocalFile.Width / videoLocalFile.Height, 5);
-            foreach (var heightResolution in supportedResolutions)
+            var resolutionRatio = Math.Round((decimal)originalVideoLocalFile.Width / originalVideoLocalFile.Height, 5);
+            foreach (var heightResolution in supportedHeightResolutions.Union(new List<int> { originalVideoLocalFile.Height }))
             {
                 var onlyMux = false;
-                if (videoLocalFile.Height < heightResolution)
+                if (originalVideoLocalFile.Height < heightResolution)
                     continue;
-                else if (videoLocalFile.Height == heightResolution)
+                else if (originalVideoLocalFile.Height == heightResolution)
                     onlyMux = true;
 
                 Console.WriteLine($"Processing resolution {heightResolution} in progress...");
@@ -66,9 +64,9 @@ namespace Etherna.VideoImporter.Core.Services
                 var fileName = $"{importerTempDirectoryInfo.FullName}/{fileNameGuid}_{(onlyMux ? "Muxed" : "Transcoded")}_{heightResolution}.mp4";
                 var outputLines = new List<string>();
                 var args = new string[] {"-i",
-                    audioLocalFile.FilePath,
+                    originalAudioLocalFile.FilePath,
                     "-i",
-                    videoLocalFile.FilePath,
+                    originalVideoLocalFile.FilePath,
                     "-c:a",
                     "aac",
                     "-c:v",

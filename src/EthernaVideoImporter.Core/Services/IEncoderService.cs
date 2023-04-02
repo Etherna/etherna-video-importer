@@ -8,8 +8,8 @@ namespace Etherna.VideoImporter.Core.Services
     public interface IEncoderService
     {
         Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
-            VideoLocalFile videoLocalFile,
-            AudioLocalFile audioLocalFile,
+            VideoLocalFile originalVideoLocalFile,
+            AudioLocalFile originalAudioLocalFile,
             DirectoryInfo importerTempDirectoryInfo);
     }
 }

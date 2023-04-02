@@ -50,6 +50,11 @@ namespace Etherna.VideoImporter.Devcon
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
             "  -i\tIgnore new version of EthernaVideoImporter.Devcon\n" +
+            "  --Skip1440\tSkip upload resolution 1440p\n" +
+            "  --Skip1080\tSkip upload resolution 1080p\n" +
+            "  --Skip720\tSkip upload resolution 720p\n" +
+            "  --Skip480\tSkip upload resolution 480p\n" +
+            "  --Skip360\tSkip upload resolution 360p\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
@@ -69,6 +74,11 @@ namespace Etherna.VideoImporter.Devcon
             bool forceUploadVideo = false;
             bool acceptPurchaseOfAllBatches = false;
             bool ignoreNewVersionOfImporter = false;
+            bool skip1440 = false;
+            bool skip1080 = false;
+            bool skip720 = false;
+            bool skip480 = false;
+            bool skip360 = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -126,6 +136,11 @@ namespace Etherna.VideoImporter.Devcon
                     case "-f": forceUploadVideo = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
                     case "-i": ignoreNewVersionOfImporter = true; break;
+                    case "-skip1440": skip1440 = true; break;
+                    case "-skip1080": skip1080 = true; break;
+                    case "-skip720": skip720 = true; break;
+                    case "-skip480": skip480 = true; break;
+                    case "-skip360": skip360 = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -186,7 +201,7 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var ffMpegMuxingService = new EncoderService(ffMpegBinaryPath, new List<int> { 1440, 1080, 720, 480, 360 });
+            var ffMpegMuxingService = new EncoderService(ffMpegBinaryPath, GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360));
 
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);
@@ -215,6 +230,29 @@ namespace Etherna.VideoImporter.Devcon
                 deleteExogenousVideos,
                 unpinRemovedVideos,
                 forceUploadVideo);
+        }
+
+        // Helpers.
+        private static IEnumerable<int> GetSupportedHeightResolutions(
+            bool skip1440,
+            bool skip1080,
+            bool skip720,
+            bool skip480,
+            bool skip360)
+        {
+            var supportedHeightResolutions = new List<int>();
+            if (skip1440)
+                supportedHeightResolutions.Add(1440);
+            if (skip1080)
+                supportedHeightResolutions.Add(1080);
+            if (skip720)
+                supportedHeightResolutions.Add(720);
+            if (skip480)
+                supportedHeightResolutions.Add(480);
+            if (skip360)
+                supportedHeightResolutions.Add(360);
+
+            return supportedHeightResolutions;
         }
     }
 }
