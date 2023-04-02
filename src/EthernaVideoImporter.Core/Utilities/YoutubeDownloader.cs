@@ -49,12 +49,12 @@ namespace Etherna.VideoImporter.Core.Utilities
         public async Task<Video> GetVideoAsync(
             bool includeAudioTrack,
             YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo importerTempDirectoryInfo)
+            DirectoryInfo tempDirectory)
         {
             if (videoMetadata is null)
                 throw new ArgumentNullException(nameof(videoMetadata));
-            if (importerTempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
+            if (tempDirectory is null)
+                throw new ArgumentNullException(nameof(tempDirectory));
 
             // Get manifest data.
             var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
@@ -64,15 +64,15 @@ namespace Etherna.VideoImporter.Core.Utilities
             var videoOnlyStreamInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)
                 .GetWithHighestVideoQuality() ?? throw new InvalidOperationException("Unable to found video stream on source data");
-            var videoLocalFile = await DownloadVideoStreamAsync(videoOnlyStreamInfo, videoMetadata.Title, importerTempDirectoryInfo);
+            var videoLocalFile = await DownloadVideoStreamAsync(videoOnlyStreamInfo, videoMetadata.Title, tempDirectory);
 
             //audio only stream
             var audioOnlyStreamInfo = youtubeStreamsManifest.GetAudioOnlyStreams()
                 .GetWithHighestBitrate() ?? throw new InvalidOperationException("Unable to found audio stream on source dataa");
-            var audioLocalFile = await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title, importerTempDirectoryInfo);
+            var audioLocalFile = await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title, tempDirectory);
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile, audioLocalFile, importerTempDirectoryInfo);
+            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile, audioLocalFile, tempDirectory);
 
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
@@ -81,9 +81,9 @@ namespace Etherna.VideoImporter.Core.Utilities
                 var betsResolutionThumbnail = await DownloadThumbnailAsync(
                     videoMetadata.Thumbnail,
                     videoMetadata.Title,
-                    importerTempDirectoryInfo);
+                    tempDirectory);
 
-                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, importerTempDirectoryInfo);
+                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, tempDirectory);
             }
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
