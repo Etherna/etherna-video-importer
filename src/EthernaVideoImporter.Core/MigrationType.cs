@@ -3,7 +3,6 @@
     public enum MigrationType
     {
         Nothing,
-        UpdateAll,
         UpdateManifest,
         Import
     }

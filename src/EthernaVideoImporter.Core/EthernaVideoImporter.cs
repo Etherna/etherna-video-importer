@@ -116,7 +116,7 @@ namespace Etherna.VideoImporter.Core
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
                         v => v.LastValidManifest?.PersonalData?.VideoId == sourceMetadata.Id);
 
-                    // Check if migration operation need.
+                    // Check if need migration operation.
                     var migrationType = migrationService.CalculateOperation(alreadyPresentVideo?.LastValidManifest?.PersonalData);
 
                     if (!forceUploadVideo &&
@@ -128,7 +128,7 @@ namespace Etherna.VideoImporter.Core
                         // Verify if manifest needs to be updated with new metadata.
                         updatedIndexId = alreadyPresentVideo.IndexId;
 
-                        if (migrationType != MigrationType.Nothing &&
+                        if (migrationType == MigrationType.Nothing &&
                             alreadyPresentVideo.IsEqualTo(sourceMetadata))
                         {
                             operationType = OperationType.Skip;
