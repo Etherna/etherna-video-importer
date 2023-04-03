@@ -186,7 +186,7 @@ namespace Etherna.VideoImporter.Devcon
                 acceptPurchaseOfAllBatches);
 
             // Check for new version
-            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);
+            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreNewVersionOfImporter)
                 return;
 

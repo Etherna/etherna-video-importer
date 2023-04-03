@@ -30,11 +30,8 @@ namespace Etherna.VideoImporter.Core
         }
 
         // Public methods.
-        public static async Task<bool> CheckNewVersionAsync(HttpClient httpClient)
+        public static async Task<bool> CheckNewVersionAsync()
         {
-            if (httpClient is null)
-                throw new ArgumentNullException(nameof(httpClient));
-
             // Get current version.
             
             Console.WriteLine();
@@ -44,6 +41,7 @@ namespace Etherna.VideoImporter.Core
             // Get last version form github releases.
             try
             {
+                using HttpClient httpClient = new();
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "EthernaImportClient");
                 var gitUrl = "https://api.github.com/repos/Etherna/etherna-video-importer/releases";
                 var response = await httpClient.GetAsync(gitUrl);
