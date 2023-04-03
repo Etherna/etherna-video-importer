@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 
 namespace Etherna.VideoImporter.Core.Services
 {
@@ -16,6 +15,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly string ffMpegBinaryPath;
         private readonly IEnumerable<int> supportedHeightResolutions;
+        private Command? command;
 
         // Constructor.
         public EncoderService(
@@ -38,7 +38,6 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new ArgumentNullException(nameof(originalAudioLocalFile));
             if (importerTempDirectoryInfo is null)
                 throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
-
 
             var videoEncoded = new List<VideoLocalFile>();
             var fileNameGuid = Guid.NewGuid().ToString();
@@ -85,10 +84,11 @@ namespace Etherna.VideoImporter.Core.Services
                     onlyMux ? "" : $"scale={scaledWidth}:{heightResolution}",
                     "-loglevel",
                     "info"};
-                var command = Command.Run(
+                command = Command.Run(
                     ffMpegBinaryPath,
-                    args.Where(arg => !string.IsNullOrWhiteSpace(arg)));
-
+                    args.Where(arg => !string.IsNullOrWhiteSpace(arg))) ?? throw new InvalidOperationException($"Unable to start ffMpeg");
+                Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
+            
                 // Print filtered console output.
                 using var tokenSource = PrintConsoleStatus(command);
 
@@ -120,6 +120,20 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Helpers.
+        private void ManageInterrupted(object? sender, ConsoleCancelEventArgs args)
+        {
+            if (command is null)
+                return;
+            if (args is null)
+                return;
+
+            Console.WriteLine();
+            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            Console.WriteLine("The operation has been interrupted.");
+            args.Cancel = true;
+            command.Kill();
+        }
+
         private static CancellationTokenSource PrintConsoleStatus(Command command)
         {
             var tokenSource = new CancellationTokenSource();
