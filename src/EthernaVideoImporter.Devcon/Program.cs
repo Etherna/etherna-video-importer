@@ -241,15 +241,15 @@ namespace Etherna.VideoImporter.Devcon
             bool skip360)
         {
             var supportedHeightResolutions = new List<int>();
-            if (skip1440)
+            if (!skip1440)
                 supportedHeightResolutions.Add(1440);
-            if (skip1080)
+            if (!skip1080)
                 supportedHeightResolutions.Add(1080);
-            if (skip720)
+            if (!skip720)
                 supportedHeightResolutions.Add(720);
-            if (skip480)
+            if (!skip480)
                 supportedHeightResolutions.Add(480);
-            if (skip360)
+            if (!skip360)
                 supportedHeightResolutions.Add(360);
 
             return supportedHeightResolutions;

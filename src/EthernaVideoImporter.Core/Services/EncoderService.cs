@@ -5,20 +5,17 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-#pragma warning disable CA1001 // Types that own disposable fields should be disposable
     public partial class EncoderService : IEncoderService
-#pragma warning restore CA1001 // Types that own disposable fields should be disposable
     {
         // Fields.
         private readonly string ffMpegBinaryPath;
         private readonly IEnumerable<int> supportedHeightResolutions;
-        private MemoryStream? memoryStream;
-        private MemoryStream? memoryStream2;
 
         // Constructor.
         public EncoderService(
@@ -91,33 +88,13 @@ namespace Etherna.VideoImporter.Core.Services
                 var command = Command.Run(
                     ffMpegBinaryPath,
                     args.Where(arg => !string.IsNullOrWhiteSpace(arg)));
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                memoryStream2 = new MemoryStream();
-                command.RedirectTo(memoryStream2);
-                command.RedirectFrom(Console.OpenStandardInput());
-                memoryStream = new MemoryStream();
-                command.RedirectStandardErrorTo(memoryStream);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-                /*if (received?.Data is not null &&
-                        received.Data.StartsWith("frame=", StringComparison.InvariantCulture))
-                {
-                    Console.WriteLine(received.Data);
-                    Console.SetCursorPosition(0, Console.CursorTop - 1);
-                }*/
-                using System.Timers.Timer aTimer = new();
-                aTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-                aTimer.Interval = 5000;
-                aTimer.Enabled = true;
+
+                // Print filtered console output.
+                using var tokenSource = PrintConsoleStatus(command);
+
+                // Waiting for end and stop console output.
                 var result = await command.Task;
-                aTimer.Stop();
-                await memoryStream.DisposeAsync();
-                using System.Timers.Timer aTimer2 = new();
-                aTimer2.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-                aTimer2.Interval = 5000;
-                aTimer2.Enabled = true;
-                var result2 = await command.Task;
-                aTimer2.Stop();
-                await memoryStream2.DisposeAsync();
+                tokenSource.Cancel();
                 // inspect the result
                 if (!result.Success)
                 {
@@ -142,25 +119,30 @@ namespace Etherna.VideoImporter.Core.Services
             return videoEncoded;
         }
 
-        private void OnTimedEvent(object? source, ElapsedEventArgs e)
+        // Helpers.
+        private static CancellationTokenSource PrintConsoleStatus(Command command)
         {
-            if (memoryStream is null ||
-                !memoryStream.CanRead)
-                return;
-            memoryStream.Seek(0, SeekOrigin.Begin);
-            using StreamReader reader = new StreamReader(memoryStream);
-            string text = reader.ReadToEnd();
-            Console.WriteLine(text);
-        }
+            var tokenSource = new CancellationTokenSource();
+            CancellationToken ct = tokenSource.Token;
+            var task = Task.Run(() =>
+            {
+                if (ct.IsCancellationRequested)
+                    return;
 
-        private void OnTimedEvent2(object? source, ElapsedEventArgs e)
-        {
-            if (memoryStream2 is null)
-                return;
-            memoryStream2.Seek(0, SeekOrigin.Begin);
-            using StreamReader reader = new StreamReader(memoryStream2);
-            string text = reader.ReadToEnd();
-            Console.WriteLine(text);
+                foreach (var line in command.GetOutputAndErrorLines())
+                {
+                    if (ct.IsCancellationRequested)
+                        return;
+
+                    if (line is not null &&
+                        line.StartsWith("frame=", StringComparison.InvariantCulture))
+                    {
+                        Console.WriteLine(line);
+                        Console.SetCursorPosition(0, Console.CursorTop - 1);
+                    }
+                }
+            }, tokenSource.Token);
+            return tokenSource;
         }
     }
 }
