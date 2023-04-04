@@ -201,7 +201,7 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var ffMpegMuxingService = new EncoderService(ffMpegBinaryPath, GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360));
+            var encoderService = new EncoderService(ffMpegBinaryPath, GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360));
 
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);
@@ -218,7 +218,7 @@ namespace Etherna.VideoImporter.Devcon
                 new DevconLinkReporterService(mdSourceFolderPath),
                 new MdVideoProvider(
                     mdSourceFolderPath,
-                    ffMpegMuxingService,
+                    encoderService,
                     includeAudioTrack),
                 videoUploaderService);
 

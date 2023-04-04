@@ -219,17 +219,17 @@ namespace Etherna.VideoImporter
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var ffMpegMuxingService = new EncoderService(ffMpegBinaryPath, GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360));
+            var encoderService = new EncoderService(ffMpegBinaryPath, GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360));
 
             IVideoProvider videoProvider = sourceType switch
             {
                 SourceType.YouTubeChannel => new YouTubeChannelVideoProvider(
                     sourceUri,
-                    ffMpegMuxingService,
+                    encoderService,
                     includeAudioTrack),
                 SourceType.YouTubeVideo => new YouTubeSingleVideoProvider(
                     sourceUri,
-                    ffMpegMuxingService,
+                    encoderService,
                     includeAudioTrack),
                 _ => throw new InvalidOperationException()
             };
