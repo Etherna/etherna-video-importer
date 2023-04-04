@@ -37,6 +37,11 @@ Options:
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
   -i    Ignore new version of EthernaVideoImporter
+  --Skip1440    Skip upload resolution 1440p
+  --Skip1080    Skip upload resolution 1080p
+  --Skip720     Skip upload resolution 720p
+  --Skip480     Skip upload resolution 480p
+  --Skip360     Skip upload resolution 360p
 
 Run 'EthernaVideoImporter -h' to print help
 ```
@@ -54,6 +59,11 @@ Options:
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
   -i    Ignore new version of EthernaVideoImporter.Devcon
+  --Skip1440    Skip upload resolution 1440p
+  --Skip1080    Skip upload resolution 1080p
+  --Skip720     Skip upload resolution 720p
+  --Skip480     Skip upload resolution 480p
+  --Skip360     Skip upload resolution 360p
 
 Run 'EthernaVideoImporter.Devcon -h' to print help
 ```

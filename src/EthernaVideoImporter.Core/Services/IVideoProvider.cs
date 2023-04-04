@@ -25,7 +25,7 @@ namespace Etherna.VideoImporter.Core.Services
         string SourceName { get; }
 
         // Methods.
-        Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo importerTempDirectoryInfo);
+        Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo tempDirectory);
         Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync();
     }
 }
