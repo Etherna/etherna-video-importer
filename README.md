@@ -30,6 +30,7 @@ Source types:
 
 Options:
   -ff   Path FFmpeg (default dir: .\FFmpeg\)
+  -hw   Use NVIDIA CUDA hardware acceleration on FFmpeg (default: false)
   -t    TTL (days) Postage Stamp (default value: 365 days)
   -o    Offer video downloads to everyone
   -p    Pin videos
@@ -52,6 +53,7 @@ Usage:  EthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]
 
 Options:
   -ff   Path FFmpeg (default dir: .\FFmpeg\)
+  -hw   Use NVIDIA CUDA hardware acceleration on FFmpeg (default: false)
   -t    TTL (days) Postage Stamp (default value: 365 days)
   -o    Offer video downloads to everyone
   -p    Pin videos

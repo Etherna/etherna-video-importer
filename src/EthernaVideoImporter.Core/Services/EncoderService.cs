@@ -14,15 +14,18 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Fields.
         private readonly string ffMpegBinaryPath;
+        private readonly FFMpegHWAccelerationType ffMpegHWAccelerationType;
         private readonly IEnumerable<int> supportedHeightResolutions;
         private Command? command;
 
         // Constructor.
         public EncoderService(
             string ffMpegBinaryPath,
+            FFMpegHWAccelerationType ffMpegHWAccelerationType,
             IEnumerable<int> supportedHeightResolutions)
         {
             this.ffMpegBinaryPath = ffMpegBinaryPath;
+            this.ffMpegHWAccelerationType = ffMpegHWAccelerationType;
             this.supportedHeightResolutions = supportedHeightResolutions;
         }
 
@@ -66,7 +69,8 @@ namespace Etherna.VideoImporter.Core.Services
                     "-c:a",
                     "aac",
                     "-c:v",
-                    "libx264",
+                    ffMpegHWAccelerationType == FFMpegHWAccelerationType.None 
+                        ? "libx264" : "h264_nvenc",
                     "-movflags",
                     "faststart",
                     "-sc_threshold",
@@ -82,6 +86,8 @@ namespace Etherna.VideoImporter.Core.Services
                     fileName,
                     onlyMux ? "" : "-vf",
                     onlyMux ? "" : $"scale={scaledWidth}:{heightResolution}",
+                    ffMpegHWAccelerationType == FFMpegHWAccelerationType.None
+                        ? "" : "-hwaccel cuda -hwaccel_output_format cuda",
                     "-loglevel",
                     "info"};
                 command = Command.Run(

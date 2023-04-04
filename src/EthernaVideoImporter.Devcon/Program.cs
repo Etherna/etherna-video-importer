@@ -21,7 +21,6 @@ using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Devcon.Services;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -41,6 +40,7 @@ namespace Etherna.VideoImporter.Devcon
             "\n" +
             "Options:\n" +
             $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
+            $"  -hw\tUse NVIDIA CUDA hardware acceleration on FFmpeg (default: false)\n" +
             $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
@@ -79,6 +79,7 @@ namespace Etherna.VideoImporter.Devcon
             bool skip720 = false;
             bool skip480 = false;
             bool skip360 = false;
+            var ffMpegHWAccelerationType = FFMpegHWAccelerationType.None;
 
             // Parse input.
             if (args.Length == 0)
@@ -141,6 +142,7 @@ namespace Etherna.VideoImporter.Devcon
                     case "-skip720": skip720 = true; break;
                     case "-skip480": skip480 = true; break;
                     case "-skip360": skip360 = true; break;
+                    case "-hw": ffMpegHWAccelerationType = FFMpegHWAccelerationType.Cuda; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -201,7 +203,7 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var encoderService = new EncoderService(ffMpegBinaryPath, GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360));
+            var encoderService = new EncoderService(ffMpegBinaryPath, ffMpegHWAccelerationType, GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360));
 
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);
