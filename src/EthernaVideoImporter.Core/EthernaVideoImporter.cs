@@ -22,6 +22,7 @@ using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -34,6 +35,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly ILinkReporterService linkReporterService;
+        private readonly DirectoryInfo tempDirectoryInfo;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -59,6 +61,7 @@ namespace Etherna.VideoImporter.Core
             this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
+            tempDirectoryInfo = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier));
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -151,7 +154,7 @@ namespace Etherna.VideoImporter.Core
 
                             // Upload new manifest.
                             var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos);
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(
@@ -180,7 +183,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Get and encode video from source.
-                        var video = await videoProvider.GetVideoAsync(sourceMetadata);
+                        var video = await videoProvider.GetVideoAsync(sourceMetadata, tempDirectoryInfo);
                         video.EthernaIndexId = alreadyPresentVideo?.IndexId;
 
                         if (!video.EncodedFiles.Any())
@@ -227,6 +230,23 @@ namespace Etherna.VideoImporter.Core
 
                     importSummaryModelView.TotErrorVideoImported++;
                     continue;
+                }
+                finally {
+                    try
+                    {
+                        // Clear tmp folder.
+                        foreach (var file in tempDirectoryInfo.GetFiles())
+                            file.Delete();
+                        foreach (var dir in tempDirectoryInfo.GetDirectories())
+                            dir.Delete(true);
+                    }
+                    catch
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+                        Console.WriteLine($"Warning: unable to delete some files inside of {tempDirectoryInfo.FullName}.");
+                        Console.WriteLine($"Please remove manually after the process.");
+                        Console.ResetColor();
+                    }
                 }
 
                 // Report etherna new references.

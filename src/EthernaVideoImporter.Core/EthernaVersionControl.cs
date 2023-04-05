@@ -11,24 +11,37 @@ namespace Etherna.VideoImporter.Core
 {
     public static class EthernaVersionControl
     {
-        // Public methods.
-        public static async Task<bool> CheckNewVersionAsync(HttpClient httpClient)
+        // Fields.
+        private static Version? _currentVersion;
+
+        // Properties.
+        public static Version CurrentVersion
         {
-            if (httpClient is null)
-                throw new ArgumentNullException(nameof(httpClient));
+            get
+            {
+                if (_currentVersion is null)
+                {
+                    var assemblyVersion = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ??
+                        throw new InvalidOperationException("Invalid assembly version");
+                    _currentVersion = new Version(assemblyVersion);
+                }
+                return _currentVersion;
+            }
+        }
 
+        // Public methods.
+        public static async Task<bool> CheckNewVersionAsync()
+        {
             // Get current version.
-            var assemblyVersion = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ??
-                throw new InvalidOperationException("Invalid assembly version");
-            var currentVersion = new Version(assemblyVersion);
-
+            
             Console.WriteLine();
-            Console.WriteLine($"Etherna Video Importer (v{currentVersion})");
+            Console.WriteLine($"Etherna Video Importer (v{CurrentVersion})");
             Console.WriteLine();
 
             // Get last version form github releases.
             try
             {
+                using HttpClient httpClient = new();
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "EthernaImportClient");
                 var gitUrl = "https://api.github.com/repos/Etherna/etherna-video-importer/releases";
                 var response = await httpClient.GetAsync(gitUrl);
@@ -46,7 +59,7 @@ namespace Etherna.VideoImporter.Core
                     .OrderByDescending(v => v.Version)
                     .First();
 
-                if (lastVersion.Version > currentVersion)
+                if (lastVersion.Version > CurrentVersion)
                 {
                     Console.WriteLine($"A new release is available: {lastVersion.Version}");
                     Console.WriteLine($"Upgrade now, or check out the release page at:");

@@ -26,7 +26,7 @@
     <PackageReference Include="Bee.Net" Version="0.2.0-alpha.172" />
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.1.1" />
-    <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.2.11" />
+    <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.2.12" />
     <PackageReference Include="EthernaServicesClient" Version="0.3.0-alpha.60" />
     <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
       <PrivateAssets>all</PrivateAssets>
@@ -41,7 +41,7 @@
     </PackageReference>
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />
     <PackageReference Include="IdentityModel.OidcClient" Version="5.2.1" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.27.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.28.0" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 

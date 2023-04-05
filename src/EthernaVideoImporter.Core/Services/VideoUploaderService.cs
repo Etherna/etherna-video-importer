@@ -77,18 +77,18 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new ArgumentNullException(nameof(video));
 
             // Create new batch.
-            //calculate batch deep
+            //calculate batch depth
             var totalSize = video.GetTotalByteSize();
-            var batchDeep = 17;
-            while (Math.Pow(2, batchDeep) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
-                batchDeep++;
+            var batchDepth = 17;
+            while (Math.Pow(2, batchDepth) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
+                batchDepth++;
 
             //calculate amount
             var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
             var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
-            var bzzPrice = amount * Math.Pow(2, batchDeep) / BzzDecimalPlacesToUnit;
+            var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
-            Console.WriteLine($"Creating postage batch... Depth: {batchDeep} Amount: {amount} BZZ price: {bzzPrice}");
+            Console.WriteLine($"Creating postage batch... Depth: {batchDepth} Amount: {amount} BZZ price: {bzzPrice}");
 
             if (!acceptPurchaseOfAllBatches)
             {
@@ -117,7 +117,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             //create batch
-            var batchId = await CreatePostageBatchAsync(batchDeep, amount);
+            var batchId = await CreatePostageBatchAsync(batchDepth, amount);
 
             Console.WriteLine($"Postage batch: {batchId}");
 
@@ -212,7 +212,7 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo);
+                        video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo, offerVideo);
                         uploadSucceeded = true;
                     }
                     catch (Exception ex)
@@ -228,9 +228,6 @@ namespace Etherna.VideoImporter.Core.Services
                 if (!uploadSucceeded)
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
             }
-
-            if (offerVideo)
-                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(video.EthernaPermalinkHash!);
 
             Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
 
@@ -249,7 +246,8 @@ namespace Etherna.VideoImporter.Core.Services
 
         public async Task<string> UploadVideoManifestAsync(
             ManifestDto videoManifest,
-            bool pinManifest)
+            bool pinManifest,
+            bool offerManifest)
         {
             if (videoManifest is null)
                 throw new ArgumentNullException(nameof(videoManifest));
@@ -291,13 +289,16 @@ namespace Etherna.VideoImporter.Core.Services
             if (!uploadSucceeded)
                 throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
+            if (offerManifest)
+                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(manifestReference);
+
             return manifestReference;
         }
 
         // Helpers.
-        private async Task<string> CreatePostageBatchAsync(int batchDeep, long amount)
+        private async Task<string> CreatePostageBatchAsync(int batchDepth, long amount)
         {
-            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDeep, amount);
+            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDepth, amount);
 
             // Wait until created batch is avaiable.
             Console.Write("Waiting for batch created... (it may take a while)");

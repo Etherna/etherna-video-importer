@@ -218,7 +218,7 @@ namespace Etherna.VideoImporter
             };
 
             // Check for new version
-            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);
+            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
