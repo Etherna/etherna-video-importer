@@ -285,6 +285,9 @@ namespace Etherna.VideoImporter
                 _ => throw new InvalidOperationException()
             };
 
+            // Migration service.
+            var migrationService = new MigrationService();
+
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
@@ -299,7 +302,8 @@ namespace Etherna.VideoImporter
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),
                 videoProvider,
-                videoUploaderService);
+                videoUploaderService,
+                migrationService);
 
             await importer.RunAsync(
                 userEthAddr,

@@ -34,6 +34,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IGatewayService gatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly ILinkReporterService linkReporterService;
+        private readonly IMigrationService migrationService;
         private readonly DirectoryInfo tempDirectoryInfo;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
@@ -45,7 +46,8 @@ namespace Etherna.VideoImporter.Core
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoProvider videoProvider,
-            IVideoUploaderService videoUploaderService)
+            IVideoUploaderService videoUploaderService,
+            IMigrationService migrationService)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
@@ -60,6 +62,7 @@ namespace Etherna.VideoImporter.Core
             this.gatewayClient = gatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
+            this.migrationService = migrationService;
             tempDirectoryInfo = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier));
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
@@ -112,24 +115,33 @@ namespace Etherna.VideoImporter.Core
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
                         v => v.LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id));
 
-                    if (!forceUploadVideo &&
-                        alreadyPresentVideo != null)
+                    // Check if need a migration operation.
+                    var minRequiredMigrationOp = migrationService.DecideOperation(alreadyPresentVideo?.LastValidManifest?.PersonalData);
+
+                    //try to update only manifest, or to skip if possible
+                    if (alreadyPresentVideo is not null &&
+                        !forceUploadVideo &&
+                        minRequiredMigrationOp is OperationType.Skip or OperationType.UpdateManifest)
                     {
                         Console.WriteLine("Video already uploaded on etherna");
 
                         // Verify if manifest needs to be updated with new metadata.
                         updatedIndexId = alreadyPresentVideo.IndexId;
 
-                        if (alreadyPresentVideo.IsEqualTo(sourceMetadata))
+                        //try to skip
+                        if (alreadyPresentVideo.IsEqualTo(sourceMetadata) &&
+                            minRequiredMigrationOp is OperationType.Skip)
                         {
                             operationType = OperationType.Skip;
                             updatedPermalinkHash = alreadyPresentVideo.LastValidManifest!.Hash;
                         }
+
+                        //else update manifest
                         else
                         {
                             Console.WriteLine($"Metadata has changed, update the video manifest");
 
-                            operationType = OperationType.Update;
+                            operationType = OperationType.UpdateManifest;
 
                             // Create manifest.
                             var thumbnailFiles = alreadyPresentVideo.LastValidManifest!.Thumbnail.Sources.Select(t =>
@@ -161,9 +173,11 @@ namespace Etherna.VideoImporter.Core
                                 updatedPermalinkHash);
                         }
                     }
-                    else //try to upload new video on etherna
+
+                    //else, full upload the new video on etherna
+                    else
                     {
-                        operationType = OperationType.Import;
+                        operationType = OperationType.ImportAll;
 
                         // Validate metadata.
                         if (sourceMetadata.Title.Length > ethernaIndexParameters.VideoTitleMaxLength)
@@ -208,10 +222,10 @@ namespace Etherna.VideoImporter.Core
                     // Summary count.
                     switch (operationType)
                     {
-                        case OperationType.Import:
+                        case OperationType.ImportAll:
                             importSummaryModelView.TotSuccessVideoImported++;
                             break;
-                        case OperationType.Update:
+                        case OperationType.UpdateManifest:
                             importSummaryModelView.TotUpdatedVideoImported++;
                             break;
                         case OperationType.Skip:
