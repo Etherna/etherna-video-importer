@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 
 namespace Etherna.VideoImporter.Core.Models.Index
@@ -38,7 +39,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
 
         // Internal methods.
         internal bool IsEqualTo(VideoMetadataBase sourceMetadata) =>
-            LastValidManifest?.PersonalData?.VideoId == sourceMetadata.Id &&
+            LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id) &&
             LastValidManifest?.Title == sourceMetadata.Title &&
             LastValidManifest?.Description == sourceMetadata.Description;
     }

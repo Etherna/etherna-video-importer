@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
@@ -111,7 +110,7 @@ namespace Etherna.VideoImporter.Core
 
                     // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
-                        v => v.LastValidManifest?.PersonalData?.VideoId == sourceMetadata.Id);
+                        v => v.LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id));
 
                     if (!forceUploadVideo &&
                         alreadyPresentVideo != null)
