@@ -28,6 +28,7 @@
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.1.1" />
     <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.2.12" />
     <PackageReference Include="EthernaServicesClient" Version="0.3.0-alpha.60" />
+    <PackageReference Include="Keccak256" Version="1.0.0" />
     <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
