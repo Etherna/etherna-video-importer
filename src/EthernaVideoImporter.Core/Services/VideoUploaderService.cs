@@ -12,9 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeeNet;
 using Etherna.BeeNet.InputModels;
-using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
@@ -31,37 +29,28 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class VideoUploaderService : IVideoUploaderService
     {
         // Const.
-        private readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
-        private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
-        private readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
         private readonly long BzzDecimalPlacesToUnit = (long)Math.Pow(10, 16);
         private const int ChunkByteSize = 4096;
         private const int UploadMaxRetry = 10;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
-        private readonly BeeNodeClient beeNodeClient;
         private bool acceptPurchaseOfAllBatches;
-        private readonly IUserGatewayClient ethernaGatewayClient;
+        private readonly IGatewayService gatewayService;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly TimeSpan ttlPostageStamp;
         private readonly string userEthAddr;
 
         // Constructor.
         public VideoUploaderService(
-            BeeNodeClient beeNodeClient,
-            IUserGatewayClient ethernaGatewayClient,
+            IGatewayService gatewayService,
             IUserIndexClient ethernaIndexClient,
             string userEthAddr,
             TimeSpan ttlPostageStamp,
             bool confirmPurchaseAllBatches)
         {
-            if (beeNodeClient is null)
-                throw new ArgumentNullException(nameof(beeNodeClient));
-
-            this.beeNodeClient = beeNodeClient;
             this.acceptPurchaseOfAllBatches = confirmPurchaseAllBatches;
-            this.ethernaGatewayClient = ethernaGatewayClient;
+            this.gatewayService = gatewayService;
             this.ethernaIndexClient = ethernaIndexClient;
             this.userEthAddr = userEthAddr;
             this.ttlPostageStamp = ttlPostageStamp;
@@ -84,8 +73,8 @@ namespace Etherna.VideoImporter.Core.Services
                 batchDepth++;
 
             //calculate amount
-            var chainState = await ethernaGatewayClient.SystemClient.ChainstateAsync();
-            var amount = (long)(ttlPostageStamp.TotalSeconds * chainState.CurrentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+            var currentPrice = await gatewayService.GetCurrentChainPriceAsync();
+            var amount = (long)(ttlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
             var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
             Console.WriteLine($"Creating postage batch... Depth: {batchDepth} Amount: {amount} BZZ price: {bzzPrice}");
@@ -117,7 +106,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             //create batch
-            var batchId = await CreatePostageBatchAsync(batchDepth, amount);
+            var batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
 
             Console.WriteLine($"Postage batch: {batchId}");
 
@@ -141,10 +130,10 @@ namespace Etherna.VideoImporter.Core.Services
                             Path.GetFileName(encodedFile.FilePath),
                             "video/mp4");
 
-                        encodedFile.SetSwarmHash(await beeNodeClient.GatewayClient!.UploadFileAsync(
+                        encodedFile.SetSwarmHash(await gatewayService.UploadFilesAsync(
                             batchId,
                             files: new List<FileParameterInput> { fileParameterInput },
-                            swarmPin: pinVideo));
+                            pinVideo));
                         uploadSucceeded = true;
                     }
                     catch (Exception ex)
@@ -161,7 +150,7 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(encodedFile.SwarmHash!);
+                    await gatewayService.OfferContentAsync(encodedFile.SwarmHash!);
             }
 
             // Upload thumbnail.
@@ -179,10 +168,10 @@ namespace Etherna.VideoImporter.Core.Services
                             Path.GetFileName(thumbnailFile.FilePath),
                             "image/jpeg");
 
-                        thumbnailReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                        thumbnailReference = await gatewayService.UploadFilesAsync(
                             batchId,
-                            files: new List<FileParameterInput> { fileThumbnailParameterInput },
-                            swarmPin: pinVideo);
+                            new List<FileParameterInput> { fileThumbnailParameterInput },
+                            pinVideo);
                         uploadSucceeded = true;
                     }
                     catch (Exception ex)
@@ -201,7 +190,7 @@ namespace Etherna.VideoImporter.Core.Services
                 thumbnailFile.SetSwarmHash(thumbnailReference);
 
                 if (offerVideo)
-                    await ethernaGatewayClient.ResourcesClient.OffersPostAsync(thumbnailReference);
+                    await gatewayService.OfferContentAsync(thumbnailReference);
             }
 
             // Manifest.
@@ -265,15 +254,15 @@ namespace Etherna.VideoImporter.Core.Services
                     });
                     using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
 
-                    manifestReference = await beeNodeClient.GatewayClient!.UploadFileAsync(
+                    manifestReference = await gatewayService.UploadFilesAsync(
                         videoManifest.BatchId,
-                        files: new[] {
+                        new[] {
                             new FileParameterInput(
                                 manifestStream,
                                 "metadata.json",
                                 "application/json")
                         },
-                        swarmPin: pinManifest);
+                        pinManifest);
                     uploadSucceeded = true;
                 }
                 catch (Exception ex)
@@ -290,68 +279,9 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
             if (offerManifest)
-                await ethernaGatewayClient.ResourcesClient.OffersPostAsync(manifestReference);
+                await gatewayService.OfferContentAsync(manifestReference);
 
             return manifestReference;
-        }
-
-        // Helpers.
-        private async Task<string> CreatePostageBatchAsync(int batchDepth, long amount)
-        {
-            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDepth, amount);
-
-            // Wait until created batch is avaiable.
-            Console.Write("Waiting for batch created... (it may take a while)");
-
-            var batchStartWait = DateTime.UtcNow;
-            string? batchId = null;
-            do
-            {
-                //timeout throw exception
-                if (DateTime.UtcNow - batchStartWait >= BatchCreationTimeout)
-                {
-                    var ex = new InvalidOperationException("Batch not avaiable after timeout");
-                    ex.Data.Add("BatchReferenceId", batchReferenceId);
-                    throw ex;
-                }
-
-                try
-                {
-                    batchId = await ethernaGatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
-                }
-                catch (GatewayApiException)
-                {
-                    //waiting for batchId avaiable
-                    await Task.Delay(BatchCheckTimeSpan);
-                }
-            } while (string.IsNullOrWhiteSpace(batchId));
-
-            Console.WriteLine(". Done");
-
-            // Wait until created batch is usable.
-            Console.Write("Waiting for batch being usable... (it may take a while)");
-
-            batchStartWait = DateTime.UtcNow;
-            bool batchIsUsable;
-            do
-            {
-                //timeout throw exception
-                if (DateTime.UtcNow - batchStartWait >= BatchUsableTimeout)
-                {
-                    var ex = new InvalidOperationException("Batch not usable after timeout");
-                    ex.Data.Add("BatchId", batchId);
-                    throw ex;
-                }
-
-                batchIsUsable = (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
-
-                //waiting for batch usable
-                await Task.Delay(BatchCheckTimeSpan);
-            } while (!batchIsUsable);
-
-            Console.WriteLine(". Done");
-
-            return batchId;
         }
     }
 }

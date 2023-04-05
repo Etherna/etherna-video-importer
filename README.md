@@ -37,6 +37,10 @@ Options:
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
   -i    Ignore new version of EthernaVideoImporter
+  --beenode             Use bee native node
+  --beenodeurl          Url of Bee node (default value: http://localhost/)
+  --beenodeapiport      Port used by API (default value: 1633)
+  --beenodedebugport    Port used by Debug (default value: 1635)
 
 Run 'EthernaVideoImporter -h' to print help
 ```
@@ -54,6 +58,10 @@ Options:
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
   -i    Ignore new version of EthernaVideoImporter.Devcon
+  --beenode             Use bee native node
+  --beenodeurl          Url of Bee node (default value: http://localhost/)
+  --beenodeapiport      Port used by API (default value: 1633)
+  --beenodedebugport    Port used by Debug (default value: 1635)
 
 Run 'EthernaVideoImporter.Devcon -h' to print help
 ```

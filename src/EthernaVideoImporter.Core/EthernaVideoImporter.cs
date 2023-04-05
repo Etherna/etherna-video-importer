@@ -32,7 +32,7 @@ namespace Etherna.VideoImporter.Core
     {
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
-        private readonly IUserGatewayClient ethernaGatewayClient;
+        private readonly IGatewayService gatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
         private readonly ILinkReporterService linkReporterService;
         private readonly DirectoryInfo tempDirectoryInfo;
@@ -42,7 +42,7 @@ namespace Etherna.VideoImporter.Core
         // Constructor.
         public EthernaVideoImporter(
             ICleanerVideoService cleanerVideoService,
-            IUserGatewayClient ethernaGatewayClient,
+            IGatewayService gatewayClient,
             IUserIndexClient ethernaIndexClient,
             ILinkReporterService linkReporterService,
             IVideoProvider videoProvider,
@@ -58,7 +58,7 @@ namespace Etherna.VideoImporter.Core
                 throw new ArgumentNullException(nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
-            this.ethernaGatewayClient = ethernaGatewayClient;
+            this.gatewayClient = gatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
             this.linkReporterService = linkReporterService;
             tempDirectoryInfo = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier));
@@ -275,7 +275,7 @@ namespace Etherna.VideoImporter.Core
             // Clean up user channel on etherna index.
             IEnumerable<string>? gatewayPinnedHashes = null;
             if (unpinRemovedVideos)
-                gatewayPinnedHashes = await ethernaGatewayClient.UsersClient.PinnedResourcesAsync();
+                gatewayPinnedHashes = await gatewayClient.GetPinnedResourcesAsync();
 
             if (deleteVideosRemovedFromSource)
                 importSummaryModelView.TotDeletedRemovedFromSource = await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(

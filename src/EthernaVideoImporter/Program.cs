@@ -52,6 +52,10 @@ namespace Etherna.VideoImporter
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
             "  -i\tIgnore new versions of EthernaVideoImporter\n" +
+            "  --beenode\tUse bee native node\n" +
+            $"  --beenodeurl\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
+            $"  --beenodeapiport\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
+            $"  --beenodedebugport\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
             "\n" +
             "Run 'EthernaVideoImporter -h' to print help\n";
 
@@ -62,7 +66,12 @@ namespace Etherna.VideoImporter
             string? sourceUri = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
+            string? beeNodeApiPortStr = null;
+            string? beeNodeDebugPortStr = null;
+            string beeNodeUrl = CommonConsts.BeeNodeUrl;
             int ttlPostageStamp = DefaultTTLPostageStamp;
+            int beeNodeApiPort = CommonConsts.BeeApiPort;
+            int beeNodeDebugPort = CommonConsts.BeeDebugPort;
             bool offerVideos = false;
             bool pinVideos = false;
             bool deleteVideosMissingFromSource = false;
@@ -72,6 +81,7 @@ namespace Etherna.VideoImporter
             bool forceUploadVideo = false;
             bool acceptPurchaseOfAllBatches = false;
             bool ignoreNewVersionsOfImporter = false;
+            bool useBeeNativeNode = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -127,6 +137,29 @@ namespace Etherna.VideoImporter
                             throw new InvalidOperationException("TTL value is missing");
                         ttlPostageStampStr = args[++i];
                         break;
+                    case "--beenode":
+                        useBeeNativeNode = true;
+                        break;
+                    case "--beenodeurl":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("Bee node value is missing");
+                        beeNodeUrl = args[++i];
+                        useBeeNativeNode = true;
+                        if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
+                            beeNodeUrl += "/";
+                        break;
+                    case "--beenodeapiport":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("Bee node API port missing");
+                        beeNodeApiPortStr = args[++i];
+                        useBeeNativeNode = true;
+                        break;
+                    case "--beenodedebugport":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("Bee node Debug port missing");
+                        beeNodeDebugPortStr = args[++i];
+                        useBeeNativeNode = true;
+                        break;
                     case "-o": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
                     case "-m": deleteVideosMissingFromSource = true; break;
@@ -153,6 +186,30 @@ namespace Etherna.VideoImporter
                 !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
             {
                 Console.WriteLine($"Invalid value for TTL Postage Stamp");
+                return;
+            }
+
+            //offer video
+            if (offerVideos &&
+                useBeeNativeNode)
+            {
+                Console.WriteLine($"Only Etherna Gateway supports offering video downloads to everyone");
+                return;
+            }
+
+            //bee node api port
+            if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
+                !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
+            {
+                Console.WriteLine($"Invalid value for Gateway API port");
+                return;
+            }
+
+            //bee node debug port
+            if (!string.IsNullOrEmpty(beeNodeDebugPortStr) &&
+                !int.TryParse(beeNodeDebugPortStr, CultureInfo.InvariantCulture, out beeNodeDebugPort))
+            {
+                Console.WriteLine($"Invalid value for Gateway Debug port");
                 return;
             }
 
@@ -183,22 +240,33 @@ namespace Etherna.VideoImporter
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
             httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
 
+            //index
             var ethernaUserClients = new EthernaUserClients(
                 new Uri(CommonConsts.EthernaCreditUrl),
                 new Uri(CommonConsts.EthernaGatewayUrl),
                 new Uri(CommonConsts.EthernaIndexUrl),
                 new Uri(CommonConsts.EthernaSsoUrl),
                 () => httpClient);
+
+            //bee
             using var beeNodeClient = new BeeNodeClient(
-                CommonConsts.EthernaGatewayUrl,
-                CommonConsts.BeeNodeGatewayPort,
-                null,
+                useBeeNativeNode ? beeNodeUrl : CommonConsts.EthernaGatewayUrl,
+                useBeeNativeNode ? beeNodeApiPort : CommonConsts.EthernaGatewayPort,
+                useBeeNativeNode ? beeNodeDebugPort : null,
                 CommonConsts.BeeNodeGatewayVersion,
                 CommonConsts.BeeNodeDebugVersion,
                 httpClient);
+
+            //gateway
+            IGatewayService gatewayService = useBeeNativeNode ? 
+                new BeeGatewayService(beeNodeClient.GatewayClient!) : 
+                new EthernaGatewayService(
+                    beeNodeClient.GatewayClient!,
+                    ethernaUserClients.GatewayClient);
+
+            //video uploader service
             var videoUploaderService = new VideoUploaderService(
-                beeNodeClient,
-                ethernaUserClients.GatewayClient,
+                gatewayService,
                 ethernaUserClients.IndexClient,
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
@@ -225,9 +293,9 @@ namespace Etherna.VideoImporter
             // Call runner.
             var importer = new EthernaVideoImporter(
                 new CleanerVideoService(
-                    ethernaUserClients.GatewayClient,
-                    ethernaUserClients.IndexClient),
-                ethernaUserClients.GatewayClient,
+                    ethernaUserClients.IndexClient,
+                    gatewayService),
+                gatewayService,
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),
                 videoProvider,
