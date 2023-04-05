@@ -28,7 +28,6 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         {
             ClientName = CommonConsts.ImporterIdentifier,
             ClientVersion = EthernaVersionControl.CurrentVersion.ToString(),
-            VideoId = videoId
             VideoId = Keccak256(videoId)
         };
 
