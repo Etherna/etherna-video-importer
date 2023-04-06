@@ -21,7 +21,9 @@ namespace Etherna.VideoImporter.Core
 {
     public sealed class CommonConsts
     {
-        public const int BeeNodeGatewayPort = 443;
+        public const int BeeApiPort = 1633;
+        public const int BeeDebugPort = 1635;
+        public const string BeeNodeUrl = "http://localhost/";
         public const GatewayApiVersion BeeNodeGatewayVersion = GatewayApiVersion.v4_0_0;
         public const DebugApiVersion BeeNodeDebugVersion = DebugApiVersion.v4_0_0;
         public const int DownloadMaxRetry = 3;
@@ -29,6 +31,7 @@ namespace Etherna.VideoImporter.Core
         public const string EthernaCreditUrl = "https://credit.etherna.io/";
         public const string EthernaIndexUrl = "https://index.etherna.io/";
         public const string EthernaIndexContentUrlPrefix = "https://etherna.io/embed/";
+        public const int EthernaGatewayPort = 443;
         public const string EthernaGatewayUrl = "https://gateway.etherna.io/";
         public const string EthernaPermalinkContentUrlPrefix = "https://etherna.io/embed/";
         public const string EthernaSsoClientId = "ethernaVideoImporterId";

@@ -40,6 +40,7 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
         private readonly bool includeAudioTrack;
+        private readonly IEnumerable<int> supportedHeightResolutions;
         private readonly string mdFolderRootPath;
         private readonly YoutubeClient youtubeClient;
         private readonly IYoutubeDownloader youtubeDownloader;
@@ -48,10 +49,12 @@ namespace Etherna.VideoImporter.Devcon.Services
         public MdVideoProvider(
             string mdFolderRootPath,
             IEncoderService encoderService,
-            bool includeAudioTrack)
+            bool includeAudioTrack,
+            IEnumerable<int> supportedHeightResolutions)
         {
             this.mdFolderRootPath = mdFolderRootPath;
             this.includeAudioTrack = includeAudioTrack;
+            this.supportedHeightResolutions = supportedHeightResolutions;
             youtubeClient = new();
             youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
         }
@@ -61,9 +64,10 @@ namespace Etherna.VideoImporter.Devcon.Services
 
         // Methods.
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo importerTempDirectoryInfo) => youtubeDownloader.GetVideoAsync(
-            includeAudioTrack,
             videoMetadata as MdFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(MdFileVideoMetadata)}", nameof(videoMetadata)),
-            importerTempDirectoryInfo);
+            importerTempDirectoryInfo,
+            includeAudioTrack,
+            supportedHeightResolutions);
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {

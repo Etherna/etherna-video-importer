@@ -26,6 +26,7 @@ using System.Text;
 using System.Threading.Tasks;
 using YoutubeExplode;
 using YoutubeExplode.Common;
+using YoutubeExplode.Converter;
 using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Core.Utilities
@@ -47,9 +48,10 @@ namespace Etherna.VideoImporter.Core.Utilities
 
         // Methods.
         public async Task<Video> GetVideoAsync(
-            bool includeAudioTrack,
             YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory)
+            DirectoryInfo tempDirectory,
+            bool includeAudioTrack,
+            IEnumerable<int> supportedHeightResolutions)
         {
             if (videoMetadata is null)
                 throw new ArgumentNullException(nameof(videoMetadata));
@@ -59,20 +61,26 @@ namespace Etherna.VideoImporter.Core.Utilities
             // Get manifest data.
             var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
 
-            // Get streams.
-            //video streams
             var videoOnlyStreamInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)
-                .GetWithHighestVideoQuality() ?? throw new InvalidOperationException("Unable to found video stream on source data");
-            var videoLocalFile = await DownloadVideoStreamAsync(videoOnlyStreamInfo, videoMetadata.Title, tempDirectory);
+                .GetWithHighestVideoQuality();
 
-            //audio only stream
-            var audioOnlyStreamInfo = youtubeStreamsManifest.GetAudioOnlyStreams()
-                .GetWithHighestBitrate() ?? throw new InvalidOperationException("Unable to found audio stream on source dataa");
-            var audioLocalFile = await DownloadAudioTrackAsync(audioOnlyStreamInfo, videoMetadata.Title, tempDirectory);
+            var audioOnlyStreamInfo = (IAudioStreamInfo)youtubeStreamsManifest.GetAudioOnlyStreams()
+                .GetWithHighestBitrate();
+
+            // Get high resolution video.
+            var videoLocalFile = await DownloadVideoAsync(
+                audioOnlyStreamInfo,
+                videoOnlyStreamInfo,
+                videoMetadata.Title,
+                tempDirectory);
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile, audioLocalFile, tempDirectory);
+            var encodedFiles = await encoderService.EncodeVideosAsync(
+                videoLocalFile,
+                tempDirectory,
+                supportedHeightResolutions,
+                includeAudioTrack);
 
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
@@ -90,53 +98,6 @@ namespace Etherna.VideoImporter.Core.Utilities
         }
 
         // Helpers.
-        private async Task<AudioLocalFile> DownloadAudioTrackAsync(
-            IStreamInfo audioStream,
-            string videoTitle,
-            DirectoryInfo importerTempDirectoryInfo)
-        {
-            if (audioStream is null)
-                throw new ArgumentNullException(nameof(audioStream));
-
-            var audioFileName = $"{videoTitle.ToSafeFileName()}_onlyaudio.{audioStream.Container}";
-            var audioFilePath = Path.Combine(importerTempDirectoryInfo.FullName, audioFileName);
-
-            for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
-            {
-                if (i == CommonConsts.DownloadMaxRetry)
-                    throw new InvalidOperationException($"Some errors during download of audio track");
-
-                try
-                {
-                    var downloadStart = DateTime.UtcNow;
-                    await youtubeClient.Videos.Streams.DownloadAsync(
-                        audioStream,
-                        audioFilePath,
-                        new Progress<double>((progressStatus) =>
-                            PrintProgressLine(
-                                "Downloading audio track",
-                                progressStatus,
-                                audioStream.Size.MegaBytes,
-                                downloadStart)));
-                    Console.WriteLine();
-                    break;
-                }
-                catch
-                {
-                    Console.WriteLine();
-                    if (i + 1 < CommonConsts.DownloadMaxRetry)
-                    {
-                        Console.Write("Failed. Retry...\r");
-                        await Task.Delay(CommonConsts.DownloadTimespanRetry);
-                    }
-                }
-            }
-
-            return new AudioLocalFile(
-                audioFilePath,
-                new FileInfo(audioFilePath).Length);
-        }
-
         private async Task<ThumbnailLocalFile> DownloadThumbnailAsync(
             Thumbnail thumbnail,
             string videoTitle,
@@ -146,7 +107,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 throw new ArgumentNullException(nameof(thumbnail));
 
             string thumbnailFilePath = Path.Combine(importerTempDirectoryInfo.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
-            
+
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
                 if (i == CommonConsts.DownloadMaxRetry)
@@ -179,7 +140,8 @@ namespace Etherna.VideoImporter.Core.Utilities
                 thumbnail.Resolution.Width);
         }
 
-        private async Task<VideoLocalFile> DownloadVideoStreamAsync(
+        private async Task<VideoLocalFile> DownloadVideoAsync(
+            IAudioStreamInfo audioOnlyStream,
             IVideoStreamInfo videoOnlyStream,
             string videoTitle,
             DirectoryInfo importerTempDirectoryInfo)
@@ -197,14 +159,14 @@ namespace Etherna.VideoImporter.Core.Utilities
                 try
                 {
                     var downloadStart = DateTime.UtcNow;
-                    await youtubeClient.Videos.Streams.DownloadAsync(
-                        videoOnlyStream,
-                        videoFilePath,
+                    await youtubeClient.Videos.DownloadAsync(
+                        new IStreamInfo[] { audioOnlyStream, videoOnlyStream },
+                        new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(encoderService.FFMpegBinaryPath).Build(),
                         new Progress<double>((progressStatus) =>
                             PrintProgressLine(
-                                $"Downloading video {videoQualityLabel}",
+                                $"Downloading and mux {videoQualityLabel}",
                                 progressStatus,
-                                videoOnlyStream.Size.MegaBytes,
+                                videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes,
                                 downloadStart)));
                     Console.WriteLine();
                     break;
@@ -222,7 +184,6 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             return new VideoLocalFile(
                 videoFilePath,
-                videoQualityLabel,
                 videoOnlyStream.VideoResolution.Height,
                 videoOnlyStream.VideoResolution.Width,
                 new FileInfo(videoFilePath).Length);

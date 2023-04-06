@@ -44,7 +44,6 @@ namespace Etherna.VideoImporter
             "\n" +
             "Options:\n" +
             $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
-            $"  -hw\tUse NVIDIA CUDA hardware acceleration on FFmpeg (default: false)\n" +
             $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
@@ -54,11 +53,15 @@ namespace Etherna.VideoImporter
             "  -f\tForce upload video if they already has been uploaded\n" +
             "  -y\tAccept automatically purchase of all batches\n" +
             "  -i\tIgnore new versions of EthernaVideoImporter\n" +
-            "  --Skip1440\tSkip upload resolution 1440p\n" +
-            "  --Skip1080\tSkip upload resolution 1080p\n" +
-            "  --Skip720\tSkip upload resolution 720p\n" +
-            "  --Skip480\tSkip upload resolution 480p\n" +
-            "  --Skip360\tSkip upload resolution 360p\n" +
+            "  --beenode\tUse bee native node\n" +
+            $"  --beenodeurl\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
+            $"  --beenodeapiport\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
+            $"  --beenodedebugport\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
+            "  --skip1440\tSkip upload resolution 1440p\n" +
+            "  --skip1080\tSkip upload resolution 1080p\n" +
+            "  --skip720\tSkip upload resolution 720p\n" +
+            "  --skip480\tSkip upload resolution 480p\n" +
+            "  --skip360\tSkip upload resolution 360p\n" +
             "\n" +
             "Run 'EthernaVideoImporter -h' to print help\n";
 
@@ -69,7 +72,12 @@ namespace Etherna.VideoImporter
             string? sourceUri = null;
             string ffMpegFolderPath = DefaultFFmpegFolder;
             string? ttlPostageStampStr = null;
+            string? beeNodeApiPortStr = null;
+            string? beeNodeDebugPortStr = null;
+            string beeNodeUrl = CommonConsts.BeeNodeUrl;
             int ttlPostageStamp = DefaultTTLPostageStamp;
+            int beeNodeApiPort = CommonConsts.BeeApiPort;
+            int beeNodeDebugPort = CommonConsts.BeeDebugPort;
             bool offerVideos = false;
             bool pinVideos = false;
             bool deleteVideosMissingFromSource = false;
@@ -84,7 +92,7 @@ namespace Etherna.VideoImporter
             bool skip720 = false;
             bool skip480 = false;
             bool skip360 = false;
-            var ffMpegHWAccelerationType = FFMpegHWAccelerationType.None;
+            bool useBeeNativeNode = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -140,6 +148,29 @@ namespace Etherna.VideoImporter
                             throw new InvalidOperationException("TTL value is missing");
                         ttlPostageStampStr = args[++i];
                         break;
+                    case "--beenode":
+                        useBeeNativeNode = true;
+                        break;
+                    case "--beenodeurl":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("Bee node value is missing");
+                        beeNodeUrl = args[++i];
+                        useBeeNativeNode = true;
+                        if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
+                            beeNodeUrl += "/";
+                        break;
+                    case "--beenodeapiport":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("Bee node API port missing");
+                        beeNodeApiPortStr = args[++i];
+                        useBeeNativeNode = true;
+                        break;
+                    case "--beenodedebugport":
+                        if (args.Length == i + 1)
+                            throw new InvalidOperationException("Bee node Debug port missing");
+                        beeNodeDebugPortStr = args[++i];
+                        useBeeNativeNode = true;
+                        break;
                     case "-o": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
                     case "-m": deleteVideosMissingFromSource = true; break;
@@ -153,7 +184,6 @@ namespace Etherna.VideoImporter
                     case "-skip720": skip720 = true; break;
                     case "-skip480": skip480 = true; break;
                     case "-skip360": skip360 = true; break;
-                    case "-hw": ffMpegHWAccelerationType = FFMpegHWAccelerationType.Cuda; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -172,6 +202,30 @@ namespace Etherna.VideoImporter
                 !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
             {
                 Console.WriteLine($"Invalid value for TTL Postage Stamp");
+                return;
+            }
+
+            //offer video
+            if (offerVideos &&
+                useBeeNativeNode)
+            {
+                Console.WriteLine($"Only Etherna Gateway supports offering video downloads to everyone");
+                return;
+            }
+
+            //bee node api port
+            if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
+                !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
+            {
+                Console.WriteLine($"Invalid value for Gateway API port");
+                return;
+            }
+
+            //bee node debug port
+            if (!string.IsNullOrEmpty(beeNodeDebugPortStr) &&
+                !int.TryParse(beeNodeDebugPortStr, CultureInfo.InvariantCulture, out beeNodeDebugPort))
+            {
+                Console.WriteLine($"Invalid value for Gateway Debug port");
                 return;
             }
 
@@ -202,56 +256,73 @@ namespace Etherna.VideoImporter
             using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
             httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
 
+            //index
             var ethernaUserClients = new EthernaUserClients(
                 new Uri(CommonConsts.EthernaCreditUrl),
                 new Uri(CommonConsts.EthernaGatewayUrl),
                 new Uri(CommonConsts.EthernaIndexUrl),
                 new Uri(CommonConsts.EthernaSsoUrl),
                 () => httpClient);
+
+            //bee
             using var beeNodeClient = new BeeNodeClient(
-                CommonConsts.EthernaGatewayUrl,
-                CommonConsts.BeeNodeGatewayPort,
-                null,
+                useBeeNativeNode ? beeNodeUrl : CommonConsts.EthernaGatewayUrl,
+                useBeeNativeNode ? beeNodeApiPort : CommonConsts.EthernaGatewayPort,
+                useBeeNativeNode ? beeNodeDebugPort : null,
                 CommonConsts.BeeNodeGatewayVersion,
                 CommonConsts.BeeNodeDebugVersion,
                 httpClient);
+
+            //gateway
+            IGatewayService gatewayService = useBeeNativeNode ? 
+                new BeeGatewayService(beeNodeClient.GatewayClient!) : 
+                new EthernaGatewayService(
+                    beeNodeClient.GatewayClient!,
+                    ethernaUserClients.GatewayClient);
+
+            //video uploader service
             var videoUploaderService = new VideoUploaderService(
-                beeNodeClient,
-                ethernaUserClients.GatewayClient,
+                gatewayService,
                 ethernaUserClients.IndexClient,
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var encoderService = new EncoderService(ffMpegBinaryPath, ffMpegHWAccelerationType, GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360));
+            var encoderService = new EncoderService(ffMpegBinaryPath);
 
             IVideoProvider videoProvider = sourceType switch
             {
                 SourceType.YouTubeChannel => new YouTubeChannelVideoProvider(
                     sourceUri,
                     encoderService,
-                    includeAudioTrack),
+                    includeAudioTrack,
+                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
                 SourceType.YouTubeVideo => new YouTubeSingleVideoProvider(
                     sourceUri,
                     encoderService,
-                    includeAudioTrack),
+                    includeAudioTrack,
+                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
                 _ => throw new InvalidOperationException()
             };
 
+            // Migration service.
+            var migrationService = new MigrationService();
+
             // Check for new version
-            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync(httpClient);
+            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
             // Call runner.
             var importer = new EthernaVideoImporter(
                 new CleanerVideoService(
-                    ethernaUserClients.GatewayClient,
-                    ethernaUserClients.IndexClient),
-                ethernaUserClients.GatewayClient,
+                    ethernaUserClients.IndexClient,
+                    gatewayService),
+                gatewayService,
                 ethernaUserClients.IndexClient,
                 new LinkReporterService(),
                 videoProvider,
-                videoUploaderService);
+                videoUploaderService,
+                migrationService);
 
             await importer.RunAsync(
                 userEthAddr,

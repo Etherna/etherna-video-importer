@@ -38,11 +38,15 @@ Options:
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
   -i    Ignore new version of EthernaVideoImporter
-  --Skip1440    Skip upload resolution 1440p
-  --Skip1080    Skip upload resolution 1080p
-  --Skip720     Skip upload resolution 720p
-  --Skip480     Skip upload resolution 480p
-  --Skip360     Skip upload resolution 360p
+  --beenode             Use bee native node
+  --beenodeurl          Url of Bee node (default value: http://localhost/)
+  --beenodeapiport      Port used by API (default value: 1633)
+  --beenodedebugport    Port used by Debug (default value: 1635)
+  --skip1440    Skip upload resolution 1440p
+  --skip1080    Skip upload resolution 1080p
+  --skip720     Skip upload resolution 720p
+  --skip480     Skip upload resolution 480p
+  --skip360     Skip upload resolution 360p
 
 Run 'EthernaVideoImporter -h' to print help
 ```
@@ -61,11 +65,15 @@ Options:
   -e    Remove indexed videos not generated with this tool
   -u    Try to unpin contents removed from index
   -i    Ignore new version of EthernaVideoImporter.Devcon
-  --Skip1440    Skip upload resolution 1440p
-  --Skip1080    Skip upload resolution 1080p
-  --Skip720     Skip upload resolution 720p
-  --Skip480     Skip upload resolution 480p
-  --Skip360     Skip upload resolution 360p
+  --beenode             Use bee native node
+  --beenodeurl          Url of Bee node (default value: http://localhost/)
+  --beenodeapiport      Port used by API (default value: 1633)
+  --beenodedebugport    Port used by Debug (default value: 1635)
+  --skip1440    Skip upload resolution 1440p
+  --skip1080    Skip upload resolution 1080p
+  --skip720     Skip upload resolution 720p
+  --skip480     Skip upload resolution 480p
+  --skip360     Skip upload resolution 360p
 
 Run 'EthernaVideoImporter.Devcon -h' to print help
 ```

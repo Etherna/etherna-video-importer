@@ -12,10 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Gateway;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,16 +26,16 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class CleanerVideoService : ICleanerVideoService
     {
         // Fields.
-        private readonly IUserGatewayClient ethernaGatewayClient;
         private readonly IUserIndexClient ethernaIndexClient;
+        private readonly IGatewayService gatewayService;
 
         // Constructor.
         public CleanerVideoService(
-            IUserGatewayClient ethernaGatewayClient,
-            IUserIndexClient ethernaIndexClient)
+            IUserIndexClient ethernaIndexClient,
+            IGatewayService gatewayService)
         {
-            this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
+            this.gatewayService = gatewayService;
         }
 
         // Methods.
@@ -88,7 +88,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             var indexedVideosFromImporter = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier);
             var sourceRemovedVideos = indexedVideos.Where(
-                v => !videosMetadataFromSource.Any(metadata => metadata.Id == v.LastValidManifest!.PersonalData!.VideoId));
+                v => !videosMetadataFromSource.Any(metadata => ManifestPersonalDataDto.HashVideoId(metadata.Id) == v.LastValidManifest!.PersonalData!.VideoIdHash));
 
             var deindexedVideos = 0;
             foreach (var sourceRemovedVideo in sourceRemovedVideos)
@@ -160,7 +160,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             try
             {
-                await ethernaGatewayClient.ResourcesClient.PinDeleteAsync(hash);
+                await gatewayService.DeletePinAsync(hash);
 
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
                 Console.WriteLine($"Resource with hash {hash} unpinned from gateway");

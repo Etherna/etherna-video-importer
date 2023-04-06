@@ -7,9 +7,12 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IEncoderService
     {
+        string FFMpegBinaryPath { get; }
+
         Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
             VideoLocalFile originalVideoLocalFile,
-            AudioLocalFile originalAudioLocalFile,
-            DirectoryInfo importerTempDirectoryInfo);
+            DirectoryInfo importerTempDirectoryInfo,
+            IEnumerable<int> supportedHeightResolutions,
+            bool includeAudioTrack);
     }
 }

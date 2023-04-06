@@ -28,7 +28,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// </summary>
         /// <param name="video">Video data</param>
         /// <param name="pinVideo">Pin video</param>
-        /// <param name="offerVideo">Free video</param>
+        /// <param name="offerVideo">Offer video contents for free</param>
         public Task UploadVideoAsync(
             Video video,
             bool pinVideo,
@@ -39,9 +39,11 @@ namespace Etherna.VideoImporter.Core.Services
         /// </summary>
         /// <param name="videoManifest">The video manifest</param>
         /// <param name="pinManifest">True if need to pin manifest</param>
+        /// <param name="offerManifest">Offer manifest for free</param>
         /// <returns>The new manifest hash</returns>
         Task<string> UploadVideoManifestAsync(
             ManifestDto videoManifest,
-            bool pinManifest);
+            bool pinManifest,
+            bool offerManifest);
     }
 }

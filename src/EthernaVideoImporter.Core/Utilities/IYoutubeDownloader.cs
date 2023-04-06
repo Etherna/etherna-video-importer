@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -21,8 +22,9 @@ namespace Etherna.VideoImporter.Core.Utilities
     public interface IYoutubeDownloader
     {
         Task<Video> GetVideoAsync(
-            bool includeAudioTrack, 
             YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory);
+            DirectoryInfo tempDirectory,
+            bool includeAudioTrack,
+            IEnumerable<int> supportedHeightResolutions);
     }
 }
