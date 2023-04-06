@@ -19,25 +19,22 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public partial class VideoLocalFile : LocalFileBase, IVideoFile
     {
-        // Consts.
-        [GeneratedRegex("^(?<label>\\d+p)\\d*$")]
-        private static partial Regex QualityLabelRegex();
-
         // Constructors.
         public VideoLocalFile(
             string filePath,
-            string videoQualityLabel,
+            int height,
+            int width,
             long byteSize)
             : base(filePath, byteSize)
         {
-            var originVideoQualityLabelMatch = QualityLabelRegex().Match(videoQualityLabel);
-            if (originVideoQualityLabelMatch.Success)
-                VideoQualityLabel = originVideoQualityLabelMatch.Groups["label"].Value;
-            else
-                throw new ArgumentException("Invalid quality label", nameof(videoQualityLabel));
+            Height = height;
+            VideoQualityLabel = $"{height}p";
+            Width = width;
         }
 
         // Properties.
+        public int Height { get; }
         public string VideoQualityLabel { get; }
+        public int Width { get; }
     }
 }

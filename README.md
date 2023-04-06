@@ -41,6 +41,11 @@ Options:
   --beenodeurl          Url of Bee node (default value: http://localhost/)
   --beenodeapiport      Port used by API (default value: 1633)
   --beenodedebugport    Port used by Debug (default value: 1635)
+  --skip1440    Skip upload resolution 1440p
+  --skip1080    Skip upload resolution 1080p
+  --skip720     Skip upload resolution 720p
+  --skip480     Skip upload resolution 480p
+  --skip360     Skip upload resolution 360p
 
 Run 'EthernaVideoImporter -h' to print help
 ```
@@ -62,6 +67,11 @@ Options:
   --beenodeurl          Url of Bee node (default value: http://localhost/)
   --beenodeapiport      Port used by API (default value: 1633)
   --beenodedebugport    Port used by Debug (default value: 1635)
+  --skip1440    Skip upload resolution 1440p
+  --skip1080    Skip upload resolution 1080p
+  --skip720     Skip upload resolution 720p
+  --skip480     Skip upload resolution 480p
+  --skip360     Skip upload resolution 360p
 
 Run 'EthernaVideoImporter.Devcon -h' to print help
 ```

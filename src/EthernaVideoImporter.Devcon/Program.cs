@@ -20,6 +20,7 @@ using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Devcon.Services;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -52,6 +53,11 @@ namespace Etherna.VideoImporter.Devcon
             $"  --beenodeurl\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
             $"  --beenodeapiport\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
             $"  --beenodedebugport\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
+            "  --skip1440\tSkip upload resolution 1440p\n" +
+            "  --skip1080\tSkip upload resolution 1080p\n" +
+            "  --skip720\tSkip upload resolution 720p\n" +
+            "  --skip480\tSkip upload resolution 480p\n" +
+            "  --skip360\tSkip upload resolution 360p\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
@@ -76,6 +82,11 @@ namespace Etherna.VideoImporter.Devcon
             bool forceUploadVideo = false;
             bool acceptPurchaseOfAllBatches = false;
             bool ignoreNewVersionOfImporter = false;
+            bool skip1440 = false;
+            bool skip1080 = false;
+            bool skip720 = false;
+            bool skip480 = false;
+            bool skip360 = false;
             bool useBeeNativeNode = false;
 
             // Parse input.
@@ -157,6 +168,11 @@ namespace Etherna.VideoImporter.Devcon
                     case "-f": forceUploadVideo = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
                     case "-i": ignoreNewVersionOfImporter = true; break;
+                    case "-skip1440": skip1440 = true; break;
+                    case "-skip1080": skip1080 = true; break;
+                    case "-skip720": skip720 = true; break;
+                    case "-skip480": skip480 = true; break;
+                    case "-skip360": skip360 = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -252,6 +268,7 @@ namespace Etherna.VideoImporter.Devcon
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
+            var encoderService = new EncoderService(ffMpegBinaryPath);
 
             // Migration service.
             var migrationService = new MigrationService();
@@ -271,8 +288,9 @@ namespace Etherna.VideoImporter.Devcon
                 new DevconLinkReporterService(mdSourceFolderPath),
                 new MdVideoProvider(
                     mdSourceFolderPath,
-                    ffMpegBinaryPath,
-                    includeAudioTrack),
+                    encoderService,
+                    includeAudioTrack,
+                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
                 videoUploaderService,
                 migrationService);
 
@@ -284,6 +302,29 @@ namespace Etherna.VideoImporter.Devcon
                 deleteExogenousVideos,
                 unpinRemovedVideos,
                 forceUploadVideo);
+        }
+
+        // Helpers.
+        private static IEnumerable<int> GetSupportedHeightResolutions(
+            bool skip1440,
+            bool skip1080,
+            bool skip720,
+            bool skip480,
+            bool skip360)
+        {
+            var supportedHeightResolutions = new List<int>();
+            if (!skip1440)
+                supportedHeightResolutions.Add(1440);
+            if (!skip1080)
+                supportedHeightResolutions.Add(1080);
+            if (!skip720)
+                supportedHeightResolutions.Add(720);
+            if (!skip480)
+                supportedHeightResolutions.Add(480);
+            if (!skip360)
+                supportedHeightResolutions.Add(360);
+
+            return supportedHeightResolutions;
         }
     }
 }

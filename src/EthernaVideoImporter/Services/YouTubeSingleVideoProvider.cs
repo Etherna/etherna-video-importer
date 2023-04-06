@@ -30,29 +30,33 @@ namespace Etherna.VideoImporter.Services
         // Fields.
         private readonly string videoUrl;
         private readonly bool includeAudioTrack;
+        private readonly IEnumerable<int> supportedHeightResolutions;
         private readonly YoutubeClient youtubeClient;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public YouTubeSingleVideoProvider(
             string videoUrl,
-            string ffMpegPath,
-            bool includeAudioTrack)
+            IEncoderService encoderService,
+            bool includeAudioTrack,
+            IEnumerable<int> supportedHeightResolutions)
         {
             this.videoUrl = videoUrl;
             this.includeAudioTrack = includeAudioTrack;
+            this.supportedHeightResolutions = supportedHeightResolutions;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
         }
 
         // Properties.
         public string SourceName => videoUrl;
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo importerTempDirectoryInfo) => youtubeDownloader.GetVideoAsync(
-            includeAudioTrack,
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo tempDirectory) => youtubeDownloader.GetVideoAsync(
             videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)),
-            importerTempDirectoryInfo);
+            tempDirectory,
+            includeAudioTrack,
+            supportedHeightResolutions);
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
