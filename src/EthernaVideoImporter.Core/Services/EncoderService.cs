@@ -11,13 +11,16 @@ namespace Etherna.VideoImporter.Core.Services
     public partial class EncoderService : IEncoderService
     {
         // Fields.
-        private readonly List<Command> activedCommands = new();
+        private readonly List<Command> activedCommands = new(); 
+        private readonly FFMpegHWAccelerationType ffMpegHWAccelerationType;
 
         // Constructor.
         public EncoderService(
-            string ffMpegBinaryPath)
+            string ffMpegBinaryPath,
+            FFMpegHWAccelerationType ffMpegHWAccelerationType)
         {
             FFMpegBinaryPath = ffMpegBinaryPath;
+            this.ffMpegHWAccelerationType = ffMpegHWAccelerationType;
         }
 
         // Properties.
@@ -63,6 +66,10 @@ namespace Etherna.VideoImporter.Core.Services
                     "-c:a aac",
                     "-c:v libx264",
                     "-movflags faststart",
+                    ffMpegHWAccelerationType == FFMpegHWAccelerationType.None
+                        ? "libx264" : "h264_nvenc",
+                    ffMpegHWAccelerationType == FFMpegHWAccelerationType.None
+                        ? "" : "-hwaccel cuda -hwaccel_output_format cuda",
                     $"-vf scale={roundedScaledWidth}:{heightResolution}",
                     "-loglevel info"};
 

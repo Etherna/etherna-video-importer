@@ -44,6 +44,7 @@ namespace Etherna.VideoImporter
             "\n" +
             "Options:\n" +
             $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
+            $"  -hw\tUse NVIDIA CUDA hardware acceleration on FFmpeg (default: false)\n" +
             $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
@@ -93,6 +94,7 @@ namespace Etherna.VideoImporter
             bool skip480 = false;
             bool skip360 = false;
             bool useBeeNativeNode = false;
+            var ffMpegHWAccelerationType = FFMpegHWAccelerationType.None;
 
             // Parse input.
             if (args.Length == 0)
@@ -184,6 +186,7 @@ namespace Etherna.VideoImporter
                     case "-skip720": skip720 = true; break;
                     case "-skip480": skip480 = true; break;
                     case "-skip360": skip360 = true; break;
+                    case "-hw": ffMpegHWAccelerationType = FFMpegHWAccelerationType.Cuda; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -287,7 +290,7 @@ namespace Etherna.VideoImporter
                 userEthAddr,
                 TimeSpan.FromDays(ttlPostageStamp),
                 acceptPurchaseOfAllBatches);
-            var encoderService = new EncoderService(ffMpegBinaryPath);
+            var encoderService = new EncoderService(ffMpegBinaryPath, ffMpegHWAccelerationType);
 
             IVideoProvider videoProvider = sourceType switch
             {
