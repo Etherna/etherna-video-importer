@@ -17,6 +17,7 @@ namespace Etherna.VideoImporter
     enum SourceType
     {
         YouTubeChannel,
-        YouTubeVideo
+        YouTubeVideo,
+        LocalVideo
     }
 }

@@ -41,6 +41,7 @@ namespace Etherna.VideoImporter
             "Source types:\n" +
             "  ytchannel\tYouTube channel\n" +
             "  ytvideo\tYouTube video\n" +
+            "  localvideo\tLocal video\n" +
             "\n" +
             "Options:\n" +
             $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
@@ -124,6 +125,16 @@ namespace Etherna.VideoImporter
                         throw new ArgumentException("Invalid argument");
                     }
                     sourceType = SourceType.YouTubeVideo;
+                    sourceUri = args[1];
+                    break;
+
+                case "localvideo":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Local Video path is missing");
+                        throw new ArgumentException("Invalid argument");
+                    }
+                    sourceType = SourceType.LocalVideo;
                     sourceUri = args[1];
                     break;
 
@@ -213,6 +224,14 @@ namespace Etherna.VideoImporter
                 return;
             }
 
+            //check local video input
+            if (sourceType == SourceType.LocalVideo &&
+                !File.Exists(sourceUri))
+            {
+                Console.WriteLine($"Local video not found at ({sourceUri})");
+                return;
+            }
+
             //bee node api port
             if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
                 !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
@@ -297,6 +316,11 @@ namespace Etherna.VideoImporter
                     includeAudioTrack,
                     GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
                 SourceType.YouTubeVideo => new YouTubeSingleVideoProvider(
+                    sourceUri,
+                    encoderService,
+                    includeAudioTrack,
+                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
+                SourceType.LocalVideo => new LocalVideoProvider(
                     sourceUri,
                     encoderService,
                     includeAudioTrack,
