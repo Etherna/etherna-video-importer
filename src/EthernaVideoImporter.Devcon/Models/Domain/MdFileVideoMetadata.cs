@@ -36,6 +36,7 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
             EthernaIndexUrl = ethernaIndexUrl;
             EthernaPermalinkUrl = ethernaPermalinkUrl;
             MdFileRelativePath = mdFileRelativePath;
+            VideoIdHash = HashVideoId(Id);
         }
 
         // Properties.
@@ -43,5 +44,6 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
         public string? EthernaIndexUrl { get; }
         public string? EthernaPermalinkUrl { get; }
         public string MdFileRelativePath { get; }
+        public override string VideoIdHash { get; }
     }
 }

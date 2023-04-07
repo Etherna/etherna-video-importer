@@ -14,9 +14,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             : base(description, duration, originVideoQualityLabel, title)
         {
             Id = id;
+            VideoIdHash = HashVideoId(id);
         }
 
         // Properties.
         public override string Id { get; }
+        public override string VideoIdHash { get; }
     }
 }

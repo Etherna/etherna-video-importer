@@ -113,7 +113,7 @@ namespace Etherna.VideoImporter.Core
 
                     // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
-                        v => v.LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id));
+                        v => v.LastValidManifest?.PersonalData?.VideoIdHash == sourceMetadata.VideoIdHash);
 
                     // Check if need a migration operation.
                     var minRequiredMigrationOp = migrationService.DecideOperation(alreadyPresentVideo?.LastValidManifest?.PersonalData);

@@ -29,9 +29,12 @@ namespace Etherna.VideoImporter.Models.Domain
             string title,
             string youtubeUrl)
             : base(description, duration, originVideoQualityLabel, thumbnail, title, youtubeUrl)
-        { }
+        {
+            VideoIdHash = HashVideoId(Id);
+        }
 
         // Properties.
         public override string Id => YoutubeId;
+        public override string VideoIdHash { get; }
     }
 }

@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Epoche;
 using System;
 using System.Text.RegularExpressions;
 
@@ -48,5 +49,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public TimeSpan Duration { get; }
         public string OriginVideoQualityLabel { get; }
         public string Title { get; }
+        public abstract string VideoIdHash { get; }
+
+        // Public methods.
+        public static string HashVideoId(string videoId) =>
+            BitConverter.ToString(Keccak256.ComputeHash(videoId));
     }
 }

@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
 
         // Internal methods.
         internal bool IsEqualTo(VideoMetadataBase sourceMetadata) =>
-            LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id) &&
+            LastValidManifest?.PersonalData?.VideoIdHash == sourceMetadata.VideoIdHash &&
             LastValidManifest?.Title == sourceMetadata.Title &&
             LastValidManifest?.Description == sourceMetadata.Description;
     }

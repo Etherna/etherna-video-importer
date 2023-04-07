@@ -88,7 +88,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             var indexedVideosFromImporter = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier);
             var sourceRemovedVideos = indexedVideos.Where(
-                v => !videosMetadataFromSource.Any(metadata => ManifestPersonalDataDto.HashVideoId(metadata.Id) == v.LastValidManifest!.PersonalData!.VideoIdHash));
+                v => !videosMetadataFromSource.Any(metadata => metadata.VideoIdHash == v.LastValidManifest!.PersonalData!.VideoIdHash));
 
             var deindexedVideos = 0;
             foreach (var sourceRemovedVideo in sourceRemovedVideos)
