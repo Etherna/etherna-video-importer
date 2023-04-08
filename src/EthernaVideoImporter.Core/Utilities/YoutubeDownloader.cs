@@ -211,6 +211,12 @@ namespace Etherna.VideoImporter.Core.Utilities
                 using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew);
                 await data.AsStream().CopyToAsync(outputFileStream);
 
+                //dispose required for call "new ThumbnailLocalFile()"
+                await outputFileStream.DisposeAsync();
+                data.Dispose();
+                scaledImage.Dispose();
+                scaledBitmap.Dispose();
+
                 thumbnails.Add(new ThumbnailLocalFile(
                     thumbnailResizedPath,
                     new FileInfo(thumbnailResizedPath).Length,
