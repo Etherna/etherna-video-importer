@@ -1,4 +1,5 @@
 ﻿using Etherna.BeeNet;
+using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.ServicesClient;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Services;
@@ -56,14 +57,18 @@ namespace Etherna.VideoImporter.Core.Extensions
             });
         }
 
-        public static IServiceCollection AddCommonServices(this IServiceCollection services, bool useBeeNativeNode)
+        public static IServiceCollection AddCommonServices(
+            this IServiceCollection services, 
+            bool useBeeNativeNode)
         {
             services
             .AddTransient<EthernaVideoImporter>()
+            .AddTransient<IBeeGatewayClient, BeeGatewayClientWrapper>()
             .AddTransient<IBeeNodeClient, BeeNodeClient>()
             .AddTransient<ICleanerVideoService, CleanerVideoService>()
-            .AddTransient<IEthernaUserClients, EthernaUserClients>()
-            //.AddTransient<IUserIndexClient, EthernaUserClients>()
+            .AddTransient<IEthernaUserClients, EthernaUserClientsWrapper>()
+            .AddTransient<IEncoderService, EncoderService>()
+            .AddTransient<IMigrationService, MigrationService>()
             .AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             return useBeeNativeNode ?
@@ -71,7 +76,9 @@ namespace Etherna.VideoImporter.Core.Extensions
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
         }
 
-        public static IHttpClientBuilder ConfigureHttpClient(this IServiceCollection services, DelegatingHandler delegatingHandler)
+        public static IHttpClientBuilder ConfigureHttpClient(
+            this IServiceCollection services, 
+            DelegatingHandler delegatingHandler)
         {
             return services.AddHttpClient("ethernaClient", c =>
             {

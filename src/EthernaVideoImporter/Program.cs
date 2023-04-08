@@ -91,7 +91,7 @@ namespace Etherna.VideoImporter
             bool skip480 = false;
             bool skip360 = false;
             bool useBeeNativeNode = false;
-
+            args = new string[] { "ytvideo", "https://www.youtube.com/watch?v=Z26BvHOD_sg&list=RDWt0CQupELDw&index=27" };
             // Parse input.
             if (args.Length == 0)
             {
@@ -228,11 +228,13 @@ namespace Etherna.VideoImporter
             }
 
             //deny delete video old sources when is single
+#pragma warning disable CA1508 // Avoid dead conditional code
             if (sourceType == SourceType.YouTubeVideo && deleteVideosMissingFromSource)
             {
                 Console.WriteLine($"Cannot delete video removed from source when the source is a single video");
                 return;
             }
+#pragma warning restore CA1508 // Avoid dead conditional code
 
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO();
