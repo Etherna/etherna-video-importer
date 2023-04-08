@@ -12,10 +12,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Models.Domain;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -31,39 +33,37 @@ namespace Etherna.VideoImporter.Services
     public sealed class YouTubeChannelVideoProvider : IVideoProvider
     {
         // Fields.
-        private readonly string channelUrl;
-        private readonly bool includeAudioTrack;
-        private readonly IEnumerable<int> supportedHeightResolutions;
+        private readonly ImporterSettings importerSettings;
         private readonly YoutubeClient youtubeClient;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public YouTubeChannelVideoProvider(
-            string channelUrl,
-            IEncoderService encoderService,
-            bool includeAudioTrack,
-            IEnumerable<int> supportedHeightResolutions)
+            IOptions<ImporterSettings> importerSettingsOption,
+            IEncoderService encoderService)
         {
-            this.channelUrl = channelUrl;
-            this.includeAudioTrack = includeAudioTrack;
-            this.supportedHeightResolutions = supportedHeightResolutions;
+            if (importerSettingsOption is null)
+                throw new ArgumentNullException(nameof(importerSettingsOption));
+            if (encoderService is null)
+                throw new ArgumentNullException(nameof(encoderService));
+
+            this.importerSettings = importerSettingsOption.Value;
             youtubeClient = new();
             youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
         }
 
         // Properties.
-        public string SourceName => channelUrl;
+        public string SourceName => importerSettings.SourceUri;
 
         // Methods.
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo tempDirectory) => youtubeDownloader.GetVideoAsync(
             videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)),
             tempDirectory,
-            includeAudioTrack,
-            supportedHeightResolutions);
+            importerSettings);
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var youtubeChannel = await youtubeClient.Channels.GetByHandleAsync(channelUrl);
+            var youtubeChannel = await youtubeClient.Channels.GetByHandleAsync(importerSettings.SourceUri);
             var youtubeVideos = await youtubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
 
             Console.WriteLine($"Found {youtubeVideos.Count} videos");

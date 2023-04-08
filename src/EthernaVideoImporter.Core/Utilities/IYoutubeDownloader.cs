@@ -24,7 +24,6 @@ namespace Etherna.VideoImporter.Core.Utilities
         Task<Video> GetVideoAsync(
             YouTubeVideoMetadataBase videoMetadata,
             DirectoryInfo tempDirectory,
-            bool includeAudioTrack,
-            IEnumerable<int> supportedHeightResolutions);
+            ImporterSettings importerSettings);
     }
 }

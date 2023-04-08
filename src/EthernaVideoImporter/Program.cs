@@ -13,18 +13,16 @@
 //   limitations under the License.
 
 using Etherna.Authentication;
-using Etherna.BeeNet;
-using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Services;
+using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter
@@ -252,58 +250,6 @@ namespace Etherna.VideoImporter
             }
             Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
 
-            // Inizialize services.
-            using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
-            httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
-
-            //index
-            var ethernaUserClients = new EthernaUserClients(
-                new Uri(CommonConsts.EthernaCreditUrl),
-                new Uri(CommonConsts.EthernaGatewayUrl),
-                new Uri(CommonConsts.EthernaIndexUrl),
-                new Uri(CommonConsts.EthernaSsoUrl),
-                () => httpClient);
-
-            //bee
-            using var beeNodeClient = new BeeNodeClient(
-                useBeeNativeNode ? beeNodeUrl : CommonConsts.EthernaGatewayUrl,
-                useBeeNativeNode ? beeNodeApiPort : CommonConsts.EthernaGatewayPort,
-                useBeeNativeNode ? beeNodeDebugPort : null,
-                CommonConsts.BeeNodeGatewayVersion,
-                CommonConsts.BeeNodeDebugVersion,
-                httpClient);
-
-            //gateway
-            IGatewayService gatewayService = useBeeNativeNode ? 
-                new BeeGatewayService(beeNodeClient.GatewayClient!) : 
-                new EthernaGatewayService(
-                    beeNodeClient.GatewayClient!,
-                    ethernaUserClients.GatewayClient);
-
-            //video uploader service
-            var videoUploaderService = new VideoUploaderService(
-                gatewayService,
-                ethernaUserClients.IndexClient,
-                userEthAddr,
-                TimeSpan.FromDays(ttlPostageStamp),
-                acceptPurchaseOfAllBatches);
-            var encoderService = new EncoderService(ffMpegBinaryPath);
-
-            IVideoProvider videoProvider = sourceType switch
-            {
-                SourceType.YouTubeChannel => new YouTubeChannelVideoProvider(
-                    sourceUri,
-                    encoderService,
-                    includeAudioTrack,
-                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
-                SourceType.YouTubeVideo => new YouTubeSingleVideoProvider(
-                    sourceUri,
-                    encoderService,
-                    includeAudioTrack,
-                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
-                _ => throw new InvalidOperationException()
-            };
-
             // Migration service.
             var migrationService = new MigrationService();
 
@@ -312,49 +258,56 @@ namespace Etherna.VideoImporter
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
-            // Call runner.
-            var importer = new EthernaVideoImporter(
-                new CleanerVideoService(
-                    ethernaUserClients.IndexClient,
-                    gatewayService),
-                gatewayService,
-                ethernaUserClients.IndexClient,
-                new LinkReporterService(),
-                videoProvider,
-                videoUploaderService,
-                migrationService);
+            // Setup DI.
+            var services = new ServiceCollection();
 
-            await importer.RunAsync(
-                userEthAddr,
+            //configure
+            services.AddImportSettings(
+                acceptPurchaseOfAllBatches,
+                deleteExogenousVideos,
+                deleteVideosMissingFromSource,
+                ffMpegBinaryPath,
+                ffMpegFolderPath,
+                forceUploadVideo,
+                ignoreNewVersionsOfImporter,
+                includeAudioTrack,
                 offerVideos,
                 pinVideos,
-                deleteVideosMissingFromSource,
-                deleteExogenousVideos,
+                sourceUri,
+                skip1440,
+                skip1080,
+                skip720,
+                skip480,
+                skip360,
+                ttlPostageStamp,
                 unpinRemovedVideos,
-                forceUploadVideo);
+                userEthAddr)
+            .AddLinkReporterService()
+            .AddVideoProvider(sourceType.Value)
+            .AddCommonServices(useBeeNativeNode)
+            .ConfigureHttpClient(authResult.RefreshTokenHandler);
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            //do the actual work here
+            var importer = serviceProvider.GetService<EthernaVideoImporter>() ?? throw new InvalidOperationException("Cannot resolve EthernaVideoImporter service");
+            await importer.RunAsync();
         }
 
         // Helpers.
-        private static IEnumerable<int> GetSupportedHeightResolutions(
-            bool skip1440,
-            bool skip1080,
-            bool skip720,
-            bool skip480,
-            bool skip360)
+        private static IServiceCollection AddLinkReporterService(this IServiceCollection services)
         {
-            var supportedHeightResolutions = new List<int>();
-            if (!skip1440)
-                supportedHeightResolutions.Add(1440);
-            if (!skip1080)
-                supportedHeightResolutions.Add(1080);
-            if (!skip720)
-                supportedHeightResolutions.Add(720);
-            if (!skip480)
-                supportedHeightResolutions.Add(480);
-            if (!skip360)
-                supportedHeightResolutions.Add(360);
+            return services.AddTransient<ILinkReporterService, LinkReporterService>();
+        }
 
-            return supportedHeightResolutions;
+        private static IServiceCollection AddVideoProvider(this IServiceCollection services, SourceType sourceType)
+        {
+            if (sourceType == SourceType.YouTubeChannel)
+                return services.AddTransient<IVideoProvider, YouTubeChannelVideoProvider>();
+            else if (sourceType == SourceType.YouTubeVideo)
+                return services.AddTransient<IVideoProvider, YouTubeSingleVideoProvider>();
+            else
+                throw new InvalidOperationException();
         }
     }
 }

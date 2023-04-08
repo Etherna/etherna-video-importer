@@ -12,11 +12,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Devcon.Models.Domain;
 using Etherna.VideoImporter.Devcon.Models.MdDto;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,46 +41,44 @@ namespace Etherna.VideoImporter.Devcon.Services
 
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
-        private readonly bool includeAudioTrack;
-        private readonly IEnumerable<int> supportedHeightResolutions;
-        private readonly string mdFolderRootPath;
+        private readonly ImporterSettings importerSettings;
         private readonly YoutubeClient youtubeClient;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public MdVideoProvider(
-            string mdFolderRootPath,
-            IEncoderService encoderService,
-            bool includeAudioTrack,
-            IEnumerable<int> supportedHeightResolutions)
+            IOptions<ImporterSettings> importerSettingsOption,
+            IEncoderService encoderService)
         {
-            this.mdFolderRootPath = mdFolderRootPath;
-            this.includeAudioTrack = includeAudioTrack;
-            this.supportedHeightResolutions = supportedHeightResolutions;
+            if (importerSettingsOption is null)
+                throw new ArgumentNullException(nameof(importerSettingsOption));
+            if (encoderService is null)
+                throw new ArgumentNullException(nameof(encoderService));
+
+            this.importerSettings = importerSettingsOption.Value;
             youtubeClient = new();
             youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
         }
 
         // Properties.
-        public string SourceName => mdFolderRootPath;
+        public string SourceName => importerSettings.SourceUri;
 
         // Methods.
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo importerTempDirectoryInfo) => youtubeDownloader.GetVideoAsync(
             videoMetadata as MdFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(MdFileVideoMetadata)}", nameof(videoMetadata)),
             importerTempDirectoryInfo,
-            includeAudioTrack,
-            supportedHeightResolutions);
+            importerSettings);
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var mdFilesPaths = Directory.GetFiles(mdFolderRootPath, "*.md", SearchOption.AllDirectories);
+            var mdFilesPaths = Directory.GetFiles(importerSettings.SourceUri, "*.md", SearchOption.AllDirectories);
 
             Console.WriteLine($"Found {mdFilesPaths.Length} videos");
 
             var videosMetadata = new List<(ArchiveMdFileDto mdDto, YoutubeExplode.Videos.Video ytVideo, VideoOnlyStreamInfo ytBestStreamInfo, string mdRelativePath)>();
             foreach (var (mdFilePath, i) in mdFilesPaths.Select((f, i) => (f, i)))
             {
-                var mdFileRelativePath = Path.GetRelativePath(mdFolderRootPath, mdFilePath);
+                var mdFileRelativePath = Path.GetRelativePath(importerSettings.SourceUri, mdFilePath);
 
                 Console.WriteLine($"File #{i + 1} of {mdFilesPaths.Length}: {mdFileRelativePath}");
 

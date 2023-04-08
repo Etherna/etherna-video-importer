@@ -14,6 +14,7 @@
 
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,11 +28,14 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Fields.
         private const string EthernaIndexPrefix = "ethernaIndex:";
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
-        private readonly string mdSourceFolderPath;
+        private readonly ImporterSettings importerSettings;
 
-        public DevconLinkReporterService(string mdSourceFolderPath)
+        public DevconLinkReporterService(IOptions<ImporterSettings> importerSettingsOption)
         {
-            this.mdSourceFolderPath = mdSourceFolderPath;
+            if (importerSettingsOption is null)
+                throw new ArgumentNullException(nameof(importerSettingsOption));
+
+            this.importerSettings = importerSettingsOption.Value;
         }
 
         // Methods.
@@ -40,7 +44,7 @@ namespace Etherna.VideoImporter.Devcon.Services
             string ethernaIndexId,
             string ethernaPermalinkHash)
         {
-            var filePath = Path.Combine(mdSourceFolderPath, sourceVideoId);
+            var filePath = Path.Combine(importerSettings.SourceUri, sourceVideoId);
             var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + ethernaIndexId;
             var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + ethernaPermalinkHash;
 

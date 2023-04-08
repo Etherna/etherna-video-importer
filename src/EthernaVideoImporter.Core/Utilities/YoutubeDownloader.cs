@@ -50,13 +50,14 @@ namespace Etherna.VideoImporter.Core.Utilities
         public async Task<Video> GetVideoAsync(
             YouTubeVideoMetadataBase videoMetadata,
             DirectoryInfo tempDirectory,
-            bool includeAudioTrack,
-            IEnumerable<int> supportedHeightResolutions)
+            ImporterSettings importerSettings)
         {
             if (videoMetadata is null)
                 throw new ArgumentNullException(nameof(videoMetadata));
             if (tempDirectory is null)
                 throw new ArgumentNullException(nameof(tempDirectory));
+            if (importerSettings is null)
+                throw new ArgumentNullException(nameof(importerSettings));
 
             // Get manifest data.
             var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
@@ -79,8 +80,8 @@ namespace Etherna.VideoImporter.Core.Utilities
             var encodedFiles = await encoderService.EncodeVideosAsync(
                 videoLocalFile,
                 tempDirectory,
-                supportedHeightResolutions,
-                includeAudioTrack);
+                GetSupportedHeightResolutions(importerSettings),
+                importerSettings.IncludeAudioTrack);
 
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
@@ -219,6 +220,23 @@ namespace Etherna.VideoImporter.Core.Utilities
             }
 
             return thumbnails;
+        }
+
+        private static IEnumerable<int> GetSupportedHeightResolutions(ImporterSettings importerSettings)
+        {
+            var supportedHeightResolutions = new List<int>();
+            if (!importerSettings.Skip1440)
+                supportedHeightResolutions.Add(1440);
+            if (!importerSettings.Skip1080)
+                supportedHeightResolutions.Add(1080);
+            if (!importerSettings.Skip720)
+                supportedHeightResolutions.Add(720);
+            if (!importerSettings.Skip480)
+                supportedHeightResolutions.Add(480);
+            if (!importerSettings.Skip360)
+                supportedHeightResolutions.Add(360);
+
+            return supportedHeightResolutions;
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)

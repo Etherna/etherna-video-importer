@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.ServicesClient;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
@@ -26,15 +27,15 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class CleanerVideoService : ICleanerVideoService
     {
         // Fields.
-        private readonly IUserIndexClient ethernaIndexClient;
+        private readonly IEthernaUserClients ethernaUserClients;
         private readonly IGatewayService gatewayService;
 
         // Constructor.
         public CleanerVideoService(
-            IUserIndexClient ethernaIndexClient,
+            IEthernaUserClients ethernaUserClients,
             IGatewayService gatewayService)
         {
-            this.ethernaIndexClient = ethernaIndexClient;
+            this.ethernaUserClients = ethernaUserClients;
             this.gatewayService = gatewayService;
         }
 
@@ -120,7 +121,7 @@ namespace Etherna.VideoImporter.Core.Services
             bool removeSucceeded = false;
             try
             {
-                await ethernaIndexClient.VideosClient.VideosDeleteAsync(indexedVideo.IndexId);
+                await ethernaUserClients.IndexClient.VideosClient.VideosDeleteAsync(indexedVideo.IndexId);
                 removeSucceeded = true;
 
                 Console.ForegroundColor = ConsoleColor.DarkGreen;

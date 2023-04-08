@@ -13,9 +13,11 @@
 //   limitations under the License.
 
 using Etherna.BeeNet.InputModels;
+using Etherna.ServicesClient;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,25 +37,22 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
-        private bool acceptPurchaseOfAllBatches;
         private readonly IGatewayService gatewayService;
-        private readonly IUserIndexClient ethernaIndexClient;
-        private readonly TimeSpan ttlPostageStamp;
-        private readonly string userEthAddr;
+        private readonly IEthernaUserClients ethernaUserClients;
+        private readonly ImporterSettings importerSettings;
 
         // Constructor.
         public VideoUploaderService(
             IGatewayService gatewayService,
-            IUserIndexClient ethernaIndexClient,
-            string userEthAddr,
-            TimeSpan ttlPostageStamp,
-            bool confirmPurchaseAllBatches)
+            IEthernaUserClients ethernaUserClients,
+            IOptions<ImporterSettings> importerSettingsOption)
         {
-            this.acceptPurchaseOfAllBatches = confirmPurchaseAllBatches;
+            if (importerSettingsOption is null)
+                throw new ArgumentNullException(nameof(importerSettingsOption));
+
             this.gatewayService = gatewayService;
-            this.ethernaIndexClient = ethernaIndexClient;
-            this.userEthAddr = userEthAddr;
-            this.ttlPostageStamp = ttlPostageStamp;
+            this.ethernaUserClients = ethernaUserClients;
+            this.importerSettings = importerSettingsOption.Value;
         }
 
         // Public methods.
@@ -74,12 +73,12 @@ namespace Etherna.VideoImporter.Core.Services
 
             //calculate amount
             var currentPrice = await gatewayService.GetCurrentChainPriceAsync();
-            var amount = (long)(ttlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+            var amount = (long)(importerSettings.TTLPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
             var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
             Console.WriteLine($"Creating postage batch... Depth: {batchDepth} Amount: {amount} BZZ price: {bzzPrice}");
 
-            if (!acceptPurchaseOfAllBatches)
+            if (!importerSettings.AcceptPurchaseOfAllBatches)
             {
                 bool validSelection = false;
 
@@ -93,7 +92,7 @@ namespace Etherna.VideoImporter.Core.Services
                             validSelection = true;
                             break;
                         case ConsoleKeyInfo ak when ak.Key == ConsoleKey.A:
-                            acceptPurchaseOfAllBatches = true;
+                            importerSettings.AcceptPurchaseOfAllBatches = true;
                             validSelection = true;
                             break;
                         case ConsoleKeyInfo nk when nk.Key == ConsoleKey.N:
@@ -194,7 +193,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Manifest.
-            var metadataVideo = new ManifestDto(video, batchId, userEthAddr);
+            var metadataVideo = new ManifestDto(video, batchId, importerSettings.UserEthAddr);
             {
                 var uploadSucceeded = false;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
@@ -222,13 +221,13 @@ namespace Etherna.VideoImporter.Core.Services
 
             // List on index.
             if (video.EthernaIndexId is null)
-                video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
+                video.EthernaIndexId = await ethernaUserClients.IndexClient.VideosClient.VideosPostAsync(
                     new VideoCreateInput
                     {
                         ManifestHash = video.EthernaPermalinkHash!,
                     });
             else
-                await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash!);
+                await ethernaUserClients.IndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash!);
 
             Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }

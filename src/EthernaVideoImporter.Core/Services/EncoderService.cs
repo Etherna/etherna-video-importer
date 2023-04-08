@@ -1,5 +1,6 @@
 ﻿using Etherna.VideoImporter.Core.Models.Domain;
 using Medallion.Shell;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,16 +13,19 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Fields.
         private readonly List<Command> activedCommands = new();
+        private readonly ImporterSettings importerSettings;
 
         // Constructor.
-        public EncoderService(
-            string ffMpegBinaryPath)
+        public EncoderService(IOptions<ImporterSettings> importerSettingsOption)
         {
-            FFMpegBinaryPath = ffMpegBinaryPath;
+            if (importerSettingsOption is null)
+                throw new ArgumentNullException(nameof(importerSettingsOption));
+
+            this.importerSettings = importerSettingsOption.Value;
         }
 
         // Properties.
-        public string FFMpegBinaryPath { get; }
+        public string FFMpegBinaryPath { get => importerSettings.FFMpegBinaryPath; }
 
         // Methods.
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(

@@ -13,18 +13,16 @@
 //   limitations under the License.
 
 using Etherna.Authentication;
-using Etherna.BeeNet;
-using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Devcon.Services;
+using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Devcon
@@ -81,7 +79,7 @@ namespace Etherna.VideoImporter.Devcon
             bool unpinRemovedVideos = false;
             bool forceUploadVideo = false;
             bool acceptPurchaseOfAllBatches = false;
-            bool ignoreNewVersionOfImporter = false;
+            bool ignoreNewVersionsOfImporter = false;
             bool skip1440 = false;
             bool skip1080 = false;
             bool skip720 = false;
@@ -167,7 +165,7 @@ namespace Etherna.VideoImporter.Devcon
                     case "-u": unpinRemovedVideos = true; break;
                     case "-f": forceUploadVideo = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
-                    case "-i": ignoreNewVersionOfImporter = true; break;
+                    case "-i": ignoreNewVersionsOfImporter = true; break;
                     case "-skip1440": skip1440 = true; break;
                     case "-skip1080": skip1080 = true; break;
                     case "-skip720": skip720 = true; break;
@@ -234,97 +232,59 @@ namespace Etherna.VideoImporter.Devcon
             }
             Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
 
-            // Inizialize services.
-            using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
-
-            //index
-            var ethernaUserClients = new EthernaUserClients(
-                new Uri(CommonConsts.EthernaCreditUrl),
-                new Uri(CommonConsts.EthernaGatewayUrl),
-                new Uri(CommonConsts.EthernaIndexUrl),
-                new Uri(CommonConsts.EthernaSsoUrl),
-                () => httpClient);
-
-            //bee
-            using var beeNodeClient = new BeeNodeClient(
-                useBeeNativeNode ? beeNodeUrl : CommonConsts.EthernaGatewayUrl,
-                useBeeNativeNode ? beeNodeApiPort : CommonConsts.EthernaGatewayPort,
-                useBeeNativeNode ? beeNodeDebugPort : null,
-                CommonConsts.BeeNodeGatewayVersion,
-                CommonConsts.BeeNodeDebugVersion,
-                httpClient);
-
-            //gateway
-            IGatewayService gatewayService = useBeeNativeNode ?
-                new BeeGatewayService(beeNodeClient.GatewayClient!) :
-                new EthernaGatewayService(
-                    beeNodeClient.GatewayClient!,
-                    ethernaUserClients.GatewayClient);
-
-            //video uploader service
-            var videoUploaderService = new VideoUploaderService(
-                gatewayService,
-                ethernaUserClients.IndexClient,
-                userEthAddr,
-                TimeSpan.FromDays(ttlPostageStamp),
-                acceptPurchaseOfAllBatches);
-            var encoderService = new EncoderService(ffMpegBinaryPath);
-
             // Migration service.
             var migrationService = new MigrationService();
 
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
-            if (newVersionAvaiable && !ignoreNewVersionOfImporter)
+            if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
-            // Call runner.
-            var importer = new EthernaVideoImporter(
-                new CleanerVideoService(
-                    ethernaUserClients.IndexClient,
-                    gatewayService),
-                gatewayService,
-                ethernaUserClients.IndexClient,
-                new DevconLinkReporterService(mdSourceFolderPath),
-                new MdVideoProvider(
-                    mdSourceFolderPath,
-                    encoderService,
-                    includeAudioTrack,
-                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
-                videoUploaderService,
-                migrationService);
+            // Setup DI.
+            var services = new ServiceCollection();
 
-            await importer.RunAsync(
-                userEthAddr,
+            //configure
+            services.AddImportSettings(
+                acceptPurchaseOfAllBatches,
+                deleteExogenousVideos,
+                deleteVideosMissingFromSource,
+                ffMpegBinaryPath,
+                ffMpegFolderPath,
+                forceUploadVideo,
+                ignoreNewVersionsOfImporter,
+                includeAudioTrack,
                 offerVideos,
                 pinVideos,
-                deleteVideosMissingFromSource,
-                deleteExogenousVideos,
+                mdSourceFolderPath,
+                skip1440,
+                skip1080,
+                skip720,
+                skip480,
+                skip360,
+                ttlPostageStamp,
                 unpinRemovedVideos,
-                forceUploadVideo);
+                userEthAddr)
+            .AddLinkReporterService()
+            .AddVideoProvider()
+            .AddCommonServices(useBeeNativeNode)
+            .ConfigureHttpClient(authResult.RefreshTokenHandler);
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            //do the actual work here
+            var importer = serviceProvider.GetService<EthernaVideoImporter>() ?? throw new InvalidOperationException("Cannot resolve EthernaVideoImporter service");
+            await importer.RunAsync();
         }
 
         // Helpers.
-        private static IEnumerable<int> GetSupportedHeightResolutions(
-            bool skip1440,
-            bool skip1080,
-            bool skip720,
-            bool skip480,
-            bool skip360)
+        private static IServiceCollection AddLinkReporterService(this IServiceCollection services)
         {
-            var supportedHeightResolutions = new List<int>();
-            if (!skip1440)
-                supportedHeightResolutions.Add(1440);
-            if (!skip1080)
-                supportedHeightResolutions.Add(1080);
-            if (!skip720)
-                supportedHeightResolutions.Add(720);
-            if (!skip480)
-                supportedHeightResolutions.Add(480);
-            if (!skip360)
-                supportedHeightResolutions.Add(360);
+            return services.AddTransient<ILinkReporterService, DevconLinkReporterService>();
+        }
 
-            return supportedHeightResolutions;
+        private static IServiceCollection AddVideoProvider(this IServiceCollection services)
+        {
+            return services.AddTransient<IVideoProvider, MdVideoProvider>();
         }
     }
 }
