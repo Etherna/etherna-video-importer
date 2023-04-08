@@ -2,13 +2,14 @@
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
 using Etherna.VideoImporter.Models.LocalVideoDto;
+using Etherna.VideoImporter.Models.LocalVideoDtos;
+using Medallion.Shell;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -17,22 +18,29 @@ namespace Etherna.VideoImporter.Services
     public sealed class LocalVideoProvider : IVideoProvider
     {
         // Fields.
+        private readonly string ffProbeBinaryPath;
         private readonly string localFile;
         private readonly IEncoderService encoderService;
         private readonly bool includeAudioTrack;
         private readonly IEnumerable<int> supportedHeightResolutions;
+        private readonly JsonSerializerOptions options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
 
         // Constructor.
         public LocalVideoProvider(
             string localFile,
             IEncoderService encoderService,
             bool includeAudioTrack,
-            IEnumerable<int> supportedHeightResolutions)
+            IEnumerable<int> supportedHeightResolutions,
+            string ffProbeBinaryPath)
         {
             this.localFile = localFile;
             this.encoderService = encoderService;
             this.includeAudioTrack = includeAudioTrack;
             this.supportedHeightResolutions = supportedHeightResolutions;
+            this.ffProbeBinaryPath = ffProbeBinaryPath;
         }
 
         // Properties.
@@ -46,13 +54,16 @@ namespace Etherna.VideoImporter.Services
             if (tempDirectory is null)
                 throw new ArgumentNullException(nameof(tempDirectory));
 
-            var localVideoMetadata = videoMetadata as LocalVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(LocalVideoMetadata)}", nameof(videoMetadata));
+            var localVideoMetadata = videoMetadata as LocalVideoMetadata 
+                ?? throw new ArgumentException($"Metadata bust be of type {nameof(LocalVideoMetadata)}", nameof(videoMetadata));
 
             // Video info.
-            var videoHeight = 0;
-            var videoWidth = 0;
-            var byteSizeVideo = 0;
-            var videoLocalFile = new VideoLocalFile(localVideoMetadata.FilePath, videoHeight, videoWidth, byteSizeVideo);
+            var ffProbeResult = GetVideoDuration(localVideoMetadata.FilePath);
+            var videoLocalFile = new VideoLocalFile(
+                localVideoMetadata.FilePath, 
+                ffProbeResult.Streams.First().Height, 
+                ffProbeResult.Streams.First().Width, 
+                new FileInfo(localVideoMetadata.FilePath).Length);
 
             // Transcode video resolutions.
             var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile, tempDirectory, supportedHeightResolutions, includeAudioTrack);
@@ -68,7 +79,8 @@ namespace Etherna.VideoImporter.Services
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var localVideos = JsonSerializer.Deserialize<List<ArchiveLocalVideoDto>>(localFile) ?? throw new InvalidDataException($"LocalFile wrong format in {localFile}");
+            var localVideos = JsonSerializer.Deserialize<List<ArchiveLocalVideoDto>>(File.ReadAllText(localFile), options) 
+                ?? throw new InvalidDataException($"LocalFile wrong format in {localFile}");
 
             var videosMetadata = new List<VideoMetadataBase>();
             foreach (var video in localVideos)
@@ -87,17 +99,15 @@ namespace Etherna.VideoImporter.Services
                     }
 
                     // Video info.
-                    var duration = new TimeSpan(1);
-                    var videoQualityLabel = "1080p";
-                    // quando audio è null controllare che il video contenga anche l'audio
+                    var ffProbeResult = GetVideoDuration(video.FilePath);
 
                     videosMetadata.Add(new LocalVideoMetadata(
                         video.Description,
-                        duration,
-                        videoQualityLabel,
+                        ffProbeResult.Format.Duration,
+                        $"{ffProbeResult.Streams.First().Height}p",
                         thumbnail,
                         video.Title,
-                        video.Video));
+                        video.FilePath));
 
                     Console.WriteLine($"Downloaded metadata for {video.Title}");
                 }
@@ -146,6 +156,40 @@ namespace Etherna.VideoImporter.Services
             }
 
             return thumbnails;
+        }
+
+        private FFProbeResult GetVideoDuration(string videoPath)
+        {
+            var args = new string[] {
+                    $"-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-show_entries",
+                    "stream=width,height",
+                    "-of",
+                    "json",
+                    "-sexagesimal",
+                    videoPath};
+
+            var command = Command.Run(ffProbeBinaryPath, args);
+            command.Wait();
+            var result = command.Result;
+
+            // Inspect result.
+            if (!result.Success)
+                throw new InvalidOperationException($"ffprobe command failed with exit code {result.ExitCode}: {result.StandardError}");
+
+            var ffProbeResult = JsonSerializer.Deserialize<FFProbeResult>(result.StandardOutput.Trim(), options)
+                ?? throw new InvalidDataException($"FFProbe result have an invalid json");
+
+            /*
+            * ffProbe return even an empty element in Streams
+            * Take the correct resolution with OrderByDescending
+            */
+            ffProbeResult.Streams = new[] { ffProbeResult.Streams.OrderByDescending(s => s.Height).First() };
+
+            return ffProbeResult;
         }
     }
 }

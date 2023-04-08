@@ -94,7 +94,7 @@ namespace Etherna.VideoImporter
             bool skip480 = false;
             bool skip360 = false;
             bool useBeeNativeNode = false;
-
+            args = new string[] { "localvideo", "C:/tmp/LocalVideo/localvideo.json" };
             // Parse input.
             if (args.Length == 0)
             {
@@ -208,6 +208,14 @@ namespace Etherna.VideoImporter
                 return;
             }
 
+            //FFprobe
+            var ffProbeBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFProbeBinaryName);
+            if (!File.Exists(ffProbeBinaryPath))
+            {
+                Console.WriteLine($"FFprobe not found at ({ffMpegBinaryPath})");
+                return;
+            }
+
             //ttl postage batch
             if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
                 !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
@@ -225,12 +233,14 @@ namespace Etherna.VideoImporter
             }
 
             //check local video input
+#pragma warning disable CA1508 // Avoid dead conditional code
             if (sourceType == SourceType.LocalVideo &&
                 !File.Exists(sourceUri))
             {
                 Console.WriteLine($"Local video not found at ({sourceUri})");
                 return;
             }
+#pragma warning restore CA1508 // Avoid dead conditional code
 
             //bee node api port
             if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
@@ -249,11 +259,13 @@ namespace Etherna.VideoImporter
             }
 
             //deny delete video old sources when is single
+#pragma warning disable CA1508 // Avoid dead conditional code
             if (sourceType == SourceType.YouTubeVideo && deleteVideosMissingFromSource)
             {
                 Console.WriteLine($"Cannot delete video removed from source when the source is a single video");
                 return;
             }
+#pragma warning restore CA1508 // Avoid dead conditional code
 
             // Sign with SSO and create auth client.
             var authResult = await SignServices.SigInSSO();
@@ -308,6 +320,7 @@ namespace Etherna.VideoImporter
                 acceptPurchaseOfAllBatches);
             var encoderService = new EncoderService(ffMpegBinaryPath);
 
+#pragma warning disable CA1508 // Avoid dead conditional code
             IVideoProvider videoProvider = sourceType switch
             {
                 SourceType.YouTubeChannel => new YouTubeChannelVideoProvider(
@@ -324,9 +337,11 @@ namespace Etherna.VideoImporter
                     sourceUri,
                     encoderService,
                     includeAudioTrack,
-                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
+                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360),
+                    ffProbeBinaryPath),
                 _ => throw new InvalidOperationException()
             };
+#pragma warning restore CA1508 // Avoid dead conditional code
 
             // Migration service.
             var migrationService = new MigrationService();

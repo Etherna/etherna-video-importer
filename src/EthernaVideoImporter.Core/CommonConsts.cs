@@ -50,6 +50,20 @@ namespace Etherna.VideoImporter.Core
                 throw new InvalidOperationException("OS not supported");
             }
         }
+        public static string FFProbeBinaryName
+        {
+            get
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    return "ffprobe.exe";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    return "ffprobe";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    return "ffprobe";
+
+                throw new InvalidOperationException("OS not supported");
+            }
+        }
         public static readonly TimeSpan GnosisBlockTime = TimeSpan.FromSeconds(5);
         public const string ImporterIdentifier = "EthernaImporter";
     }

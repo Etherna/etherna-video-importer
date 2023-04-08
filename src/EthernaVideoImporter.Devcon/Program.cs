@@ -186,6 +186,14 @@ namespace Etherna.VideoImporter.Devcon
                 return;
             }
 
+            //FFprobe
+            var ffProbeBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFProbeBinaryName);
+            if (!File.Exists(ffProbeBinaryPath))
+            {
+                Console.WriteLine($"FFprobe not found at ({ffMpegBinaryPath})");
+                return;
+            }
+
             //ttl postage batch
             if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
                 !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
