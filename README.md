@@ -27,6 +27,7 @@ Usage:  EthernaVideoImporter SOURCE_TYPE SOURCE_URI [OPTIONS]
 Source types:
   ytchannel     YouTube channel
   ytvideo       YouTube video
+  localvideo    Local video
 
 Options:
   -ff   Path FFmpeg (default dir: .\FFmpeg\)
