@@ -11,10 +11,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Constructor.
         public VideoSwarmFile(
-            long byteSize,
             string videoQualityLabel,
             string hash)
-            : base(hash, byteSize)
+            : base(hash, null)
         {
             var originVideoQualityLabelMatch = QualityLabelRegex().Match(videoQualityLabel);
             if (originVideoQualityLabelMatch.Success)

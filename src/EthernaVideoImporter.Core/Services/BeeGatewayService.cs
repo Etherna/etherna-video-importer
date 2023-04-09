@@ -1,4 +1,5 @@
 ﻿using Etherna.BeeNet.Clients.GatewayApi;
+using Etherna.VideoImporter.Core.Models.SwarmDtos;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -8,7 +9,8 @@ namespace Etherna.VideoImporter.Core.Services
     public class BeeGatewayService : GatewayServiceBase
     {
         // Constructor.
-        public BeeGatewayService(IBeeGatewayClient beeGatewayClient)
+        public BeeGatewayService(
+            IBeeGatewayClient beeGatewayClient)
             : base(beeGatewayClient)
         { }
 
@@ -26,6 +28,27 @@ namespace Etherna.VideoImporter.Core.Services
 
         public override Task DeletePinAsync(string hash) =>
             beeGatewayClient.DeletePinAsync(hash);
+
+        public override async Task DilutePostageBatchAsync(string batchId, int batchDepth) =>
+            await beeGatewayClient.DilutePostageBatchAsync(batchId, batchDepth);
+
+        public override async Task<PostageBatchDto> GetBatchStatsAsync(string batchId)
+        {
+            var batchStats = await beeGatewayClient.GetPostageBatchAsync(batchId);
+            return new PostageBatchDto
+            {
+                BatchTTL = batchStats.BatchTTL,
+                BlockNumber = batchStats.BlockNumber,
+                BucketDepth = batchStats.BucketDepth,
+                Depth = batchStats.Depth,
+                Exists = batchStats.Exists,
+                Id = batchStats.Id,
+                ImmutableFlag = batchStats.ImmutableFlag,
+                Label = batchStats.Label,
+                Usable = batchStats.Usable,
+                Utilization = batchStats.Utilization
+            };
+        }
 
         public override async Task<long> GetCurrentChainPriceAsync() =>
              (await beeGatewayClient.GetChainStateAsync()).CurrentPrice;

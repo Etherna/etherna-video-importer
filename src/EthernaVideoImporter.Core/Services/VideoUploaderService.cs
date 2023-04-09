@@ -66,7 +66,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Create new batch.
             //calculate batch depth
-            var totalSize = video.GetTotalByteSize();
+            var totalSize = video.GetTotalByteSizeToUpload();
             var batchDepth = 17;
             while (Math.Pow(2, batchDepth) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
                 batchDepth++;

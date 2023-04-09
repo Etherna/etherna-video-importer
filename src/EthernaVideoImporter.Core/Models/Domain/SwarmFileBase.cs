@@ -5,7 +5,7 @@
         // Constructor.
         protected SwarmFileBase(
             string hash,
-            long byteSize)
+            long? byteSize)
             : base(byteSize)
         {
             SwarmHash = hash;

@@ -1,5 +1,6 @@
 ﻿using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.BeeNet.InputModels;
+using Etherna.VideoImporter.Core.Models.SwarmDtos;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -27,6 +28,10 @@ namespace Etherna.VideoImporter.Core.Services
         public abstract Task<string> CreatePostageBatchAsync(long amount, int batchDepth);
 
         public abstract Task DeletePinAsync(string hash);
+
+        public abstract Task DilutePostageBatchAsync(string batchId, int batchDepth);
+
+        public abstract Task<PostageBatchDto> GetBatchStatsAsync(string batchId);
 
         public abstract Task<long> GetCurrentChainPriceAsync();
 

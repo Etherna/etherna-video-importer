@@ -2,7 +2,7 @@
 {
     public interface IFile
     {
-        long ByteSize { get; }
+        long? ByteSize { get; }
         string? SwarmHash { get; }
     }
 }

@@ -159,9 +159,29 @@ namespace Etherna.VideoImporter.Core
                                 alreadyPresentVideo.LastValidManifest!.OriginalQuality,
                                 sourceMetadata.Title);
 
-                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference));
+                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Quality, v.Reference));
 
                             var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
+
+                            // Calculate batch space and dilute if needed.
+                            //get batch free space
+                            var batchStat = await gatewayClient.GetBatchStatsAsync(alreadyPresentVideo.LastValidManifest.BatchId);
+                            var batchUsage = batchStat.Utilization / Math.Pow(2, batchStat.Depth - batchStat.BucketDepth);
+                            var batchTotalSpace = Math.Pow(2, batchStat.Depth) * 4096;
+                            var batchUsed = batchTotalSpace * batchUsage;
+                            var batchAvailable = batchTotalSpace - batchUsed;
+                            //get bytes to upload
+                            var bytesToUpload = video.GetTotalByteSizeToUpload() * 1.2; //keep 20% of tollerance
+                            //check for dilute required.
+                            if (bytesToUpload > batchAvailable) 
+                            {
+                                //calculate dilute deeps.
+                                var batchDepth = batchStat.Depth + 1;
+                                while ((Math.Pow(2, batchDepth) * 4096) - batchUsed < bytesToUpload)
+                                    batchDepth++;
+
+                                await gatewayClient.DilutePostageBatchAsync(alreadyPresentVideo.LastValidManifest.BatchId, batchDepth);
+                            }
 
                             // Upload new manifest.
                             var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, importerSettings.UserEthAddr);
@@ -208,7 +228,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Upload video and all related data.
-                        //await videoUploaderService.UploadVideoAsync(video, importerSettings.PinVideos, importerSettings.OfferVideos);
+                        await videoUploaderService.UploadVideoAsync(video, importerSettings.PinVideos, importerSettings.OfferVideos);
 
                         updatedIndexId = video.EthernaIndexId!;
                         updatedPermalinkHash = video.EthernaPermalinkHash!;

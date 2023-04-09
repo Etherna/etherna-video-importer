@@ -32,6 +32,6 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         public int Bitrate => 420; //fake place holder, will be removed on manifest 2.0
         public string Quality { get; }
         public string Reference { get; }
-        public long Size { get; }
+        public long? Size { get; }
     }
 }

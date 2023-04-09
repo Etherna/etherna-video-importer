@@ -65,6 +65,27 @@ namespace Etherna.VideoImporter.Core.Services
         public override Task DeletePinAsync(string hash) =>
             ethernaUserClients.GatewayClient.ResourcesClient.PinDeleteAsync(hash);
 
+        public override async Task DilutePostageBatchAsync(string batchId, int batchDepth) =>
+            await ethernaUserClients.GatewayClient.UsersClient.DiluteAsync(batchId, batchDepth);
+
+        public override async Task<Models.SwarmDtos.PostageBatchDto> GetBatchStatsAsync(string batchId)
+        {
+            var batchStats = await ethernaUserClients.GatewayClient.UsersClient.BatchesGetAsync(batchId);
+            return new Models.SwarmDtos.PostageBatchDto
+            {
+                BatchTTL = batchStats.BatchTTL,
+                BlockNumber = batchStats.BlockNumber,
+                BucketDepth = batchStats.BucketDepth,
+                Depth = batchStats.Depth,
+                Exists = batchStats.Exists,
+                Id = batchStats.Id,
+                ImmutableFlag = batchStats.ImmutableFlag,
+                Label = batchStats.Label,
+                Usable = batchStats.Usable,
+                Utilization = batchStats.Utilization
+            };
+        }
+
         public override async Task<long> GetCurrentChainPriceAsync() =>
             (await ethernaUserClients.GatewayClient.SystemClient.ChainstateAsync()).CurrentPrice;
 
