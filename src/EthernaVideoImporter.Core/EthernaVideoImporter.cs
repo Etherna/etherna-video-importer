@@ -40,7 +40,6 @@ namespace Etherna.VideoImporter.Core
         private readonly IMigrationService migrationService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
-        private readonly UploadSettings uploadSettings;
 
         // Constructor.
         public EthernaVideoImporter(
@@ -51,8 +50,7 @@ namespace Etherna.VideoImporter.Core
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService,
             IMigrationService migrationService,
-            IOptions<ImporterSettings> importerSettingsOption,
-            IOptions<UploadSettings> uploadSettingsOption)
+            IOptions<ImporterSettings> importerSettingsOption)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
@@ -64,8 +62,6 @@ namespace Etherna.VideoImporter.Core
                 throw new ArgumentNullException(nameof(videoUploaderService));
             if (importerSettingsOption is null)
                 throw new ArgumentNullException(nameof(importerSettingsOption));
-            if (uploadSettingsOption is null)
-                throw new ArgumentNullException(nameof(uploadSettingsOption));
 
             this.cleanerVideoService = cleanerVideoService;
             this.gatewayClient = gatewayClient;
@@ -73,7 +69,6 @@ namespace Etherna.VideoImporter.Core
             this.importerSettings = importerSettingsOption.Value;
             this.linkReporterService = linkReporterService;
             this.migrationService = migrationService;
-            this.uploadSettings = uploadSettingsOption.Value;
             this.videoUploaderService = videoUploaderService;
             this.videoProvider = videoProvider;
         }
@@ -168,7 +163,7 @@ namespace Etherna.VideoImporter.Core
 
                             // Upload new manifest.
                             var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, importerSettings.UserEthAddr);
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, uploadSettings.PinVideos, uploadSettings.OfferVideos);
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo);
 
                             // Update on index.
                             await ethernaUserClients.IndexClient.VideosClient.VideosPutAsync(
@@ -211,7 +206,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Upload video and all related data.
-                        //await videoUploaderService.UploadVideoAsync(video, importerSettings.PinVideos, importerSettings.OfferVideos);
+                        await videoUploaderService.UploadVideoAsync(video);
 
                         updatedIndexId = video.EthernaIndexId!;
                         updatedPermalinkHash = video.EthernaPermalinkHash!;

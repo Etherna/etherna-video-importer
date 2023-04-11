@@ -62,10 +62,7 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Public methods.
-        public async Task UploadVideoAsync(
-            Video video,
-            bool pinVideo,
-            bool offerVideo)
+        public async Task UploadVideoAsync(Video video)
         {
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
@@ -138,7 +135,7 @@ namespace Etherna.VideoImporter.Core.Services
                         encodedFile.SetSwarmHash(await gatewayService.UploadFilesAsync(
                             batchId,
                             files: new List<FileParameterInput> { fileParameterInput },
-                            pinVideo));
+                            uploadSettings.PinVideos));
                         uploadSucceeded = true;
                     }
                     catch (Exception ex)
@@ -154,7 +151,7 @@ namespace Etherna.VideoImporter.Core.Services
                 if (!uploadSucceeded)
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
-                if (offerVideo)
+                if (uploadSettings.OfferVideos)
                     await gatewayService.OfferContentAsync(encodedFile.SwarmHash!);
             }
 
@@ -176,7 +173,7 @@ namespace Etherna.VideoImporter.Core.Services
                         thumbnailReference = await gatewayService.UploadFilesAsync(
                             batchId,
                             new List<FileParameterInput> { fileThumbnailParameterInput },
-                            pinVideo);
+                            uploadSettings.PinVideos);
                         uploadSucceeded = true;
                     }
                     catch (Exception ex)
@@ -194,7 +191,7 @@ namespace Etherna.VideoImporter.Core.Services
 
                 thumbnailFile.SetSwarmHash(thumbnailReference);
 
-                if (offerVideo)
+                if (uploadSettings.OfferVideos)
                     await gatewayService.OfferContentAsync(thumbnailReference);
             }
 
@@ -206,7 +203,7 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo, offerVideo);
+                        video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo);
                         uploadSucceeded = true;
                     }
                     catch (Exception ex)
@@ -238,10 +235,7 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }
 
-        public async Task<string> UploadVideoManifestAsync(
-            ManifestDto videoManifest,
-            bool pinManifest,
-            bool offerManifest)
+        public async Task<string> UploadVideoManifestAsync(ManifestDto videoManifest)
         {
             if (videoManifest is null)
                 throw new ArgumentNullException(nameof(videoManifest));
@@ -267,7 +261,7 @@ namespace Etherna.VideoImporter.Core.Services
                                 "metadata.json",
                                 "application/json")
                         },
-                        pinManifest);
+                        uploadSettings.PinVideos);
                     uploadSucceeded = true;
                 }
                 catch (Exception ex)
@@ -283,7 +277,7 @@ namespace Etherna.VideoImporter.Core.Services
             if (!uploadSucceeded)
                 throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
-            if (offerManifest)
+            if (uploadSettings.OfferVideos)
                 await gatewayService.OfferContentAsync(manifestReference);
 
             return manifestReference;
