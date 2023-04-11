@@ -20,6 +20,7 @@ namespace Etherna.VideoImporter.Core
         public bool Skip720 { get; set; }
         public bool Skip1080 { get; set; }
         public bool Skip1440 { get; set; }
+        public string TempDirectoryPath { get; set; } = default!;
         public TimeSpan TTLPostageStamp { get; set; }
         public bool UnpinRemovedVideos { get; set; }
         public string UserEthAddr { get; set; } = default!;

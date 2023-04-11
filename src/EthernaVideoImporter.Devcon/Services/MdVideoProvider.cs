@@ -57,16 +57,15 @@ namespace Etherna.VideoImporter.Devcon.Services
 
             this.importerSettings = importerSettingsOption.Value;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
+            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient, importerSettingsOption);
         }
 
         // Properties.
         public string SourceName => importerSettings.SourceUri;
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo importerTempDirectoryInfo) => youtubeDownloader.GetVideoAsync(
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
             videoMetadata as MdFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(MdFileVideoMetadata)}", nameof(videoMetadata)),
-            importerTempDirectoryInfo,
             importerSettings);
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()

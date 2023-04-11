@@ -11,7 +11,6 @@ namespace Etherna.VideoImporter.Core.Services
 
         Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
             VideoLocalFile originalVideoLocalFile,
-            DirectoryInfo importerTempDirectoryInfo,
             IEnumerable<int> supportedHeightResolutions,
             bool includeAudioTrack);
     }

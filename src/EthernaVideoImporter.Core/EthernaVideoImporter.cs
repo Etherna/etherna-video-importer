@@ -70,7 +70,7 @@ namespace Etherna.VideoImporter.Core
             this.importerSettings = importerSettingsOption.Value;
             this.linkReporterService = linkReporterService;
             this.migrationService = migrationService;
-            tempDirectoryInfo = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier));
+            tempDirectoryInfo = Directory.CreateDirectory(importerSettings.TempDirectoryPath);
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -196,7 +196,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Get and encode video from source.
-                        var video = await videoProvider.GetVideoAsync(sourceMetadata, tempDirectoryInfo);
+                        var video = await videoProvider.GetVideoAsync(sourceMetadata);
                         video.EthernaIndexId = alreadyPresentVideo?.IndexId;
 
                         if (!video.EncodedFiles.Any())

@@ -279,6 +279,7 @@ namespace Etherna.VideoImporter
                 skip720,
                 skip480,
                 skip360,
+                Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier),
                 ttlPostageStamp,
                 unpinRemovedVideos,
                 userEthAddr)

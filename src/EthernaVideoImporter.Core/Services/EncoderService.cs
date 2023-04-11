@@ -14,6 +14,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly List<Command> activedCommands = new();
         private readonly ImporterSettings importerSettings;
+        private readonly DirectoryInfo tempDirectoryInfo;
 
         // Constructor.
         public EncoderService(IOptions<ImporterSettings> importerSettingsOption)
@@ -22,6 +23,7 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new ArgumentNullException(nameof(importerSettingsOption));
 
             this.importerSettings = importerSettingsOption.Value;
+            tempDirectoryInfo = Directory.CreateDirectory(importerSettingsOption.Value.TempDirectoryPath);
         }
 
         // Properties.
@@ -30,14 +32,11 @@ namespace Etherna.VideoImporter.Core.Services
         // Methods.
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
             VideoLocalFile originalVideoLocalFile,
-            DirectoryInfo importerTempDirectoryInfo,
             IEnumerable<int> supportedHeightResolutions,
             bool includeAudioTrack)
         {
             if (originalVideoLocalFile is null)
                 throw new ArgumentNullException(nameof(originalVideoLocalFile));
-            if (importerTempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
 
             var videoEncodedFiles = new List<VideoLocalFile>();
             var fileNameGuid = Guid.NewGuid();
@@ -61,7 +60,7 @@ namespace Etherna.VideoImporter.Core.Services
                     _ => throw new InvalidOperationException()
                 };
 
-                var fileName = $"{importerTempDirectoryInfo.FullName}/{fileNameGuid}_{heightResolution}.mp4";
+                var fileName = $"{tempDirectoryInfo.FullName}/{fileNameGuid}_{heightResolution}.mp4";
                 var args = new string[] {
                     $"-i",
                     originalVideoLocalFile.FilePath,

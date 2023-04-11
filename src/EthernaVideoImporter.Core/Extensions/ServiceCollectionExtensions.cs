@@ -1,7 +1,6 @@
 ﻿using Etherna.BeeNet;
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.ServicesClient;
-using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -29,6 +28,7 @@ namespace Etherna.VideoImporter.Core.Extensions
             bool skip720,
             bool skip480,
             bool skip360,
+            string tempDirectoryPath,
             int ttlPostageStamp,
             bool unpinRemovedVideos,
             string userEthAddr)
@@ -51,6 +51,7 @@ namespace Etherna.VideoImporter.Core.Extensions
                 options.Skip720 = skip720;
                 options.Skip480 = skip480;
                 options.Skip360 = skip360;
+                options.TempDirectoryPath = tempDirectoryPath;
                 options.TTLPostageStamp = TimeSpan.FromSeconds(ttlPostageStamp);
                 options.UnpinRemovedVideos = unpinRemovedVideos;
                 options.UserEthAddr = userEthAddr;

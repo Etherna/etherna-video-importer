@@ -15,6 +15,7 @@
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
+using Microsoft.Extensions.Options;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -36,26 +37,29 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Fields.
         private readonly IEncoderService encoderService;
         private readonly YoutubeClient youtubeClient;
+        private readonly DirectoryInfo tempDirectoryInfo;
 
         // Constructor.
         public YoutubeDownloader(
             IEncoderService encoderService,
-            YoutubeClient youtubeClient)
+            YoutubeClient youtubeClient,
+            IOptions<ImporterSettings> importerSettingsOption)
         {
+            if (importerSettingsOption is null)
+                throw new ArgumentNullException(nameof(importerSettingsOption));
+
             this.encoderService = encoderService;
             this.youtubeClient = youtubeClient;
+            tempDirectoryInfo = Directory.CreateDirectory(importerSettingsOption.Value.TempDirectoryPath);
         }
 
         // Methods.
         public async Task<Video> GetVideoAsync(
             YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory,
             ImporterSettings importerSettings)
         {
             if (videoMetadata is null)
                 throw new ArgumentNullException(nameof(videoMetadata));
-            if (tempDirectory is null)
-                throw new ArgumentNullException(nameof(tempDirectory));
             if (importerSettings is null)
                 throw new ArgumentNullException(nameof(importerSettings));
 
@@ -73,13 +77,11 @@ namespace Etherna.VideoImporter.Core.Utilities
             var videoLocalFile = await DownloadVideoAsync(
                 audioOnlyStreamInfo,
                 videoOnlyStreamInfo,
-                videoMetadata.Title,
-                tempDirectory);
+                videoMetadata.Title);
 
             // Transcode video resolutions.
             var encodedFiles = await encoderService.EncodeVideosAsync(
                 videoLocalFile,
-                tempDirectory,
                 GetSupportedHeightResolutions(importerSettings),
                 importerSettings.IncludeAudioTrack);
 
@@ -89,10 +91,9 @@ namespace Etherna.VideoImporter.Core.Utilities
             {
                 var betsResolutionThumbnail = await DownloadThumbnailAsync(
                     videoMetadata.Thumbnail,
-                    videoMetadata.Title,
-                    tempDirectory);
+                    videoMetadata.Title);
 
-                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, tempDirectory);
+                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail);
             }
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
@@ -101,13 +102,12 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Helpers.
         private async Task<ThumbnailLocalFile> DownloadThumbnailAsync(
             Thumbnail thumbnail,
-            string videoTitle,
-            DirectoryInfo importerTempDirectoryInfo)
+            string videoTitle)
         {
             if (thumbnail is null)
                 throw new ArgumentNullException(nameof(thumbnail));
 
-            string thumbnailFilePath = Path.Combine(importerTempDirectoryInfo.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
+            string thumbnailFilePath = Path.Combine(tempDirectoryInfo.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
 
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
@@ -144,11 +144,10 @@ namespace Etherna.VideoImporter.Core.Utilities
         private async Task<VideoLocalFile> DownloadVideoAsync(
             IAudioStreamInfo audioOnlyStream,
             IVideoStreamInfo videoOnlyStream,
-            string videoTitle,
-            DirectoryInfo importerTempDirectoryInfo)
+            string videoTitle)
         {
             var videoFileName = $"{videoTitle.ToSafeFileName()}_{videoOnlyStream.VideoResolution}.{videoOnlyStream.Container}";
-            var videoFilePath = Path.Combine(importerTempDirectoryInfo.FullName, videoFileName);
+            var videoFilePath = Path.Combine(tempDirectoryInfo.FullName, videoFileName);
             var videoQualityLabel = videoOnlyStream.VideoQuality.Label;
 
             // Download video.
@@ -191,8 +190,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         }
 
         private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(
-            ThumbnailLocalFile betsResolutionThumbnail,
-            DirectoryInfo importerTempDirectoryInfo)
+            ThumbnailLocalFile betsResolutionThumbnail)
         {
             List<ThumbnailLocalFile> thumbnails = new();
 
@@ -208,7 +206,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 using SKImage scaledImage = SKImage.FromBitmap(scaledBitmap);
                 using SKData data = scaledImage.Encode();
 
-                var thumbnailResizedPath = Path.Combine(importerTempDirectoryInfo.FullName, $"thumb_{responsiveWidthSize}_{responsiveHeightSize}_{Guid.NewGuid()}.jpg");
+                var thumbnailResizedPath = Path.Combine(tempDirectoryInfo.FullName, $"thumb_{responsiveWidthSize}_{responsiveHeightSize}_{Guid.NewGuid()}.jpg");
                 using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew);
                 await data.AsStream().CopyToAsync(outputFileStream);
 

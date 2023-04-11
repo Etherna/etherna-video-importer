@@ -23,7 +23,6 @@ namespace Etherna.VideoImporter.Core.Utilities
     {
         Task<Video> GetVideoAsync(
             YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory,
             ImporterSettings importerSettings);
     }
 }
