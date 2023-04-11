@@ -14,6 +14,7 @@
 
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Settings;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;

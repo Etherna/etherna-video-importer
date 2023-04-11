@@ -12,15 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Settings;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Models.Domain;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -36,20 +35,25 @@ namespace Etherna.VideoImporter.Services
         private readonly ImporterSettings importerSettings;
         private readonly YoutubeClient youtubeClient;
         private readonly IYoutubeDownloader youtubeDownloader;
+        private readonly UploadSettings uploadSettings;
 
         // Constructor.
         public YouTubeChannelVideoProvider(
+            IEncoderService encoderService,
             IOptions<ImporterSettings> importerSettingsOption,
-            IEncoderService encoderService)
+            IOptions<UploadSettings> uploadSettingsOption)
         {
-            if (importerSettingsOption is null)
-                throw new ArgumentNullException(nameof(importerSettingsOption));
             if (encoderService is null)
                 throw new ArgumentNullException(nameof(encoderService));
+            if (importerSettingsOption is null)
+                throw new ArgumentNullException(nameof(importerSettingsOption));
+            if (uploadSettingsOption is null)
+                throw new ArgumentNullException(nameof(uploadSettingsOption));
 
             this.importerSettings = importerSettingsOption.Value;
+            this.uploadSettings = uploadSettingsOption.Value;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient, importerSettingsOption);
+            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient, importerSettingsOption, uploadSettingsOption);
         }
 
         // Properties.

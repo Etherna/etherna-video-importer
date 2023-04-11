@@ -2,6 +2,7 @@
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
@@ -11,51 +12,67 @@ namespace Etherna.VideoImporter.Core.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddImportSettings(
+        public static IServiceCollection ConfigureFFMpegSettings(
             this IServiceCollection services,
-            bool acceptPurchaseOfAllBatches,
+            string ffMpegBinaryPath,
+            string ffMpegFolderPath)
+        {
+            return services.Configure<FFMpegSettings>(options =>
+            {
+                options.FFMpegBinaryPath = ffMpegBinaryPath;
+                options.FFMpegFolderPath = ffMpegFolderPath;
+            });
+        }
+
+        public static IServiceCollection ConfigureImportSettings(
+            this IServiceCollection services,
             bool deleteExogenousVideos,
             bool deleteVideosMissingFromSource,
-            string ffMpegBinaryPath,
-            string ffMpegFolderPath,
             bool forceUploadVideo,
             bool ignoreNewVersionsOfImporter,
-            bool includeAudioTrack,
-            bool offerVideos,
-            bool pinVideos,
             string sourceUri,
-            bool skip1440,
-            bool skip1080,
-            bool skip720,
-            bool skip480,
-            bool skip360,
             DirectoryInfo tempDirPath,
-            int ttlPostageStamp,
             bool unpinRemovedVideos,
             string userEthAddr)
         {
             return services.Configure<ImporterSettings>(options =>
             {
-                options.AcceptPurchaseOfAllBatches = acceptPurchaseOfAllBatches;
                 options.DeleteExogenousVideos = deleteExogenousVideos;
                 options.DeleteVideosMissingFromSource = deleteVideosMissingFromSource;
-                options.FFMpegBinaryPath = ffMpegBinaryPath;
-                options.FFMpegFolderPath = ffMpegFolderPath;
                 options.ForceUploadVideo = forceUploadVideo;
                 options.IgnoreNewVersionsOfImporter = ignoreNewVersionsOfImporter;
+                options.SourceUri = sourceUri;
+                options.TempDirectoryPath = tempDirPath;
+                options.UnpinRemovedVideos = unpinRemovedVideos;
+                options.UserEthAddr = userEthAddr;
+            });
+        }
+
+        public static IServiceCollection ConfigureUploadSettings(
+            this IServiceCollection services,
+            bool acceptPurchaseOfAllBatches,
+            bool includeAudioTrack,
+            bool offerVideos,
+            bool pinVideos,
+            bool skip1440,
+            bool skip1080,
+            bool skip720,
+            bool skip480,
+            bool skip360,
+            int ttlPostageStamp)
+        {
+            return services.Configure<UploadSettings>(options =>
+            {
+                options.AcceptPurchaseOfAllBatches = acceptPurchaseOfAllBatches;
                 options.IncludeAudioTrack = includeAudioTrack;
                 options.OfferVideos = offerVideos;
                 options.PinVideos = pinVideos;
-                options.SourceUri = sourceUri;
                 options.Skip1440 = skip1440;
                 options.Skip1080 = skip1080;
                 options.Skip720 = skip720;
                 options.Skip480 = skip480;
                 options.Skip360 = skip360;
-                options.TempDirectoryPath = tempDirPath;
                 options.TTLPostageStamp = TimeSpan.FromSeconds(ttlPostageStamp);
-                options.UnpinRemovedVideos = unpinRemovedVideos;
-                options.UserEthAddr = userEthAddr;
             });
         }
 

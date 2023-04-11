@@ -247,27 +247,30 @@ namespace Etherna.VideoImporter.Devcon
             var services = new ServiceCollection();
 
             //configure
-            services.AddImportSettings(
-                acceptPurchaseOfAllBatches,
-                deleteExogenousVideos,
-                deleteVideosMissingFromSource,
-                ffMpegBinaryPath,
-                ffMpegFolderPath,
-                forceUploadVideo,
-                ignoreNewVersionsOfImporter,
-                includeAudioTrack,
-                offerVideos,
-                pinVideos,
-                mdSourceFolderPath,
-                skip1440,
-                skip1080,
-                skip720,
-                skip480,
-                skip360,
-                tempDir,
-                ttlPostageStamp,
-                unpinRemovedVideos,
-                userEthAddr)
+            services
+                .ConfigureFFMpegSettings(
+                    ffMpegBinaryPath,
+                    ffMpegFolderPath)
+                .ConfigureImportSettings(
+                    deleteExogenousVideos,
+                    deleteVideosMissingFromSource,
+                    forceUploadVideo,
+                    ignoreNewVersionsOfImporter,
+                    mdSourceFolderPath,
+                    tempDir,
+                    unpinRemovedVideos,
+                    userEthAddr)
+                .ConfigureUploadSettings(
+                    acceptPurchaseOfAllBatches,
+                    includeAudioTrack,
+                    offerVideos,
+                    pinVideos,
+                    skip1440,
+                    skip1080,
+                    skip720,
+                    skip480,
+                    skip360,
+                    ttlPostageStamp)
             .AddLinkReporterService()
             .AddVideoProvider()
             .AddCommonServices(useBeeNativeNode)

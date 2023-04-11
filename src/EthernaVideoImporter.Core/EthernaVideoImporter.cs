@@ -19,11 +19,11 @@ using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Settings;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -40,6 +40,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IMigrationService migrationService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
+        private readonly UploadSettings uploadSettings;
 
         // Constructor.
         public EthernaVideoImporter(
@@ -50,7 +51,8 @@ namespace Etherna.VideoImporter.Core
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService,
             IMigrationService migrationService,
-            IOptions<ImporterSettings> importerSettingsOption)
+            IOptions<ImporterSettings> importerSettingsOption,
+            IOptions<UploadSettings> uploadSettingsOption)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
@@ -62,6 +64,8 @@ namespace Etherna.VideoImporter.Core
                 throw new ArgumentNullException(nameof(videoUploaderService));
             if (importerSettingsOption is null)
                 throw new ArgumentNullException(nameof(importerSettingsOption));
+            if (uploadSettingsOption is null)
+                throw new ArgumentNullException(nameof(uploadSettingsOption));
 
             this.cleanerVideoService = cleanerVideoService;
             this.gatewayClient = gatewayClient;
@@ -69,8 +73,9 @@ namespace Etherna.VideoImporter.Core
             this.importerSettings = importerSettingsOption.Value;
             this.linkReporterService = linkReporterService;
             this.migrationService = migrationService;
-            this.videoProvider = videoProvider;
+            this.uploadSettings = uploadSettingsOption.Value;
             this.videoUploaderService = videoUploaderService;
+            this.videoProvider = videoProvider;
         }
 
         // Public methods.
@@ -163,7 +168,7 @@ namespace Etherna.VideoImporter.Core
 
                             // Upload new manifest.
                             var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, importerSettings.UserEthAddr);
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, importerSettings.PinVideos, importerSettings.OfferVideos);
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, uploadSettings.PinVideos, uploadSettings.OfferVideos);
 
                             // Update on index.
                             await ethernaUserClients.IndexClient.VideosClient.VideosPutAsync(

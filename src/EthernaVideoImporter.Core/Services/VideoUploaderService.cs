@@ -17,6 +17,7 @@ using Etherna.ServicesClient;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Etherna.VideoImporter.Core.Settings;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -40,19 +41,24 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly IGatewayService gatewayService;
         private readonly IEthernaUserClients ethernaUserClients;
         private readonly ImporterSettings importerSettings;
+        private readonly UploadSettings uploadSettings;
 
         // Constructor.
         public VideoUploaderService(
             IGatewayService gatewayService,
             IEthernaUserClients ethernaUserClients,
-            IOptions<ImporterSettings> importerSettingsOption)
+            IOptions<ImporterSettings> importerSettingsOption,
+            IOptions<UploadSettings> uploadSettingsOption)
         {
             if (importerSettingsOption is null)
                 throw new ArgumentNullException(nameof(importerSettingsOption));
+            if (uploadSettingsOption is null)
+                throw new ArgumentNullException(nameof(uploadSettingsOption));
 
             this.gatewayService = gatewayService;
             this.ethernaUserClients = ethernaUserClients;
             this.importerSettings = importerSettingsOption.Value;
+            this.uploadSettings = uploadSettingsOption.Value;
         }
 
         // Public methods.
@@ -73,12 +79,12 @@ namespace Etherna.VideoImporter.Core.Services
 
             //calculate amount
             var currentPrice = await gatewayService.GetCurrentChainPriceAsync();
-            var amount = (long)(importerSettings.TTLPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+            var amount = (long)(uploadSettings.TTLPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
             var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
             Console.WriteLine($"Creating postage batch... Depth: {batchDepth} Amount: {amount} BZZ price: {bzzPrice}");
 
-            if (!importerSettings.AcceptPurchaseOfAllBatches)
+            if (!uploadSettings.AcceptPurchaseOfAllBatches)
             {
                 bool validSelection = false;
 
@@ -92,7 +98,7 @@ namespace Etherna.VideoImporter.Core.Services
                             validSelection = true;
                             break;
                         case ConsoleKeyInfo ak when ak.Key == ConsoleKey.A:
-                            importerSettings.AcceptPurchaseOfAllBatches = true;
+                            uploadSettings.AcceptPurchaseOfAllBatches = true;
                             validSelection = true;
                             break;
                         case ConsoleKeyInfo nk when nk.Key == ConsoleKey.N:

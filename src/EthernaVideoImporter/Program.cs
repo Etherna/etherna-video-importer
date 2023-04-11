@@ -265,31 +265,34 @@ namespace Etherna.VideoImporter
             var services = new ServiceCollection();
 
             //configure
-            services.AddImportSettings(
-                acceptPurchaseOfAllBatches,
-                deleteExogenousVideos,
-                deleteVideosMissingFromSource,
-                ffMpegBinaryPath,
-                ffMpegFolderPath,
-                forceUploadVideo,
-                ignoreNewVersionsOfImporter,
-                includeAudioTrack,
-                offerVideos,
-                pinVideos,
-                sourceUri,
-                skip1440,
-                skip1080,
-                skip720,
-                skip480,
-                skip360,
-                tempDir,
-                ttlPostageStamp,
-                unpinRemovedVideos,
-                userEthAddr)
-            .AddLinkReporterService()
-            .AddVideoProvider(sourceType.Value)
-            .AddCommonServices(useBeeNativeNode)
-            .ConfigureHttpClient(authResult.RefreshTokenHandler);
+            services
+                .ConfigureFFMpegSettings(
+                    ffMpegBinaryPath,
+                    ffMpegFolderPath)
+                .ConfigureImportSettings(
+                    deleteExogenousVideos,
+                    deleteVideosMissingFromSource,
+                    forceUploadVideo,
+                    ignoreNewVersionsOfImporter,
+                    sourceUri,
+                    tempDir,
+                    unpinRemovedVideos,
+                    userEthAddr)
+                .ConfigureUploadSettings(
+                    acceptPurchaseOfAllBatches,
+                    includeAudioTrack,
+                    offerVideos,
+                    pinVideos,
+                    skip1440,
+                    skip1080,
+                    skip720,
+                    skip480,
+                    skip360,
+                    ttlPostageStamp)
+                .AddLinkReporterService()
+                .AddVideoProvider(sourceType.Value)
+                .AddCommonServices(useBeeNativeNode)
+                .ConfigureHttpClient(authResult.RefreshTokenHandler);
 
             var serviceProvider = services.BuildServiceProvider();
 

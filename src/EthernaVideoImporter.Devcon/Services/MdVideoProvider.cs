@@ -12,9 +12,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Settings;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Devcon.Models.Domain;
 using Etherna.VideoImporter.Devcon.Models.MdDto;
@@ -48,7 +48,8 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Constructor.
         public MdVideoProvider(
             IOptions<ImporterSettings> importerSettingsOption,
-            IEncoderService encoderService)
+            IEncoderService encoderService,
+            IOptions<UploadSettings> uploadSettingsOption)
         {
             if (importerSettingsOption is null)
                 throw new ArgumentNullException(nameof(importerSettingsOption));
@@ -57,7 +58,7 @@ namespace Etherna.VideoImporter.Devcon.Services
 
             this.importerSettings = importerSettingsOption.Value;
             youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient, importerSettingsOption);
+            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient, importerSettingsOption, uploadSettingsOption);
         }
 
         // Properties.

@@ -15,6 +15,7 @@
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Settings;
 using Microsoft.Extensions.Options;
 using SkiaSharp;
 using System;
@@ -37,20 +38,25 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Fields.
         private readonly IEncoderService encoderService;
         private readonly ImporterSettings importerSettings;
-        private readonly YoutubeClient youtubeClient;
+        private readonly YoutubeClient youtubeClient; 
+        private readonly UploadSettings uploadSettings;
 
         // Constructor.
         public YoutubeDownloader(
             IEncoderService encoderService,
             YoutubeClient youtubeClient,
-            IOptions<ImporterSettings> importerSettingsOption)
+            IOptions<ImporterSettings> importerSettingsOption,
+            IOptions<UploadSettings> uploadSettingsOption)
         {
             if (importerSettingsOption is null)
                 throw new ArgumentNullException(nameof(importerSettingsOption));
+            if (uploadSettingsOption is null)
+                throw new ArgumentNullException(nameof(uploadSettingsOption));
 
             this.encoderService = encoderService;
             this.youtubeClient = youtubeClient;
             importerSettings = importerSettingsOption.Value;
+            uploadSettings = uploadSettingsOption.Value;
         }
 
         // Methods.
@@ -78,8 +84,8 @@ namespace Etherna.VideoImporter.Core.Utilities
             // Transcode video resolutions.
             var encodedFiles = await encoderService.EncodeVideosAsync(
                 videoLocalFile,
-                GetSupportedHeightResolutions(importerSettings),
-                importerSettings.IncludeAudioTrack);
+                GetSupportedHeightResolutions(uploadSettings),
+                uploadSettings.IncludeAudioTrack);
 
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
@@ -221,18 +227,18 @@ namespace Etherna.VideoImporter.Core.Utilities
             return thumbnails;
         }
 
-        private static IEnumerable<int> GetSupportedHeightResolutions(ImporterSettings importerSettings)
+        private static IEnumerable<int> GetSupportedHeightResolutions(UploadSettings uploadSettings)
         {
             var supportedHeightResolutions = new List<int>();
-            if (!importerSettings.Skip1440)
+            if (!uploadSettings.Skip1440)
                 supportedHeightResolutions.Add(1440);
-            if (!importerSettings.Skip1080)
+            if (!uploadSettings.Skip1080)
                 supportedHeightResolutions.Add(1080);
-            if (!importerSettings.Skip720)
+            if (!uploadSettings.Skip720)
                 supportedHeightResolutions.Add(720);
-            if (!importerSettings.Skip480)
+            if (!uploadSettings.Skip480)
                 supportedHeightResolutions.Add(480);
-            if (!importerSettings.Skip360)
+            if (!uploadSettings.Skip360)
                 supportedHeightResolutions.Add(360);
 
             return supportedHeightResolutions;
