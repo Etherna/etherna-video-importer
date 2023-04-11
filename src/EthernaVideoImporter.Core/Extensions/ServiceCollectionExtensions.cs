@@ -16,7 +16,7 @@ namespace Etherna.VideoImporter.Core.Extensions
             services.AddTransient<EthernaVideoImporter>();
 
         public static IServiceCollection AddBeeGatewayClientService(this IServiceCollection services) =>
-            services.AddTransient<IBeeGatewayClient>((sp) =>
+            services.AddSingleton<IBeeGatewayClient>((sp) =>
              {
                  var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
                  return new BeeGatewayClient(
@@ -26,7 +26,7 @@ namespace Etherna.VideoImporter.Core.Extensions
              });
 
         public static IServiceCollection AddBeeNodeClientService(this IServiceCollection services) =>
-            services.AddTransient<IBeeNodeClient, BeeNodeClient>();
+            services.AddSingleton<IBeeNodeClient, BeeNodeClient>();
 
         public static IServiceCollection AddCleanerVideoService(this IServiceCollection services) =>
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
@@ -35,7 +35,7 @@ namespace Etherna.VideoImporter.Core.Extensions
             services.AddTransient<IEncoderService, EncoderService>();
 
         public static IServiceCollection AddEthernaUserClientsService(this IServiceCollection services) =>
-            services.AddTransient<IEthernaUserClients>((sp) =>
+            services.AddSingleton<IEthernaUserClients>((sp) =>
             {
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 return new EthernaUserClients(
