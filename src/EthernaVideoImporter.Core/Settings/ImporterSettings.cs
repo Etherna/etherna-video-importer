@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
 namespace Etherna.VideoImporter.Core.Settings
 {
@@ -12,6 +11,7 @@ namespace Etherna.VideoImporter.Core.Settings
         public string SourceUri { get; set; } = default!;
         public DirectoryInfo TempDirectoryPath { get; set; } = default!;
         public bool UnpinRemovedVideos { get; set; }
+        public bool UseBeeNativeNode { get; set; }
         public string UserEthAddr { get; set; } = default!;
     }
 }

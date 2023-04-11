@@ -23,6 +23,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Devcon
@@ -259,6 +260,7 @@ namespace Etherna.VideoImporter.Devcon
                     mdSourceFolderPath,
                     tempDir,
                     unpinRemovedVideos,
+                    useBeeNativeNode,
                     userEthAddr)
                 .ConfigureUploadSettings(
                     acceptPurchaseOfAllBatches,
@@ -271,10 +273,18 @@ namespace Etherna.VideoImporter.Devcon
                     skip480,
                     skip360,
                     ttlPostageStamp)
-            .AddLinkReporterService()
-            .AddVideoProvider()
-            .AddCommonServices(useBeeNativeNode)
-            .ConfigureHttpClient(authResult.RefreshTokenHandler);
+                .AddBeeGatewayClientService()
+                .AddBeeNodeClientService()
+                .AddLinkReporterService()
+                .AddCleanerVideoService()
+                .AddEncoderService()
+                .AddEthernaUserClientsService()
+                .AddGatewayService(useBeeNativeNode)
+                .AddEthernaVideoImporterService()
+                .AddMigrationService()
+                .AddVideoUploaderService()
+                .AddVideoProvider()
+                .AddEthernaHttpClient(authResult.RefreshTokenHandler);
 
             var serviceProvider = services.BuildServiceProvider();
 

@@ -277,6 +277,7 @@ namespace Etherna.VideoImporter
                     sourceUri,
                     tempDir,
                     unpinRemovedVideos,
+                    useBeeNativeNode,
                     userEthAddr)
                 .ConfigureUploadSettings(
                     acceptPurchaseOfAllBatches,
@@ -289,10 +290,18 @@ namespace Etherna.VideoImporter
                     skip480,
                     skip360,
                     ttlPostageStamp)
+                .AddBeeGatewayClientService()
+                .AddBeeNodeClientService()
                 .AddLinkReporterService()
+                .AddCleanerVideoService()
+                .AddEncoderService()
+                .AddEthernaUserClientsService()
+                .AddGatewayService(useBeeNativeNode)
+                .AddEthernaVideoImporterService()
+                .AddMigrationService()
+                .AddVideoUploaderService()
                 .AddVideoProvider(sourceType.Value)
-                .AddCommonServices(useBeeNativeNode)
-                .ConfigureHttpClient(authResult.RefreshTokenHandler);
+                .AddEthernaHttpClient(authResult.RefreshTokenHandler);
 
             var serviceProvider = services.BuildServiceProvider();
 

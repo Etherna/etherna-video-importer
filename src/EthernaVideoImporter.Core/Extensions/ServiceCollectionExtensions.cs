@@ -12,17 +12,61 @@ namespace Etherna.VideoImporter.Core.Extensions
 {
     public static class ServiceCollectionExtensions
     {
+        public static IServiceCollection AddEthernaVideoImporterService(this IServiceCollection services) =>
+            services.AddTransient<EthernaVideoImporter>();
+
+        public static IServiceCollection AddBeeGatewayClientService(this IServiceCollection services) =>
+            services.AddTransient<IBeeGatewayClient>((sp) =>
+             {
+                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                 return new BeeGatewayClient(
+                     httpClientFactory.CreateClient("ethernaClient"),
+                     new Uri(CommonConsts.EthernaGatewayUrl),
+                     CommonConsts.BeeNodeGatewayVersion);
+             });
+
+        public static IServiceCollection AddBeeNodeClientService(this IServiceCollection services) =>
+            services.AddTransient<IBeeNodeClient, BeeNodeClient>();
+
+        public static IServiceCollection AddCleanerVideoService(this IServiceCollection services) =>
+            services.AddTransient<ICleanerVideoService, CleanerVideoService>();
+
+        public static IServiceCollection AddEncoderService(this IServiceCollection services) =>
+            services.AddTransient<IEncoderService, EncoderService>();
+
+        public static IServiceCollection AddEthernaUserClientsService(this IServiceCollection services) =>
+            services.AddTransient<IEthernaUserClients>((sp) =>
+            {
+                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                return new EthernaUserClients(
+                            new Uri(CommonConsts.EthernaCreditUrl),
+                            new Uri(CommonConsts.EthernaGatewayUrl),
+                            new Uri(CommonConsts.EthernaIndexUrl),
+                            new Uri(CommonConsts.EthernaIndexUrl),
+                            () => httpClientFactory.CreateClient("ethernaClient"));
+            });
+
+        public static IServiceCollection AddGatewayService(this IServiceCollection services, bool useBeeNativeNode) =>
+                useBeeNativeNode ?
+                    services.AddTransient<IGatewayService, BeeGatewayService>() :
+                    services.AddTransient<IGatewayService, EthernaGatewayService>();
+        
+        public static IServiceCollection AddMigrationService(this IServiceCollection services) =>
+            services.AddTransient<IMigrationService, MigrationService>();
+
+        public static IServiceCollection AddVideoUploaderService(this IServiceCollection services) =>
+            services.AddTransient<IVideoUploaderService, VideoUploaderService>();
+
         public static IServiceCollection ConfigureFFMpegSettings(
             this IServiceCollection services,
             string ffMpegBinaryPath,
             string ffMpegFolderPath)
-        {
-            return services.Configure<FFMpegSettings>(options =>
+        =>
+            services.Configure<FFMpegSettings>(options =>
             {
                 options.FFMpegBinaryPath = ffMpegBinaryPath;
                 options.FFMpegFolderPath = ffMpegFolderPath;
             });
-        }
 
         public static IServiceCollection ConfigureImportSettings(
             this IServiceCollection services,
@@ -33,9 +77,10 @@ namespace Etherna.VideoImporter.Core.Extensions
             string sourceUri,
             DirectoryInfo tempDirPath,
             bool unpinRemovedVideos,
+            bool useBeeNativeNode,
             string userEthAddr)
-        {
-            return services.Configure<ImporterSettings>(options =>
+        =>
+            services.Configure<ImporterSettings>(options =>
             {
                 options.DeleteExogenousVideos = deleteExogenousVideos;
                 options.DeleteVideosMissingFromSource = deleteVideosMissingFromSource;
@@ -44,8 +89,20 @@ namespace Etherna.VideoImporter.Core.Extensions
                 options.SourceUri = sourceUri;
                 options.TempDirectoryPath = tempDirPath;
                 options.UnpinRemovedVideos = unpinRemovedVideos;
+                options.UseBeeNativeNode = useBeeNativeNode;
                 options.UserEthAddr = userEthAddr;
             });
+
+        public static IHttpClientBuilder AddEthernaHttpClient(
+            this IServiceCollection services,
+            DelegatingHandler delegatingHandler)
+        {
+            return services.AddHttpClient("ethernaClient", c =>
+            {
+                c.Timeout = TimeSpan.FromMinutes(30);
+                c.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => delegatingHandler);
         }
 
         public static IServiceCollection ConfigureUploadSettings(
@@ -74,37 +131,6 @@ namespace Etherna.VideoImporter.Core.Extensions
                 options.Skip360 = skip360;
                 options.TTLPostageStamp = TimeSpan.FromSeconds(ttlPostageStamp);
             });
-        }
-
-        public static IServiceCollection AddCommonServices(
-            this IServiceCollection services, 
-            bool useBeeNativeNode)
-        {
-            services
-            .AddTransient<EthernaVideoImporter>()
-            .AddTransient<IBeeGatewayClient, BeeGatewayClientWrapper>()
-            .AddTransient<IBeeNodeClient, BeeNodeClient>()
-            .AddTransient<ICleanerVideoService, CleanerVideoService>()
-            .AddTransient<IEthernaUserClients, EthernaUserClientsWrapper>()
-            .AddTransient<IEncoderService, EncoderService>()
-            .AddTransient<IMigrationService, MigrationService>()
-            .AddTransient<IVideoUploaderService, VideoUploaderService>();
-
-            return useBeeNativeNode ?
-                services.AddTransient<IGatewayService, BeeGatewayService>() :
-                services.AddTransient<IGatewayService, EthernaGatewayService>();
-        }
-
-        public static IHttpClientBuilder ConfigureHttpClient(
-            this IServiceCollection services, 
-            DelegatingHandler delegatingHandler)
-        {
-            return services.AddHttpClient("ethernaClient", c =>
-            {
-                c.Timeout = TimeSpan.FromMinutes(30);
-                c.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
-            })
-            .ConfigurePrimaryHttpMessageHandler(() => delegatingHandler);
         }
     }
 }
