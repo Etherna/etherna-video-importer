@@ -4,6 +4,7 @@ using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.IO;
 using System.Net.Http;
 
 namespace Etherna.VideoImporter.Core.Extensions
@@ -28,7 +29,7 @@ namespace Etherna.VideoImporter.Core.Extensions
             bool skip720,
             bool skip480,
             bool skip360,
-            string tempDirectoryPath,
+            DirectoryInfo tempDirPath,
             int ttlPostageStamp,
             bool unpinRemovedVideos,
             string userEthAddr)
@@ -51,7 +52,7 @@ namespace Etherna.VideoImporter.Core.Extensions
                 options.Skip720 = skip720;
                 options.Skip480 = skip480;
                 options.Skip360 = skip360;
-                options.TempDirectoryPath = tempDirectoryPath;
+                options.TempDirectoryPath = tempDirPath;
                 options.TTLPostageStamp = TimeSpan.FromSeconds(ttlPostageStamp);
                 options.UnpinRemovedVideos = unpinRemovedVideos;
                 options.UserEthAddr = userEthAddr;

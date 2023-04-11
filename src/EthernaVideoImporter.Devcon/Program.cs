@@ -240,6 +240,9 @@ namespace Etherna.VideoImporter.Devcon
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
+            // Create temp dir.
+            var tempDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier + "Devcon"));
+
             // Setup DI.
             var services = new ServiceCollection();
 
@@ -261,7 +264,7 @@ namespace Etherna.VideoImporter.Devcon
                 skip720,
                 skip480,
                 skip360,
-                Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier + "Devcon"),
+                tempDir,
                 ttlPostageStamp,
                 unpinRemovedVideos,
                 userEthAddr)

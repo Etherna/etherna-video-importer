@@ -38,7 +38,6 @@ namespace Etherna.VideoImporter.Core
         private readonly ImporterSettings importerSettings;
         private readonly ILinkReporterService linkReporterService;
         private readonly IMigrationService migrationService;
-        private readonly DirectoryInfo tempDirectoryInfo;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -70,7 +69,6 @@ namespace Etherna.VideoImporter.Core
             this.importerSettings = importerSettingsOption.Value;
             this.linkReporterService = linkReporterService;
             this.migrationService = migrationService;
-            tempDirectoryInfo = Directory.CreateDirectory(importerSettings.TempDirectoryPath);
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -248,15 +246,15 @@ namespace Etherna.VideoImporter.Core
                     try
                     {
                         // Clear tmp folder.
-                        foreach (var file in tempDirectoryInfo.GetFiles())
+                        foreach (var file in importerSettings.TempDirectoryPath.GetFiles())
                             file.Delete();
-                        foreach (var dir in tempDirectoryInfo.GetDirectories())
+                        foreach (var dir in importerSettings.TempDirectoryPath.GetDirectories())
                             dir.Delete(true);
                     }
                     catch
                     {
                         Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Warning: unable to delete some files inside of {tempDirectoryInfo.FullName}.");
+                        Console.WriteLine($"Warning: unable to delete some files inside of {importerSettings.TempDirectoryPath.FullName}.");
                         Console.WriteLine($"Please remove manually after the process.");
                         Console.ResetColor();
                     }

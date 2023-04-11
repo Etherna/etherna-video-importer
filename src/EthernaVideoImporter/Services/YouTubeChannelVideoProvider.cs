@@ -57,8 +57,7 @@ namespace Etherna.VideoImporter.Services
 
         // Methods.
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
-            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)),
-            importerSettings);
+            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {

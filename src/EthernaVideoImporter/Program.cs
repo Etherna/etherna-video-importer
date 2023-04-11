@@ -258,6 +258,9 @@ namespace Etherna.VideoImporter
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
+            // Create temp dir.
+            var tempDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier));
+
             // Setup DI.
             var services = new ServiceCollection();
 
@@ -279,7 +282,7 @@ namespace Etherna.VideoImporter
                 skip720,
                 skip480,
                 skip360,
-                Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier),
+                tempDir,
                 ttlPostageStamp,
                 unpinRemovedVideos,
                 userEthAddr)

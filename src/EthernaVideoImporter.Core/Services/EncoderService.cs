@@ -14,7 +14,6 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly List<Command> activedCommands = new();
         private readonly ImporterSettings importerSettings;
-        private readonly DirectoryInfo tempDirectoryInfo;
 
         // Constructor.
         public EncoderService(IOptions<ImporterSettings> importerSettingsOption)
@@ -23,7 +22,6 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new ArgumentNullException(nameof(importerSettingsOption));
 
             this.importerSettings = importerSettingsOption.Value;
-            tempDirectoryInfo = Directory.CreateDirectory(importerSettingsOption.Value.TempDirectoryPath);
         }
 
         // Properties.
@@ -60,7 +58,7 @@ namespace Etherna.VideoImporter.Core.Services
                     _ => throw new InvalidOperationException()
                 };
 
-                var fileName = $"{tempDirectoryInfo.FullName}/{fileNameGuid}_{heightResolution}.mp4";
+                var fileName = $"{importerSettings.TempDirectoryPath.FullName}/{fileNameGuid}_{heightResolution}.mp4";
                 var args = new string[] {
                     $"-i",
                     originalVideoLocalFile.FilePath,
