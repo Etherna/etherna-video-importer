@@ -19,9 +19,9 @@ namespace Etherna.VideoImporter.Services
     {
         // Fields.
         private readonly string ffProbeBinaryPath;
-        private readonly string localFile;
         private readonly IEncoderService encoderService;
         private readonly bool includeAudioTrack;
+        private readonly string localFile;
         private readonly IEnumerable<int> supportedHeightResolutions;
         private readonly JsonSerializerOptions options = new JsonSerializerOptions
         {
@@ -36,9 +36,9 @@ namespace Etherna.VideoImporter.Services
             IEnumerable<int> supportedHeightResolutions,
             string ffProbeBinaryPath)
         {
-            this.localFile = localFile;
             this.encoderService = encoderService;
             this.includeAudioTrack = includeAudioTrack;
+            this.localFile = localFile;
             this.supportedHeightResolutions = supportedHeightResolutions;
             this.ffProbeBinaryPath = ffProbeBinaryPath;
         }
@@ -71,9 +71,8 @@ namespace Etherna.VideoImporter.Services
             // Get thumbnail.
             List<ThumbnailLocalFile> thumbnailFiles = new();
             if (localVideoMetadata.Thumbnail is not null)
-            {
                 thumbnailFiles = await DownscaleThumbnailAsync(localVideoMetadata.Thumbnail, tempDirectory);
-            }
+
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
 
