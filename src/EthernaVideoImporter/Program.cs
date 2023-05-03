@@ -41,6 +41,9 @@ namespace Etherna.VideoImporter
             "Source types:\n" +
             "  ytchannel\tYouTube channel\n" +
             "  ytvideo\tYouTube video\n" +
+            "  local\tLocal videos\n" +
+            "\n" +
+            "See Readme to get info on how to use the local videos source." +
             "\n" +
             "Options:\n" +
             $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
@@ -127,6 +130,16 @@ namespace Etherna.VideoImporter
                     sourceUri = args[1];
                     break;
 
+                case "local":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Local videos JSON metadata path is missing");
+                        throw new ArgumentException("Invalid argument");
+                    }
+                    sourceType = SourceType.LocalVideos;
+                    sourceUri = args[1];
+                    break;
+
                 default:
                     Console.WriteLine($"Invalid argument");
                     Console.WriteLine(HelpText);
@@ -191,6 +204,7 @@ namespace Etherna.VideoImporter
             // Input validation.
             //FFmpeg
             var ffMpegBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFMpegBinaryName);
+            var ffProbeBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFProbeBinaryName);
             if (!File.Exists(ffMpegBinaryPath))
             {
                 Console.WriteLine($"FFmpeg not found at ({ffMpegBinaryPath})");
@@ -211,6 +225,24 @@ namespace Etherna.VideoImporter
             {
                 Console.WriteLine($"Only Etherna Gateway supports offering video downloads to everyone");
                 return;
+            }
+
+            //check local videos input
+            if (sourceType == SourceType.LocalVideos)
+            {
+                //json metadata
+                if (!File.Exists(sourceUri))
+                {
+                    Console.WriteLine($"Local videos JSON metadata not found at ({sourceUri})");
+                    return;
+                }
+
+                //FFprobe
+                if (!File.Exists(ffProbeBinaryPath))
+                {
+                    Console.WriteLine($"FFprobe not found at ({ffProbeBinaryPath})");
+                    return;
+                }
             }
 
             //bee node api port
@@ -301,6 +333,12 @@ namespace Etherna.VideoImporter
                     encoderService,
                     includeAudioTrack,
                     GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
+                SourceType.LocalVideos => new LocalVideosProvider(
+                    sourceUri,
+                    encoderService,
+                    includeAudioTrack,
+                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360),
+                    ffProbeBinaryPath),
                 _ => throw new InvalidOperationException()
             };
 

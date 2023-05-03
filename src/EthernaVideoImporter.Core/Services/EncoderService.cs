@@ -59,14 +59,16 @@ namespace Etherna.VideoImporter.Core.Services
 
                 var fileName = $"{importerTempDirectoryInfo.FullName}/{fileNameGuid}_{heightResolution}.mp4";
                 var args = new string[] {
-                    $"-i {originalVideoLocalFile.FilePath}",
-                    "-c:a aac",
-                    "-c:v libx264",
-                    "-movflags faststart",
-                    $"-vf scale={roundedScaledWidth}:{heightResolution}",
-                    "-loglevel info"};
+                    "-i", originalVideoLocalFile.FilePath,
+                    "-c:a", "aac",
+                    "-c:v", "libx264",
+                    "-movflags", "faststart",
+                    "-vf", $"scale={roundedScaledWidth}:{heightResolution}",
+                    "-loglevel", "info",
+                    fileName
+                };
 
-                var command = Command.Run(FFMpegBinaryPath, args.SelectMany(arg => arg.Split(' ')).Append(fileName));
+                var command = Command.Run(FFMpegBinaryPath, args);
 
                 activedCommands.Add(command);
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);

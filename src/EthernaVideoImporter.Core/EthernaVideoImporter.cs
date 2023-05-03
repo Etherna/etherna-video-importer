@@ -154,10 +154,10 @@ namespace Etherna.VideoImporter.Core
 
                             var videoMetadata = new SwarmVideoMetadata(
                                 sourceMetadata.Id,
+                                sourceMetadata.Title,
                                 sourceMetadata.Description,
                                 TimeSpan.FromSeconds(alreadyPresentVideo.LastValidManifest!.Duration),
-                                alreadyPresentVideo.LastValidManifest!.OriginalQuality,
-                                sourceMetadata.Title);
+                                alreadyPresentVideo.LastValidManifest!.OriginalQuality);
 
                             var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference));
 

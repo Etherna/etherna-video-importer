@@ -83,15 +83,15 @@ namespace Etherna.VideoImporter.Core.Utilities
                 includeAudioTrack);
 
             // Get thumbnail.
-            List<ThumbnailLocalFile> thumbnailFiles = new();
+            IEnumerable<ThumbnailLocalFile> thumbnailFiles = Array.Empty<ThumbnailLocalFile>();
             if (videoMetadata.Thumbnail is not null)
             {
-                var betsResolutionThumbnail = await DownloadThumbnailAsync(
+                var bestResolutionThumbnail = await DownloadThumbnailAsync(
                     videoMetadata.Thumbnail,
                     videoMetadata.Title,
                     tempDirectory);
 
-                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, tempDirectory);
+                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(tempDirectory);
             }
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
@@ -187,38 +187,6 @@ namespace Etherna.VideoImporter.Core.Utilities
                 videoOnlyStream.VideoResolution.Height,
                 videoOnlyStream.VideoResolution.Width,
                 new FileInfo(videoFilePath).Length);
-        }
-
-        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(
-            ThumbnailLocalFile betsResolutionThumbnail,
-            DirectoryInfo importerTempDirectoryInfo)
-        {
-            List<ThumbnailLocalFile> thumbnails = new();
-
-            using var thumbFileStream = File.OpenRead(betsResolutionThumbnail.FilePath);
-            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
-            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-
-            foreach (var responsiveWidthSize in ThumbnailLocalFile.ThumbnailResponsiveSizes)
-            {
-                var responsiveHeightSize = (int)(responsiveWidthSize / betsResolutionThumbnail.AspectRatio);
-
-                using SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.High);
-                using SKImage scaledImage = SKImage.FromBitmap(scaledBitmap);
-                using SKData data = scaledImage.Encode();
-
-                var thumbnailResizedPath = Path.Combine(importerTempDirectoryInfo.FullName, $"thumb_{responsiveWidthSize}_{responsiveHeightSize}_{Guid.NewGuid()}.jpg");
-                using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew);
-                await data.AsStream().CopyToAsync(outputFileStream);
-
-                thumbnails.Add(new ThumbnailLocalFile(
-                    thumbnailResizedPath,
-                    new FileInfo(thumbnailResizedPath).Length,
-                    responsiveHeightSize,
-                    responsiveWidthSize));
-            }
-
-            return thumbnails;
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)

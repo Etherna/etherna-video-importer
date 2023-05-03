@@ -170,11 +170,11 @@ namespace Etherna.VideoImporter.Devcon.Services
 
             return videosMetadata.Select(
                 p => new MdFileVideoMetadata(
+                    p.mdDto.Title,
                     p.mdDto.Description,
                     p.ytVideo.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
                     p.ytBestStreamInfo.VideoQuality.Label,
                     p.ytVideo.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
-                    p.mdDto.Title,
                     p.mdRelativePath,
                     p.mdDto.YoutubeUrl,
                     p.mdDto.EthernaIndex,

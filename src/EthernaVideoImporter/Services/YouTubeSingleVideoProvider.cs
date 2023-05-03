@@ -69,11 +69,11 @@ namespace Etherna.VideoImporter.Services
             return new[]
             {
                 new YouTubeVideoMetadata(
+                    metadata.Title,
                     metadata.Description,
                     metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
                     bestStreamInfo.VideoQuality.Label,
                     metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
-                    metadata.Title,
                     metadata.Url)
             };
         }
