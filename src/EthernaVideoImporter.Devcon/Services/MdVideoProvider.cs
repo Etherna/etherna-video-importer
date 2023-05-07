@@ -25,21 +25,23 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
-using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 using YoutubeExplode.Exceptions;
 using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
-    internal sealed class MdVideoProvider : IVideoProvider
+    internal sealed partial class MdVideoProvider : IVideoProvider
     {
         // Consts.
-        private static readonly string[] _keywordNames = { "IMAGE", "IMAGEURL", "EDITION", "TITLE", "DESCRIPTION", "YOUTUBEURL", "IPFSHASH", "DURATION", "EXPERTISE", "TYPE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "ETHERNAINDEX", "ETHERNAPERMALINK", "SOURCEID" };
-        private static readonly string[] _keywordSkips = { "IMAGE", "IMAGEURL", "IPFSHASH", "EXPERTISE", "TRACK", "KEYWORDS", "TAGS", "SPEAKERS", "SOURCEID" };
         private const string EthernaIndexPrefix = "ethernaIndex:";
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
+
+        [GeneratedRegex("---\\r?\\n[\\s\\S]*?---")]
+        private static partial Regex YamlRegex();
 
         // Fields.
         public static readonly string[] _keywordForArrayString = Array.Empty<string>();
@@ -75,55 +77,16 @@ namespace Etherna.VideoImporter.Devcon.Services
 
                 Console.WriteLine($"File #{i + 1} of {mdFilesPaths.Length}: {mdFileRelativePath}");
 
-                // Get from md file.
-                var mdConvertedToJson = new StringBuilder();
-                var markerLine = 0;
-                var keyFound = 0;
-                var descriptionExtraRows = new List<string>();
-                ArchiveMdFileDto? videoDataInfoDto = null;
-                foreach (var line in File.ReadLines(mdFilePath))
-                {
-                    if (string.IsNullOrWhiteSpace(line))
-                        continue;
-                    if (_keywordSkips.Any(keyToSkip =>
-                        line.StartsWith(keyToSkip, StringComparison.InvariantCultureIgnoreCase)))
-                        continue;
+                // Deserialize YAML section from MD.
+                string content = File.ReadAllText(mdFilePath);
+                var yamlMatch = YamlRegex().Match(content);
+                string yamlString = yamlMatch.ToString().Trim('-');
 
-                    if (line == "---")
-                    {
-                        markerLine++;
-
-                        if (markerLine == 1)
-                            mdConvertedToJson.AppendLine("{");
-                        else if (markerLine == 2)
-                        {
-                            mdConvertedToJson.AppendLine("}");
-                            try
-                            {
-                                videoDataInfoDto = JsonSerializer.Deserialize<ArchiveMdFileDto>(
-                                    mdConvertedToJson.ToString(),
-                                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })!;
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.ForegroundColor = ConsoleColor.DarkRed;
-                                Console.WriteLine($"Unable to parse file: {mdFileRelativePath}");
-                                Console.WriteLine(ex.Message);
-                                Console.ResetColor();
-                            }
-
-                            markerLine = 0;
-                            keyFound = 0;
-                            mdConvertedToJson = new StringBuilder();
-                            videoDataInfoDto?.AddDescription(descriptionExtraRows);
-                        }
-                    }
-                    else
-                    {
-                        mdConvertedToJson.AppendLine(FormatLineForJson(line, keyFound == 0, descriptionExtraRows));
-                        keyFound++;
-                    }
-                }
+                var deserializer = new DeserializerBuilder()
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .IgnoreUnmatchedProperties()
+                    .Build();
+                var videoDataInfoDto = deserializer.Deserialize<ArchiveMdFileDto>(yamlString);
 
                 if (videoDataInfoDto is null)
                     continue;
@@ -207,30 +170,6 @@ namespace Etherna.VideoImporter.Devcon.Services
         }
 
         // Helpers.
-        private static string FormatLineForJson(string line, bool isFirstRow, List<string> descriptionExtraRows)
-        {
-            if (string.IsNullOrWhiteSpace(line))
-                return "";
-
-            // Prevent multiline description error 
-            if (!_keywordNames.Any(keywordName => line.StartsWith(keywordName, StringComparison.InvariantCultureIgnoreCase)))
-            {
-                descriptionExtraRows.Add(line);
-                return "";
-            }
-
-            var formatedString = (isFirstRow ? "" : ",") // Add , at end of every previus row (isFirstKeyFound used to avoid insert , in the last keyword)
-                + "\"" // Add " at start of every row
-                + ReplaceFirstOccurrence(line, ":", "\":"); // Find the first : and add "
-
-            // Prevent error for description multiline
-            if (line.StartsWith("DESCRIPTION", StringComparison.InvariantCultureIgnoreCase) &&
-                !formatedString.EndsWith("\"", StringComparison.InvariantCultureIgnoreCase))
-                formatedString += "\"";
-
-            return formatedString.Replace("\t", " ", StringComparison.InvariantCultureIgnoreCase); // Replace \t \ with space
-        }
-
         private int GetLineNumber(List<string> lines, string prefix)
         {
             var lineIndex = 0;
@@ -248,16 +187,6 @@ namespace Etherna.VideoImporter.Devcon.Services
         {
             // Last position. (Exclueded final ---)
             return lines - 2;
-        }
-
-        private static string ReplaceFirstOccurrence(string source, string find, string replace)
-        {
-            if (string.IsNullOrWhiteSpace(source))
-                return "";
-
-            var index = source.IndexOf(find, StringComparison.InvariantCultureIgnoreCase);
-            string result = source.Remove(index, find.Length).Insert(index, replace);
-            return result;
         }
     }
 }
