@@ -25,7 +25,7 @@
   <ItemGroup>
     <PackageReference Include="Bee.Net" Version="0.2.0-alpha.172" />
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
-    <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.2.12" />
+    <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.3.3" />
     <PackageReference Include="EthernaServicesClient" Version="0.3.0-alpha.60" />
     <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
       <PrivateAssets>all</PrivateAssets>

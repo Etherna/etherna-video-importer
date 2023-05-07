@@ -13,19 +13,20 @@
 //   limitations under the License.
 
 using Etherna.Authentication;
-using Etherna.BeeNet;
-using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
+using Etherna.VideoImporter.Core.Utilities;
+using Etherna.VideoImporter.Devcon.Options;
 using Etherna.VideoImporter.Devcon.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace Etherna.VideoImporter.Devcon
 {
@@ -33,13 +34,12 @@ namespace Etherna.VideoImporter.Devcon
     {
         // Consts.
         private const int DefaultTTLPostageStamp = 365;
-        private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "\n" +
             "Usage:\tEthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]\n" +
             "\n" +
             "Options:\n" +
-            $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
+            $"  -ff\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
             $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
@@ -65,7 +65,7 @@ namespace Etherna.VideoImporter.Devcon
         {
             // Parse arguments.
             string? mdSourceFolderPath = null;
-            string ffMpegFolderPath = DefaultFFmpegFolder;
+            string? customFFMpegFolderPath = null;
             string? ttlPostageStampStr = null;
             string? beeNodeApiPortStr = null;
             string? beeNodeDebugPortStr = null;
@@ -79,9 +79,9 @@ namespace Etherna.VideoImporter.Devcon
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
-            bool forceUploadVideo = false;
+            bool forceVideoUpload = false;
             bool acceptPurchaseOfAllBatches = false;
-            bool ignoreNewVersionOfImporter = false;
+            bool ignoreNewVersionsOfImporter = false;
             bool skip1440 = false;
             bool skip1080 = false;
             bool skip720 = false;
@@ -130,7 +130,7 @@ namespace Etherna.VideoImporter.Devcon
                     case "-ff":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("ffMpeg folder is missing");
-                        ffMpegFolderPath = args[++i];
+                        customFFMpegFolderPath = args[++i];
                         break;
                     case "-t":
                         if (args.Length == i + 1)
@@ -165,9 +165,9 @@ namespace Etherna.VideoImporter.Devcon
                     case "-m": deleteVideosMissingFromSource = true; break;
                     case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
-                    case "-f": forceUploadVideo = true; break;
+                    case "-f": forceVideoUpload = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
-                    case "-i": ignoreNewVersionOfImporter = true; break;
+                    case "-i": ignoreNewVersionsOfImporter = true; break;
                     case "-skip1440": skip1440 = true; break;
                     case "-skip1080": skip1080 = true; break;
                     case "-skip720": skip720 = true; break;
@@ -178,14 +178,6 @@ namespace Etherna.VideoImporter.Devcon
             }
 
             // Input validation.
-            //FFmpeg
-            var ffMpegBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFMpegBinaryName);
-            if (!File.Exists(ffMpegBinaryPath))
-            {
-                Console.WriteLine($"FFmpeg not found at ({ffMpegBinaryPath})");
-                return;
-            }
-
             //ttl postage batch
             if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
                 !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
@@ -234,97 +226,59 @@ namespace Etherna.VideoImporter.Devcon
             }
             Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
 
-            // Inizialize services.
-            using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
-
-            //index
-            var ethernaUserClients = new EthernaUserClients(
-                new Uri(CommonConsts.EthernaCreditUrl),
-                new Uri(CommonConsts.EthernaGatewayUrl),
-                new Uri(CommonConsts.EthernaIndexUrl),
-                new Uri(CommonConsts.EthernaSsoUrl),
-                () => httpClient);
-
-            //bee
-            using var beeNodeClient = new BeeNodeClient(
-                useBeeNativeNode ? beeNodeUrl : CommonConsts.EthernaGatewayUrl,
-                useBeeNativeNode ? beeNodeApiPort : CommonConsts.EthernaGatewayPort,
-                useBeeNativeNode ? beeNodeDebugPort : null,
-                CommonConsts.BeeNodeGatewayVersion,
-                CommonConsts.BeeNodeDebugVersion,
-                httpClient);
-
-            //gateway
-            IGatewayService gatewayService = useBeeNativeNode ?
-                new BeeGatewayService(beeNodeClient.GatewayClient!) :
-                new EthernaGatewayService(
-                    beeNodeClient.GatewayClient!,
-                    ethernaUserClients.GatewayClient);
-
-            //video uploader service
-            var videoUploaderService = new VideoUploaderService(
-                gatewayService,
-                ethernaUserClients.IndexClient,
-                userEthAddr,
-                TimeSpan.FromDays(ttlPostageStamp),
-                acceptPurchaseOfAllBatches);
-            var encoderService = new EncoderService(ffMpegBinaryPath);
-
-            // Migration service.
-            var migrationService = new MigrationService();
-
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
-            if (newVersionAvaiable && !ignoreNewVersionOfImporter)
+            if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
-            // Call runner.
-            var importer = new EthernaVideoImporter(
-                new CleanerVideoService(
-                    ethernaUserClients.IndexClient,
-                    gatewayService),
-                gatewayService,
-                ethernaUserClients.IndexClient,
-                new DevconLinkReporterService(mdSourceFolderPath),
-                new MdVideoProvider(
-                    mdSourceFolderPath,
-                    encoderService,
-                    includeAudioTrack,
-                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
-                videoUploaderService,
-                migrationService);
+            // Setup DI.
+            var services = new ServiceCollection();
 
+            //configure options
+            services.Configure<MdVideoProviderOptions>(options =>
+            {
+                options.MdSourceFolderPath = mdSourceFolderPath;
+            });
+            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
+
+            //add services
+            services.AddCoreServices(
+                encoderOptions =>
+                {
+                    if (customFFMpegFolderPath is not null)
+                        encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
+
+                    encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                    encoderOptions.Skip1440 = skip1440;
+                    encoderOptions.Skip1080 = skip1080;
+                    encoderOptions.Skip720 = skip720;
+                    encoderOptions.Skip480 = skip480;
+                    encoderOptions.Skip360 = skip360;
+                },
+                uploaderOptions =>
+                {
+                    uploaderOptions.AcceptPurchaseOfAllBatches = acceptPurchaseOfAllBatches;
+                    uploaderOptions.TtlPostageStamp = TimeSpan.FromSeconds(ttlPostageStamp);
+                    uploaderOptions.UserEthAddr = userEthAddr!;
+                },
+                useBeeNativeNode,
+                authResult.RefreshTokenHandler);
+            services.AddTransient<IYoutubeClient, YoutubeClient>();
+            services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
+            services.AddTransient<IVideoProvider, MdVideoProvider>();
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Start importer.
+            var importer = serviceProvider.GetRequiredService<EthernaVideoImporter>();
             await importer.RunAsync(
-                userEthAddr,
+                deleteExogenousVideos,
+                deleteVideosMissingFromSource,
+                forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                deleteVideosMissingFromSource,
-                deleteExogenousVideos,
-                unpinRemovedVideos,
-                forceUploadVideo);
-        }
-
-        // Helpers.
-        private static IEnumerable<int> GetSupportedHeightResolutions(
-            bool skip1440,
-            bool skip1080,
-            bool skip720,
-            bool skip480,
-            bool skip360)
-        {
-            var supportedHeightResolutions = new List<int>();
-            if (!skip1440)
-                supportedHeightResolutions.Add(1440);
-            if (!skip1080)
-                supportedHeightResolutions.Add(1080);
-            if (!skip720)
-                supportedHeightResolutions.Add(720);
-            if (!skip480)
-                supportedHeightResolutions.Add(480);
-            if (!skip360)
-                supportedHeightResolutions.Add(360);
-
-            return supportedHeightResolutions;
+                userEthAddr,
+                unpinRemovedVideos);
         }
     }
 }

@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.ServicesClient;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
@@ -21,62 +22,54 @@ using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core
 {
-    public class EthernaVideoImporter
+    public class EthernaVideoImporter : IEthernaVideoImporter
     {
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
         private readonly IGatewayService gatewayClient;
-        private readonly IUserIndexClient ethernaIndexClient;
-        private readonly ILinkReporterService linkReporterService;
+        private readonly IEthernaUserClients ethernaUserClients;
         private readonly IMigrationService migrationService;
-        private readonly DirectoryInfo tempDirectoryInfo;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
         // Constructor.
         public EthernaVideoImporter(
             ICleanerVideoService cleanerVideoService,
+            IEthernaUserClients ethernaUserClients,
             IGatewayService gatewayClient,
-            IUserIndexClient ethernaIndexClient,
-            ILinkReporterService linkReporterService,
+            IMigrationService migrationService,
             IVideoProvider videoProvider,
-            IVideoUploaderService videoUploaderService,
-            IMigrationService migrationService)
+            IVideoUploaderService videoUploaderService)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
-            if (linkReporterService is null)
-                throw new ArgumentNullException(nameof(linkReporterService));
             if (videoProvider is null)
                 throw new ArgumentNullException(nameof(videoProvider));
             if (videoUploaderService is null)
                 throw new ArgumentNullException(nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
+            this.ethernaUserClients = ethernaUserClients;
             this.gatewayClient = gatewayClient;
-            this.ethernaIndexClient = ethernaIndexClient;
-            this.linkReporterService = linkReporterService;
             this.migrationService = migrationService;
-            tempDirectoryInfo = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), CommonConsts.ImporterIdentifier));
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
 
         // Public methods.
         public async Task RunAsync(
-            string userEthAddress,
+            bool deleteExogenousVideos,
+            bool deleteVideosRemovedFromSource,
+            bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
-            bool deleteVideosRemovedFromSource,
-            bool deleteExogenousVideos,
-            bool unpinRemovedVideos,
-            bool forceUploadVideo)
+            string userEthAddress,
+            bool unpinRemovedVideos)
         {
             var importSummaryModelView = new ImportSummaryModelView();
 
@@ -92,7 +85,7 @@ namespace Etherna.VideoImporter.Core
             Console.WriteLine("Get user's videos on etherna index");
 
             var userVideosOnIndex = await GetUserVideosOnEthernaAsync(userEthAddress);
-            var ethernaIndexParameters = await ethernaIndexClient.SystemClient.ParametersAsync();
+            var ethernaIndexParameters = await ethernaUserClients.IndexClient.SystemClient.ParametersAsync();
 
             Console.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on etherna index");
 
@@ -120,7 +113,7 @@ namespace Etherna.VideoImporter.Core
 
                     //try to update only manifest, or to skip if possible
                     if (alreadyPresentVideo is not null &&
-                        !forceUploadVideo &&
+                        !forceVideoUpload &&
                         minRequiredMigrationOp is OperationType.Skip or OperationType.UpdateManifest)
                     {
                         Console.WriteLine("Video already uploaded on etherna");
@@ -168,7 +161,7 @@ namespace Etherna.VideoImporter.Core
                             updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.
-                            await ethernaIndexClient.VideosClient.VideosPutAsync(
+                            await ethernaUserClients.IndexClient.VideosClient.VideosPutAsync(
                                 alreadyPresentVideo.IndexId,
                                 updatedPermalinkHash);
                         }
@@ -196,7 +189,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Get and encode video from source.
-                        var video = await videoProvider.GetVideoAsync(sourceMetadata, tempDirectoryInfo);
+                        var video = await videoProvider.GetVideoAsync(sourceMetadata);
                         video.EthernaIndexId = alreadyPresentVideo?.IndexId;
 
                         if (!video.EncodedFiles.Any())
@@ -248,15 +241,15 @@ namespace Etherna.VideoImporter.Core
                     try
                     {
                         // Clear tmp folder.
-                        foreach (var file in tempDirectoryInfo.GetFiles())
+                        foreach (var file in CommonConsts.TempDirectory.GetFiles())
                             file.Delete();
-                        foreach (var dir in tempDirectoryInfo.GetDirectories())
+                        foreach (var dir in CommonConsts.TempDirectory.GetDirectories())
                             dir.Delete(true);
                     }
                     catch
                     {
                         Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Warning: unable to delete some files inside of {tempDirectoryInfo.FullName}.");
+                        Console.WriteLine($"Warning: unable to delete some files inside of {CommonConsts.TempDirectory.FullName}.");
                         Console.WriteLine($"Please remove manually after the process.");
                         Console.ResetColor();
                     }
@@ -269,7 +262,7 @@ namespace Etherna.VideoImporter.Core
                      * Report etherna references even if video is already present on index.
                      * This handle cases where references are missing for some previous execution error.
                      */
-                    await linkReporterService.SetEthernaReferencesAsync(
+                    await videoProvider.ReportEthernaReferencesAsync(
                         sourceMetadata.Id,
                         updatedIndexId,
                         updatedPermalinkHash);
@@ -318,7 +311,7 @@ namespace Etherna.VideoImporter.Core
         }
 
         // Helpers.
-        public async Task<IEnumerable<IndexedVideo>> GetUserVideosOnEthernaAsync(string userAddress)
+        private async Task<IEnumerable<IndexedVideo>> GetUserVideosOnEthernaAsync(string userAddress)
         {
             var videos = new List<VideoDto>();
             const int MaxForPage = 100;
@@ -326,7 +319,7 @@ namespace Etherna.VideoImporter.Core
             VideoDtoPaginatedEnumerableDto? page = null;
             do
             {
-                page = await ethernaIndexClient.UsersClient.Videos2Async(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
+                page = await ethernaUserClients.IndexClient.UsersClient.Videos2Async(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
                 videos.AddRange(page.Elements);
             } while (page.Elements.Any());
 

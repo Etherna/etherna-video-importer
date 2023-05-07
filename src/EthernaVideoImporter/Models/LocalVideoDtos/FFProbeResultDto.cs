@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 namespace Etherna.VideoImporter.Models.LocalVideoDtos
 {
-    internal class FFProbeResultDto
+    internal sealed class FFProbeResultDto
     {
         // Classes.
-        public class FormatResult
+        public sealed class FormatResult
         {
             public TimeSpan Duration { get; set; }
         }
 
-        public class StreamResult
+        public sealed class StreamResult
         {
             public int Height { get; set; }
             public int Width { get; set; }

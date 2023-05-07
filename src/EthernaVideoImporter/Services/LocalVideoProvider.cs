@@ -1,9 +1,12 @@
-﻿using Etherna.VideoImporter.Core.Models.Domain;
+﻿using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
 using Etherna.VideoImporter.Models.LocalVideoDto;
 using Etherna.VideoImporter.Models.LocalVideoDtos;
+using Etherna.VideoImporter.Options;
 using Medallion.Shell;
+using Microsoft.Extensions.Options;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -14,58 +17,38 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Services
 {
-    public sealed class LocalVideosProvider : IVideoProvider
+    internal sealed class LocalVideoProvider : IVideoProvider
     {
         // Fields.
-        private readonly string ffProbeBinaryPath;
         private readonly IEncoderService encoderService;
-        private readonly bool includeAudioTrack;
-        private readonly string jsonMetadataFilePath;
-        private readonly IEnumerable<int> supportedHeightResolutions;
-        private readonly JsonSerializerOptions options = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
+        private readonly LocalVideoProviderOptions options;
 
         // Constructor.
-        public LocalVideosProvider(
-            string jsonMetadataFilePath,
+        public LocalVideoProvider(
             IEncoderService encoderService,
-            bool includeAudioTrack,
-            IEnumerable<int> supportedHeightResolutions,
-            string ffProbeBinaryPath)
+            IOptions<LocalVideoProviderOptions> options)
         {
-            this.jsonMetadataFilePath = jsonMetadataFilePath;
             this.encoderService = encoderService;
-            this.includeAudioTrack = includeAudioTrack;
-            this.supportedHeightResolutions = supportedHeightResolutions;
-            this.ffProbeBinaryPath = ffProbeBinaryPath;
+            this.options = options.Value;
         }
 
         // Properties.
-        public string SourceName => jsonMetadataFilePath;
+        public string SourceName => options.JsonMetadataFilePath;
 
         // Methods.
         public async Task<Video> GetVideoAsync(
-            VideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory)
+            VideoMetadataBase videoMetadata)
         {
-            if (tempDirectory is null)
-                throw new ArgumentNullException(nameof(tempDirectory));
-
             var localVideoMetadata = videoMetadata as LocalVideoMetadata 
                 ?? throw new ArgumentException($"Metadata must be of type {nameof(LocalVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
             var encodedFiles = await encoderService.EncodeVideosAsync(
-                localVideoMetadata.SourceVideo,
-                tempDirectory,
-                supportedHeightResolutions,
-                includeAudioTrack);
+                localVideoMetadata.SourceVideo);
 
             // Transcode thumbnail resolutions.
             var thumbnailFiles = localVideoMetadata.SourceThumbnail is not null ?
-                await localVideoMetadata.SourceThumbnail.GetScaledThumbnailsAsync(tempDirectory) :
+                await localVideoMetadata.SourceThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory) :
                 Array.Empty<ThumbnailLocalFile>();
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
@@ -74,8 +57,9 @@ namespace Etherna.VideoImporter.Services
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             var localVideosMetadataDto = JsonSerializer.Deserialize<List<LocalVideoMetadataDto>>(
-                await File.ReadAllTextAsync(jsonMetadataFilePath), options) 
-                ?? throw new InvalidDataException($"LocalFile wrong format in {jsonMetadataFilePath}");
+                await File.ReadAllTextAsync(options.JsonMetadataFilePath),
+                new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) 
+                ?? throw new InvalidDataException($"LocalFile wrong format in {options.JsonMetadataFilePath}");
 
             var videosMetadataDictionary = new Dictionary<string, VideoMetadataBase>();
             foreach (var metadataDto in localVideosMetadataDto)
@@ -129,6 +113,9 @@ namespace Etherna.VideoImporter.Services
             return videosMetadataDictionary.Values;
         }
 
+        public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
+            Task.CompletedTask;
+
         // Helpers.
         private FFProbeResultDto GetFFProbeVideoInfo(string videoFilePath)
         {
@@ -140,7 +127,7 @@ namespace Etherna.VideoImporter.Services
                 "-sexagesimal",
                 videoFilePath};
 
-            var command = Command.Run(ffProbeBinaryPath, args);
+            var command = Command.Run(options.FFProbeBinaryPath, args);
             command.Wait();
             var result = command.Result;
 
@@ -148,7 +135,9 @@ namespace Etherna.VideoImporter.Services
             if (!result.Success)
                 throw new InvalidOperationException($"ffprobe command failed with exit code {result.ExitCode}: {result.StandardError}");
 
-            var ffProbeResult = JsonSerializer.Deserialize<FFProbeResultDto>(result.StandardOutput.Trim(), options)
+            var ffProbeResult = JsonSerializer.Deserialize<FFProbeResultDto>(
+                result.StandardOutput.Trim(),
+                new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
                 ?? throw new InvalidDataException($"FFProbe result have an invalid json");
 
             /*

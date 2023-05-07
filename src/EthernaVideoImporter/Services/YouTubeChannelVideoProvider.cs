@@ -16,55 +16,44 @@ using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Models.Domain;
+using Etherna.VideoImporter.Options;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using YoutubeExplode;
 using YoutubeExplode.Common;
 using YoutubeExplode.Exceptions;
 
 namespace Etherna.VideoImporter.Services
 {
-    public sealed class YouTubeChannelVideoProvider : IVideoProvider
+    internal sealed class YouTubeChannelVideoProvider : IVideoProvider
     {
         // Fields.
-        private readonly string channelUrl;
-        private readonly bool includeAudioTrack;
-        private readonly IEnumerable<int> supportedHeightResolutions;
-        private readonly YoutubeClient youtubeClient;
+        private readonly YouTubeChannelVideoProviderOptions options;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public YouTubeChannelVideoProvider(
-            string channelUrl,
-            IEncoderService encoderService,
-            bool includeAudioTrack,
-            IEnumerable<int> supportedHeightResolutions)
+            IOptions<YouTubeChannelVideoProviderOptions> options,
+            IYoutubeDownloader youtubeDownloader)
         {
-            this.channelUrl = channelUrl;
-            this.includeAudioTrack = includeAudioTrack;
-            this.supportedHeightResolutions = supportedHeightResolutions;
-            youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
+            this.options = options.Value;
+            this.youtubeDownloader = youtubeDownloader;
         }
 
         // Properties.
-        public string SourceName => channelUrl;
+        public string SourceName => options.ChannelUrl;
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo tempDirectory) => youtubeDownloader.GetVideoAsync(
-            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)),
-            tempDirectory,
-            includeAudioTrack,
-            supportedHeightResolutions);
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata must be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var youtubeChannel = await youtubeClient.Channels.GetByHandleAsync(channelUrl);
-            var youtubeVideos = await youtubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
+            var youtubeChannel = await youtubeDownloader.YoutubeClient.Channels.GetByHandleAsync(options.ChannelUrl);
+            var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
 
             Console.WriteLine($"Found {youtubeVideos.Count} videos");
 
@@ -73,8 +62,8 @@ namespace Etherna.VideoImporter.Services
             {
                 try
                 {
-                    var metadata = await youtubeClient.Videos.GetAsync(video.Url);
-                    var bestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
+                    var metadata = await youtubeDownloader.YoutubeClient.Videos.GetAsync(video.Url);
+                    var bestStreamInfo = (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
                         .GetVideoOnlyStreams()
                         .OrderByDescending(s => s.VideoResolution.Area)
                         .First();
@@ -107,5 +96,8 @@ namespace Etherna.VideoImporter.Services
 
             return videosMetadata;
         }
+
+        public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
+            Task.CompletedTask;
     }
 }
