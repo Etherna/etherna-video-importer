@@ -1,4 +1,5 @@
 ﻿using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
 using Microsoft.Extensions.Options;
@@ -14,12 +15,15 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Fields.
         private readonly List<Command> activedCommands = new();
+        private readonly ICacheService cacheService;
         private readonly EncoderServiceOptions options;
 
         // Constructor.
         public EncoderService(
+            ICacheService cacheService,
             IOptions<EncoderServiceOptions> options)
         {
+            this.cacheService = cacheService;
             this.options = options.Value;
         }
 
@@ -28,14 +32,17 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Methods.
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
-            VideoLocalFile sourceVideoFile)
+            VideoLocalFile sourceVideoFile,
+            VideoMetadataBase videoMetadata)
         {
             if (sourceVideoFile is null)
                 throw new ArgumentNullException(nameof(sourceVideoFile));
 
             var videoEncodedFiles = new List<VideoLocalFile>();
-            var fileNameGuid = Guid.NewGuid();
             var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
+
+            var hashVideoId = ManifestPersonalDataDto.HashVideoId(videoMetadata.Id);
+            var cacheTracking = await cacheService.GetTrackingAsync(hashVideoId, CommonConsts.TempDirectory);
 
             foreach (var heightResolution in options.GetSupportedHeightResolutions().Union(new List<int> { sourceVideoFile.Height }))
             {
@@ -55,52 +62,67 @@ namespace Etherna.VideoImporter.Core.Services
                     _ => throw new InvalidOperationException()
                 };
 
-                var fileName = $"{CommonConsts.TempDirectory.FullName}/{fileNameGuid}_{heightResolution}.mp4";
-                var args = new string[] {
+                var encodedVideoFileName = cacheTracking?.GetEncodedVideoFilePath(heightResolution, roundedScaledWidth);
+                VideoLocalFile encodedLocalFile;
+                if (!File.Exists(encodedVideoFileName))
+                {
+                    encodedVideoFileName = $"{CommonConsts.TempDirectory.FullName}/encoded_{heightResolution}.mp4";
+
+                    var args = new string[] {
                     "-i", sourceVideoFile.FilePath,
                     "-c:a", "aac",
                     "-c:v", "libx264",
                     "-movflags", "faststart",
                     "-vf", $"scale={roundedScaledWidth}:{heightResolution}",
                     "-loglevel", "info",
-                    fileName
-                };
+                    encodedVideoFileName
+                    };
 
-                var command = Command.Run(FFMpegBinaryPath, args);
+                    var command = Command.Run(FFMpegBinaryPath, args);
 
-                activedCommands.Add(command);
-                Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
+                    activedCommands.Add(command);
+                    Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
 
-                // Print filtered console output.
+                    // Print filtered console output.
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                Task.Run(() =>
-                {
-                    /*
-                     * WTF! It works as an async method.
-                     * The enumerable is built on top of a "while(true)" that ends when the process is stopped.
-                     */
-                    foreach (var line in command.GetOutputAndErrorLines())
+                    Task.Run(() =>
                     {
-                        if (line.StartsWith("frame=", StringComparison.InvariantCulture))
-                            Console.Write(line + '\r');
-                    }
-                });
+                        /*
+                         * WTF! It works as an async method.
+                         * The enumerable is built on top of a "while(true)" that ends when the process is stopped.
+                         */
+                        foreach (var line in command.GetOutputAndErrorLines())
+                        {
+                            if (line.StartsWith("frame=", StringComparison.InvariantCulture))
+                                Console.Write(line + '\r');
+                        }
+                    });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-                // Waiting for end and stop console output.
-                var result = await command.Task;
+                    // Waiting for end and stop console output.
+                    var result = await command.Task;
 
-                // Inspect result.
-                if (!result.Success)
-                    throw new InvalidOperationException($"command failed with exit code {result.ExitCode}: {result.StandardError}");
+                    // Inspect result.
+                    if (!result.Success)
+                        throw new InvalidOperationException($"command failed with exit code {result.ExitCode}: {result.StandardError}");
 
-                // Print result of ffMpeg
-                Console.Write(new string(' ', Console.BufferWidth));
-                Console.SetCursorPosition(0, Console.CursorTop - 1);
-                Console.WriteLine();
-                Console.WriteLine($"Processing resolution {heightResolution} completed...");
+                    // Print result of ffMpeg
+                    Console.Write(new string(' ', Console.BufferWidth));
+                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                    Console.WriteLine();
+                    Console.WriteLine($"Processing resolution {heightResolution} completed...");
 
-                videoEncodedFiles.Add(new VideoLocalFile(fileName, heightResolution, roundedScaledWidth, new FileInfo(fileName).Length));
+                    encodedLocalFile = new VideoLocalFile(encodedVideoFileName, heightResolution, roundedScaledWidth, new FileInfo(encodedVideoFileName).Length);
+
+                    // Tracking.
+                    cacheTracking?.AddEncodedFilePath(encodedLocalFile);
+                    await cacheService.SaveTrackingAsync(cacheTracking, CommonConsts.TempDirectory);
+                }
+                else
+                {
+                    Console.WriteLine($"Take from cache encoded resolution {heightResolution}...");
+                    encodedLocalFile = new VideoLocalFile(encodedVideoFileName, heightResolution, roundedScaledWidth, new FileInfo(encodedVideoFileName).Length);
+                }
             }
 
             return videoEncodedFiles;

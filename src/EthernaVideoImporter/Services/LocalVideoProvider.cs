@@ -44,7 +44,8 @@ namespace Etherna.VideoImporter.Services
 
             // Transcode video resolutions.
             var encodedFiles = await encoderService.EncodeVideosAsync(
-                localVideoMetadata.SourceVideo);
+                localVideoMetadata.SourceVideo,
+                videoMetadata);
 
             // Transcode thumbnail resolutions.
             var thumbnailFiles = localVideoMetadata.SourceThumbnail is not null ?

@@ -13,8 +13,11 @@
 //   limitations under the License.
 
 using Etherna.VideoImporter.Core.Extensions;
+using Etherna.VideoImporter.Core.Models.Cache;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Services;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -33,13 +36,16 @@ namespace Etherna.VideoImporter.Core.Utilities
     public sealed class YoutubeDownloader : IYoutubeDownloader
     {
         // Fields.
+        private readonly ICacheService cacheService;
         private readonly IEncoderService encoderService;
 
         // Constructor.
         public YoutubeDownloader(
+            ICacheService cacheService,
             IEncoderService encoderService,
             IYoutubeClient youtubeClient)
         {
+            this.cacheService = cacheService;
             this.encoderService = encoderService;
             YoutubeClient = youtubeClient;
         }
@@ -53,35 +59,19 @@ namespace Etherna.VideoImporter.Core.Utilities
             if (videoMetadata is null)
                 throw new ArgumentNullException(nameof(videoMetadata));
 
-            // Get manifest data.
-            var youtubeStreamsManifest = await YoutubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
+            // Get tracking.
+            var hashVideoId = ManifestPersonalDataDto.HashVideoId(videoMetadata.Id);
+            var cacheTracking = await cacheService.GetTrackingAsync(hashVideoId, CommonConsts.TempDirectory);
+            cacheTracking ??= new CacheTracking(hashVideoId);
 
-            var videoOnlyStreamInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
-                .Where(stream => stream.Container == Container.Mp4)
-                .GetWithHighestVideoQuality();
-
-            var audioOnlyStreamInfo = (IAudioStreamInfo)youtubeStreamsManifest.GetAudioOnlyStreams()
-                .GetWithHighestBitrate();
-
-            // Get high resolution video.
-            var videoLocalFile = await DownloadVideoAsync(
-                audioOnlyStreamInfo,
-                videoOnlyStreamInfo,
-                videoMetadata.Title);
+            // Get best video resolution.
+            var videoLocalFile = await GetBestVideoAsync(videoMetadata, CommonConsts.TempDirectory, cacheTracking);
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
+            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile, videoMetadata);
 
             // Get thumbnail.
-            IEnumerable<ThumbnailLocalFile> thumbnailFiles = Array.Empty<ThumbnailLocalFile>();
-            if (videoMetadata.Thumbnail is not null)
-            {
-                var bestResolutionThumbnail = await DownloadThumbnailAsync(
-                    videoMetadata.Thumbnail,
-                    videoMetadata.Title);
-
-                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
-            }
+            List<ThumbnailLocalFile> thumbnailFiles = await GetThumbnails(videoMetadata, CommonConsts.TempDirectory, cacheTracking);
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
@@ -174,6 +164,137 @@ namespace Etherna.VideoImporter.Core.Utilities
                 videoOnlyStream.VideoResolution.Height,
                 videoOnlyStream.VideoResolution.Width,
                 new FileInfo(videoFilePath).Length);
+        }
+
+        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(
+            ThumbnailLocalFile betsResolutionThumbnail,
+            DirectoryInfo tempDirectory,
+            CacheTracking cacheTracking)
+        {
+            List<ThumbnailLocalFile> thumbnails = new();
+
+            using var thumbFileStream = File.OpenRead(betsResolutionThumbnail.FilePath);
+            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+
+            foreach (var responsiveWidthSize in ThumbnailLocalFile.ThumbnailResponsiveSizes)
+            {
+                var responsiveHeightSize = (int)(responsiveWidthSize / betsResolutionThumbnail.AspectRatio);
+
+                var thumbnailResizedPath = cacheTracking.GetThumbnailFilePath(responsiveHeightSize, responsiveWidthSize);
+
+                ThumbnailLocalFile thumbnailLocalFile;
+                if (string.IsNullOrWhiteSpace(thumbnailResizedPath))
+                {
+                    using SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium);
+                    using SKImage scaledImage = SKImage.FromBitmap(scaledBitmap);
+                    using SKData data = scaledImage.Encode();
+
+                    thumbnailResizedPath = Path.Combine(tempDirectory.FullName, $"Thumbnail_{responsiveWidthSize}_{responsiveHeightSize}.jpg");
+                    using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew);
+                    await data.AsStream().CopyToAsync(outputFileStream);
+
+                    await outputFileStream.DisposeAsync();
+                    data.Dispose();
+                    scaledImage.Dispose();
+                    scaledBitmap.Dispose();
+
+                    // Tracking.
+                    thumbnailLocalFile = new ThumbnailLocalFile(
+                        thumbnailResizedPath,
+                        new FileInfo(thumbnailResizedPath).Length,
+                        responsiveHeightSize,
+                        responsiveWidthSize);
+                    cacheTracking.AddEncodedFilePath(thumbnailLocalFile);
+                    await cacheService.SaveTrackingAsync(cacheTracking, tempDirectory);
+                }
+                else
+                    thumbnailLocalFile = new ThumbnailLocalFile(
+                        thumbnailResizedPath,
+                        new FileInfo(thumbnailResizedPath).Length,
+                        responsiveHeightSize,
+                        responsiveWidthSize);
+
+                thumbnails.Add(thumbnailLocalFile);
+            }
+
+            return thumbnails;
+        }
+
+        private async Task<VideoLocalFile> GetBestVideoAsync(
+            YouTubeVideoMetadataBase videoMetadata,
+            DirectoryInfo tempDirectory,
+            CacheTracking cacheTracking)
+        {
+            VideoLocalFile videoLocalFile;
+            if (File.Exists(cacheTracking.OriginalVideoFilePath))
+            {
+                Console.WriteLine($"Take video from cache");
+
+                videoLocalFile = new VideoLocalFile(
+                    cacheTracking.OriginalVideoFilePath,
+                    cacheTracking.OriginalVideoHeight,
+                    cacheTracking.OriginalVideoWidth,
+                    new FileInfo(cacheTracking.OriginalVideoFilePath).Length);
+            }
+            else
+            {
+                // Get manifest data.
+                var youtubeStreamsManifest = await YoutubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
+
+                var videoOnlyStreamInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
+                    .Where(stream => stream.Container == Container.Mp4)
+                    .GetWithHighestVideoQuality();
+
+                var audioOnlyStreamInfo = (IAudioStreamInfo)youtubeStreamsManifest.GetAudioOnlyStreams()
+                    .GetWithHighestBitrate();
+
+                // Get high resolution video.
+                videoLocalFile = await DownloadVideoAsync(
+                    audioOnlyStreamInfo,
+                    videoOnlyStreamInfo,
+                    videoMetadata.Title);
+
+                // Tracking.
+                cacheTracking.SaveOriginalVideo(videoLocalFile);
+                await cacheService.SaveTrackingAsync(cacheTracking, tempDirectory);
+            }
+
+            return videoLocalFile;
+        }
+
+        private async Task<List<ThumbnailLocalFile>> GetThumbnails(
+            YouTubeVideoMetadataBase videoMetadata,
+            DirectoryInfo tempDirectory,
+            CacheTracking cacheTracking)
+        {
+            List<ThumbnailLocalFile> thumbnailFiles = new();
+            if (videoMetadata.Thumbnail is not null)
+            {
+                ThumbnailLocalFile betsResolutionThumbnail;
+                if (File.Exists(cacheTracking.OriginalThumbnailFilePath))
+                {
+                    Console.WriteLine($"Take thumbnail from cache");
+
+                    betsResolutionThumbnail = new ThumbnailLocalFile(
+                            cacheTracking.OriginalThumbnailFilePath,
+                            new FileInfo(cacheTracking.OriginalThumbnailFilePath).Length,
+                            cacheTracking.OriginalThumbnailHeight,
+                            cacheTracking.OriginalThumbnailWidth);
+                }
+                else
+                {
+                    betsResolutionThumbnail = await DownloadThumbnailAsync(
+                                        videoMetadata.Thumbnail,
+                                        videoMetadata.Title);
+
+                    cacheTracking.SaveOriginalThumbnail(betsResolutionThumbnail);
+                }
+
+                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, tempDirectory, cacheTracking);
+            }
+
+            return thumbnailFiles;
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
