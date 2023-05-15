@@ -14,16 +14,19 @@
 
 using Etherna.Authentication;
 using Etherna.VideoImporter.Core;
-using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
+using Etherna.VideoImporter.Core.Utilities;
+using Etherna.VideoImporter.Devcon.Options;
 using Etherna.VideoImporter.Devcon.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace Etherna.VideoImporter.Devcon
 {
@@ -31,13 +34,12 @@ namespace Etherna.VideoImporter.Devcon
     {
         // Consts.
         private const int DefaultTTLPostageStamp = 365;
-        private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "\n" +
             "Usage:\tEthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]\n" +
             "\n" +
             "Options:\n" +
-            $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
+            $"  -ff\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
             $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
@@ -63,7 +65,7 @@ namespace Etherna.VideoImporter.Devcon
         {
             // Parse arguments.
             string? mdSourceFolderPath = null;
-            string ffMpegFolderPath = DefaultFFmpegFolder;
+            string? customFFMpegFolderPath = null;
             string? ttlPostageStampStr = null;
             string? beeNodeApiPortStr = null;
             string? beeNodeDebugPortStr = null;
@@ -77,7 +79,7 @@ namespace Etherna.VideoImporter.Devcon
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
-            bool forceUploadVideo = false;
+            bool forceVideoUpload = false;
             bool acceptPurchaseOfAllBatches = false;
             bool ignoreNewVersionsOfImporter = false;
             bool skip1440 = false;
@@ -128,7 +130,7 @@ namespace Etherna.VideoImporter.Devcon
                     case "-ff":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("ffMpeg folder is missing");
-                        ffMpegFolderPath = args[++i];
+                        customFFMpegFolderPath = args[++i];
                         break;
                     case "-t":
                         if (args.Length == i + 1)
@@ -163,7 +165,7 @@ namespace Etherna.VideoImporter.Devcon
                     case "-m": deleteVideosMissingFromSource = true; break;
                     case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
-                    case "-f": forceUploadVideo = true; break;
+                    case "-f": forceVideoUpload = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
                     case "-i": ignoreNewVersionsOfImporter = true; break;
                     case "-skip1440": skip1440 = true; break;
@@ -176,14 +178,6 @@ namespace Etherna.VideoImporter.Devcon
             }
 
             // Input validation.
-            //FFmpeg
-            var ffMpegBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFMpegBinaryName);
-            if (!File.Exists(ffMpegBinaryPath))
-            {
-                Console.WriteLine($"FFmpeg not found at ({ffMpegBinaryPath})");
-                return;
-            }
-
             //ttl postage batch
             if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
                 !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
@@ -232,9 +226,6 @@ namespace Etherna.VideoImporter.Devcon
             }
             Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
 
-            // Migration service.
-            var migrationService = new MigrationService();
-
             // Check for new version
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
@@ -243,48 +234,51 @@ namespace Etherna.VideoImporter.Devcon
             // Setup DI.
             var services = new ServiceCollection();
 
-            //configure
-            services.AddImportSettings(
-                acceptPurchaseOfAllBatches,
-                deleteExogenousVideos,
-                deleteVideosMissingFromSource,
-                ffMpegBinaryPath,
-                ffMpegFolderPath,
-                forceUploadVideo,
-                ignoreNewVersionsOfImporter,
-                includeAudioTrack,
-                offerVideos,
-                pinVideos,
-                mdSourceFolderPath,
-                skip1440,
-                skip1080,
-                skip720,
-                skip480,
-                skip360,
-                ttlPostageStamp,
-                unpinRemovedVideos,
-                userEthAddr)
-            .AddLinkReporterService()
-            .AddVideoProvider()
-            .AddCommonServices(useBeeNativeNode)
-            .ConfigureHttpClient(authResult.RefreshTokenHandler);
+            //configure options
+            services.Configure<MdVideoProviderOptions>(options =>
+            {
+                options.MdSourceFolderPath = mdSourceFolderPath;
+            });
+            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
+
+            //add services
+            services.AddCoreServices(
+                encoderOptions =>
+                {
+                    if (customFFMpegFolderPath is not null)
+                        encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
+
+                    encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                    encoderOptions.Skip1440 = skip1440;
+                    encoderOptions.Skip1080 = skip1080;
+                    encoderOptions.Skip720 = skip720;
+                    encoderOptions.Skip480 = skip480;
+                    encoderOptions.Skip360 = skip360;
+                },
+                uploaderOptions =>
+                {
+                    uploaderOptions.AcceptPurchaseOfAllBatches = acceptPurchaseOfAllBatches;
+                    uploaderOptions.TtlPostageStamp = TimeSpan.FromSeconds(ttlPostageStamp);
+                    uploaderOptions.UserEthAddr = userEthAddr!;
+                },
+                useBeeNativeNode,
+                authResult.RefreshTokenHandler);
+            services.AddTransient<IYoutubeClient, YoutubeClient>();
+            services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
+            services.AddTransient<IVideoProvider, MdVideoProvider>();
 
             var serviceProvider = services.BuildServiceProvider();
 
-            //do the actual work here
-            var importer = serviceProvider.GetService<EthernaVideoImporter>() ?? throw new InvalidOperationException("Cannot resolve EthernaVideoImporter service");
-            await importer.RunAsync();
-        }
-
-        // Helpers.
-        private static IServiceCollection AddLinkReporterService(this IServiceCollection services)
-        {
-            return services.AddTransient<ILinkReporterService, DevconLinkReporterService>();
-        }
-
-        private static IServiceCollection AddVideoProvider(this IServiceCollection services)
-        {
-            return services.AddTransient<IVideoProvider, MdVideoProvider>();
+            // Start importer.
+            var importer = serviceProvider.GetRequiredService<EthernaVideoImporter>();
+            await importer.RunAsync(
+                deleteExogenousVideos,
+                deleteVideosMissingFromSource,
+                forceVideoUpload,
+                offerVideos,
+                pinVideos,
+                userEthAddr,
+                unpinRemovedVideos);
         }
     }
 }

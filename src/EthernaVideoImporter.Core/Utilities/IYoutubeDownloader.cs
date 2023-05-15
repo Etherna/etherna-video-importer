@@ -13,17 +13,18 @@
 //   limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
-using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace Etherna.VideoImporter.Core.Utilities
 {
     public interface IYoutubeDownloader
     {
+        // Properties.
+        IYoutubeClient YoutubeClient { get; }
+
+        // Methods.
         Task<Video> GetVideoAsync(
-            YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory,
-            ImporterSettings importerSettings);
+            YouTubeVideoMetadataBase videoMetadata);
     }
 }

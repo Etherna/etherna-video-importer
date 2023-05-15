@@ -1,4 +1,5 @@
 ﻿using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
 using Microsoft.Extensions.Options;
 using System;
@@ -9,43 +10,36 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public partial class EncoderService : IEncoderService
+    internal sealed class EncoderService : IEncoderService
     {
         // Fields.
         private readonly List<Command> activedCommands = new();
-        private readonly ImporterSettings importerSettings;
+        private readonly EncoderServiceOptions options;
 
         // Constructor.
-        public EncoderService(IOptions<ImporterSettings> importerSettingsOption)
+        public EncoderService(
+            IOptions<EncoderServiceOptions> options)
         {
-            if (importerSettingsOption is null)
-                throw new ArgumentNullException(nameof(importerSettingsOption));
-
-            this.importerSettings = importerSettingsOption.Value;
+            this.options = options.Value;
         }
 
         // Properties.
-        public string FFMpegBinaryPath { get => importerSettings.FFMpegBinaryPath; }
+        public string FFMpegBinaryPath => options.FFMpegBinaryPath;
 
         // Methods.
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
-            VideoLocalFile originalVideoLocalFile,
-            DirectoryInfo importerTempDirectoryInfo,
-            IEnumerable<int> supportedHeightResolutions,
-            bool includeAudioTrack)
+            VideoLocalFile sourceVideoFile)
         {
-            if (originalVideoLocalFile is null)
-                throw new ArgumentNullException(nameof(originalVideoLocalFile));
-            if (importerTempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
+            if (sourceVideoFile is null)
+                throw new ArgumentNullException(nameof(sourceVideoFile));
 
             var videoEncodedFiles = new List<VideoLocalFile>();
             var fileNameGuid = Guid.NewGuid();
-            var resolutionRatio = (decimal)originalVideoLocalFile.Width / originalVideoLocalFile.Height;
+            var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
 
-            foreach (var heightResolution in supportedHeightResolutions.Union(new List<int> { originalVideoLocalFile.Height }))
+            foreach (var heightResolution in options.GetSupportedHeightResolutions().Union(new List<int> { sourceVideoFile.Height }))
             {
-                if (originalVideoLocalFile.Height < heightResolution)
+                if (sourceVideoFile.Height < heightResolution)
                     continue;
 
                 Console.WriteLine($"Encoding resolution {heightResolution}...");
@@ -61,20 +55,14 @@ namespace Etherna.VideoImporter.Core.Services
                     _ => throw new InvalidOperationException()
                 };
 
-                var fileName = $"{importerTempDirectoryInfo.FullName}/{fileNameGuid}_{heightResolution}.mp4";
+                var fileName = $"{CommonConsts.TempDirectory.FullName}/{fileNameGuid}_{heightResolution}.mp4";
                 var args = new string[] {
-                    $"-i",
-                    originalVideoLocalFile.FilePath,
-                    "-c:a",
-                    "aac",
-                    "-c:v",
-                    "libx264",
-                    "-movflags",
-                    "faststart",
-                    $"-vf",
-                    $"scale={roundedScaledWidth}:{heightResolution}",
-                    "-loglevel",
-                    "info",
+                    "-i", sourceVideoFile.FilePath,
+                    "-c:a", "aac",
+                    "-c:v", "libx264",
+                    "-movflags", "faststart",
+                    "-vf", $"scale={roundedScaledWidth}:{heightResolution}",
+                    "-loglevel", "info",
                     fileName
                 };
 

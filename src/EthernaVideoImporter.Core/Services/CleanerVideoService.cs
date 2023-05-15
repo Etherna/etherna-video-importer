@@ -13,7 +13,6 @@
 //   limitations under the License.
 
 using Etherna.ServicesClient;
-using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;

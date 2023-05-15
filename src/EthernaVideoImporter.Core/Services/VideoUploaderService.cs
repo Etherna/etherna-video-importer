@@ -17,6 +17,7 @@ using Etherna.ServicesClient;
 using Etherna.ServicesClient.Clients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -28,7 +29,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public sealed class VideoUploaderService : IVideoUploaderService
+    internal sealed class VideoUploaderService : IVideoUploaderService
     {
         // Const.
         private readonly long BzzDecimalPlacesToUnit = (long)Math.Pow(10, 16);
@@ -37,22 +38,19 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
-        private readonly IGatewayService gatewayService;
         private readonly IEthernaUserClients ethernaUserClients;
-        private readonly ImporterSettings importerSettings;
+        private readonly IGatewayService gatewayService;
+        private readonly VideoUploaderServiceOptions options;
 
         // Constructor.
         public VideoUploaderService(
-            IGatewayService gatewayService,
             IEthernaUserClients ethernaUserClients,
-            IOptions<ImporterSettings> importerSettingsOption)
+            IGatewayService gatewayService,
+            IOptions<VideoUploaderServiceOptions> options)
         {
-            if (importerSettingsOption is null)
-                throw new ArgumentNullException(nameof(importerSettingsOption));
-
-            this.gatewayService = gatewayService;
             this.ethernaUserClients = ethernaUserClients;
-            this.importerSettings = importerSettingsOption.Value;
+            this.gatewayService = gatewayService;
+            this.options = options.Value;
         }
 
         // Public methods.
@@ -73,12 +71,12 @@ namespace Etherna.VideoImporter.Core.Services
 
             //calculate amount
             var currentPrice = await gatewayService.GetCurrentChainPriceAsync();
-            var amount = (long)(importerSettings.TTLPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+            var amount = (long)(options.TtlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
             var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
             Console.WriteLine($"Creating postage batch... Depth: {batchDepth} Amount: {amount} BZZ price: {bzzPrice}");
 
-            if (!importerSettings.AcceptPurchaseOfAllBatches)
+            if (!options.AcceptPurchaseOfAllBatches)
             {
                 bool validSelection = false;
 
@@ -92,7 +90,7 @@ namespace Etherna.VideoImporter.Core.Services
                             validSelection = true;
                             break;
                         case ConsoleKeyInfo ak when ak.Key == ConsoleKey.A:
-                            importerSettings.AcceptPurchaseOfAllBatches = true;
+                            options.AcceptPurchaseOfAllBatches = true;
                             validSelection = true;
                             break;
                         case ConsoleKeyInfo nk when nk.Key == ConsoleKey.N:
@@ -193,7 +191,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Manifest.
-            var metadataVideo = new ManifestDto(video, batchId, importerSettings.UserEthAddr);
+            var metadataVideo = new ManifestDto(video, batchId, options.UserEthAddr);
             {
                 var uploadSucceeded = false;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)

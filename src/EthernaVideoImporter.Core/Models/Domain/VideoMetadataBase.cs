@@ -25,10 +25,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Constructor.
         protected VideoMetadataBase(
+            string title,
             string description,
             TimeSpan duration,
-            string originVideoQualityLabel,
-            string title)
+            string originVideoQualityLabel)
         {
             Description = description;
             Duration = duration;
