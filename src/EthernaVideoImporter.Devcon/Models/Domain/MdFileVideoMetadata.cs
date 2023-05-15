@@ -22,16 +22,16 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
     {
         // Constructor.
         public MdFileVideoMetadata(
+            string title,
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
             Thumbnail? thumbnail,
-            string title,
             string mdFileRelativePath,
             string youtubeUrl,
             string? ethernaIndexUrl,
             string? ethernaPermalinkUrl)
-            : base(description, duration, originVideoQualityLabel, thumbnail, title, youtubeUrl)
+            : base(title, description, duration, originVideoQualityLabel, thumbnail, youtubeUrl)
         {
             EthernaIndexUrl = ethernaIndexUrl;
             EthernaPermalinkUrl = ethernaPermalinkUrl;

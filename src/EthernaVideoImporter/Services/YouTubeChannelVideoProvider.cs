@@ -12,59 +12,48 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Models.Domain;
+using Etherna.VideoImporter.Options;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using YoutubeExplode;
 using YoutubeExplode.Common;
 using YoutubeExplode.Exceptions;
 
 namespace Etherna.VideoImporter.Services
 {
-    public sealed class YouTubeChannelVideoProvider : IVideoProvider
+    internal sealed class YouTubeChannelVideoProvider : IVideoProvider
     {
         // Fields.
-        private readonly ImporterSettings importerSettings;
-        private readonly YoutubeClient youtubeClient;
+        private readonly YouTubeChannelVideoProviderOptions options;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public YouTubeChannelVideoProvider(
-            IOptions<ImporterSettings> importerSettingsOption,
-            IEncoderService encoderService)
+            IOptions<YouTubeChannelVideoProviderOptions> options,
+            IYoutubeDownloader youtubeDownloader)
         {
-            if (importerSettingsOption is null)
-                throw new ArgumentNullException(nameof(importerSettingsOption));
-            if (encoderService is null)
-                throw new ArgumentNullException(nameof(encoderService));
-
-            this.importerSettings = importerSettingsOption.Value;
-            youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(encoderService, youtubeClient);
+            this.options = options.Value;
+            this.youtubeDownloader = youtubeDownloader;
         }
 
         // Properties.
-        public string SourceName => importerSettings.SourceUri;
+        public string SourceName => options.ChannelUrl;
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata, DirectoryInfo tempDirectory) => youtubeDownloader.GetVideoAsync(
-            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)),
-            tempDirectory,
-            importerSettings);
+        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+            videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata must be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var youtubeChannel = await youtubeClient.Channels.GetByHandleAsync(importerSettings.SourceUri);
-            var youtubeVideos = await youtubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
+            var youtubeChannel = await youtubeDownloader.YoutubeClient.Channels.GetByHandleAsync(options.ChannelUrl);
+            var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
 
             Console.WriteLine($"Found {youtubeVideos.Count} videos");
 
@@ -73,18 +62,18 @@ namespace Etherna.VideoImporter.Services
             {
                 try
                 {
-                    var metadata = await youtubeClient.Videos.GetAsync(video.Url);
-                    var bestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
+                    var metadata = await youtubeDownloader.YoutubeClient.Videos.GetAsync(video.Url);
+                    var bestStreamInfo = (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
                         .GetVideoOnlyStreams()
                         .OrderByDescending(s => s.VideoResolution.Area)
                         .First();
 
                     videosMetadata.Add(new YouTubeVideoMetadata(
+                        metadata.Title,
                         metadata.Description,
                         metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
                         bestStreamInfo.VideoQuality.Label,
                         metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
-                        metadata.Title,
                         metadata.Url));
 
                     Console.WriteLine($"Downloaded metadata for {video.Title}");
@@ -107,5 +96,8 @@ namespace Etherna.VideoImporter.Services
 
             return videosMetadata;
         }
+
+        public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
+            Task.CompletedTask;
     }
 }

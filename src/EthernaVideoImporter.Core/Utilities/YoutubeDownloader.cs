@@ -15,7 +15,6 @@
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
-using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -31,36 +30,31 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Core.Utilities
 {
-    public class YoutubeDownloader : IYoutubeDownloader
+    public sealed class YoutubeDownloader : IYoutubeDownloader
     {
         // Fields.
         private readonly IEncoderService encoderService;
-        private readonly YoutubeClient youtubeClient;
 
         // Constructor.
         public YoutubeDownloader(
             IEncoderService encoderService,
-            YoutubeClient youtubeClient)
+            IYoutubeClient youtubeClient)
         {
             this.encoderService = encoderService;
-            this.youtubeClient = youtubeClient;
+            YoutubeClient = youtubeClient;
         }
 
+        // Properties.
+        public IYoutubeClient YoutubeClient { get; }
+
         // Methods.
-        public async Task<Video> GetVideoAsync(
-            YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory,
-            ImporterSettings importerSettings)
+        public async Task<Video> GetVideoAsync(YouTubeVideoMetadataBase videoMetadata)
         {
             if (videoMetadata is null)
                 throw new ArgumentNullException(nameof(videoMetadata));
-            if (tempDirectory is null)
-                throw new ArgumentNullException(nameof(tempDirectory));
-            if (importerSettings is null)
-                throw new ArgumentNullException(nameof(importerSettings));
 
             // Get manifest data.
-            var youtubeStreamsManifest = await youtubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
+            var youtubeStreamsManifest = await YoutubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
 
             var videoOnlyStreamInfo = youtubeStreamsManifest.GetVideoOnlyStreams()
                 .Where(stream => stream.Container == Container.Mp4)
@@ -73,26 +67,20 @@ namespace Etherna.VideoImporter.Core.Utilities
             var videoLocalFile = await DownloadVideoAsync(
                 audioOnlyStreamInfo,
                 videoOnlyStreamInfo,
-                videoMetadata.Title,
-                tempDirectory);
+                videoMetadata.Title);
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(
-                videoLocalFile,
-                tempDirectory,
-                GetSupportedHeightResolutions(importerSettings),
-                importerSettings.IncludeAudioTrack);
+            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
 
             // Get thumbnail.
-            List<ThumbnailLocalFile> thumbnailFiles = new();
+            IEnumerable<ThumbnailLocalFile> thumbnailFiles = Array.Empty<ThumbnailLocalFile>();
             if (videoMetadata.Thumbnail is not null)
             {
-                var betsResolutionThumbnail = await DownloadThumbnailAsync(
+                var bestResolutionThumbnail = await DownloadThumbnailAsync(
                     videoMetadata.Thumbnail,
-                    videoMetadata.Title,
-                    tempDirectory);
+                    videoMetadata.Title);
 
-                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, tempDirectory);
+                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
             }
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
@@ -101,13 +89,12 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Helpers.
         private async Task<ThumbnailLocalFile> DownloadThumbnailAsync(
             Thumbnail thumbnail,
-            string videoTitle,
-            DirectoryInfo importerTempDirectoryInfo)
+            string videoTitle)
         {
             if (thumbnail is null)
                 throw new ArgumentNullException(nameof(thumbnail));
 
-            string thumbnailFilePath = Path.Combine(importerTempDirectoryInfo.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
+            string thumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
 
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
@@ -144,11 +131,10 @@ namespace Etherna.VideoImporter.Core.Utilities
         private async Task<VideoLocalFile> DownloadVideoAsync(
             IAudioStreamInfo audioOnlyStream,
             IVideoStreamInfo videoOnlyStream,
-            string videoTitle,
-            DirectoryInfo importerTempDirectoryInfo)
+            string videoTitle)
         {
             var videoFileName = $"{videoTitle.ToSafeFileName()}_{videoOnlyStream.VideoResolution}.{videoOnlyStream.Container}";
-            var videoFilePath = Path.Combine(importerTempDirectoryInfo.FullName, videoFileName);
+            var videoFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, videoFileName);
             var videoQualityLabel = videoOnlyStream.VideoQuality.Label;
 
             // Download video.
@@ -160,7 +146,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 try
                 {
                     var downloadStart = DateTime.UtcNow;
-                    await youtubeClient.Videos.DownloadAsync(
+                    await YoutubeClient.Videos.DownloadAsync(
                         new IStreamInfo[] { audioOnlyStream, videoOnlyStream },
                         new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(encoderService.FFMpegBinaryPath).Build(),
                         new Progress<double>((progressStatus) =>
@@ -188,60 +174,6 @@ namespace Etherna.VideoImporter.Core.Utilities
                 videoOnlyStream.VideoResolution.Height,
                 videoOnlyStream.VideoResolution.Width,
                 new FileInfo(videoFilePath).Length);
-        }
-
-        private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(
-            ThumbnailLocalFile betsResolutionThumbnail,
-            DirectoryInfo importerTempDirectoryInfo)
-        {
-            List<ThumbnailLocalFile> thumbnails = new();
-
-            using var thumbFileStream = File.OpenRead(betsResolutionThumbnail.FilePath);
-            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
-            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-
-            foreach (var responsiveWidthSize in ThumbnailLocalFile.ThumbnailResponsiveSizes)
-            {
-                var responsiveHeightSize = (int)(responsiveWidthSize / betsResolutionThumbnail.AspectRatio);
-
-                using SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium);
-                using SKImage scaledImage = SKImage.FromBitmap(scaledBitmap);
-                using SKData data = scaledImage.Encode();
-
-                var thumbnailResizedPath = Path.Combine(importerTempDirectoryInfo.FullName, $"thumb_{responsiveWidthSize}_{responsiveHeightSize}_{Guid.NewGuid()}.jpg");
-                using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew);
-                await data.AsStream().CopyToAsync(outputFileStream);
-
-                await outputFileStream.DisposeAsync();
-                data.Dispose();
-                scaledImage.Dispose();
-                scaledBitmap.Dispose();
-
-                thumbnails.Add(new ThumbnailLocalFile(
-                    thumbnailResizedPath,
-                    new FileInfo(thumbnailResizedPath).Length,
-                    responsiveHeightSize,
-                    responsiveWidthSize));
-            }
-
-            return thumbnails;
-        }
-
-        private static IEnumerable<int> GetSupportedHeightResolutions(ImporterSettings importerSettings)
-        {
-            var supportedHeightResolutions = new List<int>();
-            if (!importerSettings.Skip1440)
-                supportedHeightResolutions.Add(1440);
-            if (!importerSettings.Skip1080)
-                supportedHeightResolutions.Add(1080);
-            if (!importerSettings.Skip720)
-                supportedHeightResolutions.Add(720);
-            if (!importerSettings.Skip480)
-                supportedHeightResolutions.Add(480);
-            if (!importerSettings.Skip360)
-                supportedHeightResolutions.Add(360);
-
-            return supportedHeightResolutions;
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)

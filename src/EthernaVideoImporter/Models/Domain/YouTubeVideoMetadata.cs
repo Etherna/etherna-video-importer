@@ -22,13 +22,13 @@ namespace Etherna.VideoImporter.Models.Domain
     {
         // Constructors.
         internal YouTubeVideoMetadata(
+            string title,
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
             Thumbnail? thumbnail,
-            string title,
             string youtubeUrl)
-            : base(description, duration, originVideoQualityLabel, thumbnail, title, youtubeUrl)
+            : base(title, description, duration, originVideoQualityLabel, thumbnail, youtubeUrl)
         { }
 
         // Properties.
