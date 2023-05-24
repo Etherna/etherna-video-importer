@@ -336,7 +336,7 @@ namespace Etherna.VideoImporter
             var serviceProvider = services.BuildServiceProvider();
 
             // Start importer.
-            var importer = serviceProvider.GetRequiredService<EthernaVideoImporter>();
+            var importer = serviceProvider.GetRequiredService<IEthernaVideoImporter>();
             await importer.RunAsync(
                 deleteExogenousVideos,
                 deleteVideosMissingFromSource,
