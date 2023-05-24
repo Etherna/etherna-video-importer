@@ -46,7 +46,7 @@ namespace Etherna.VideoImporter
             "\n" +
             "Options:\n" +
             $"  -ff\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
-            $"  -hw\tUse NVIDIA CUDA hardware acceleration on FFmpeg (default: false)\n" +
+            $"  -hw\tUse hardware acceleration on FFmpeg (default: {nameof(FFMpegHWAccelerationType.None).ToLowerInvariant()}). Valid values: [{Enum.GetNames<FFMpegHWAccelerationType>().Aggregate((r, i) => $"{r}, {i}").ToLowerInvariant()}]\n" +
             $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
@@ -198,7 +198,7 @@ namespace Etherna.VideoImporter
                     case "-skip720": skip720 = true; break;
                     case "-skip480": skip480 = true; break;
                     case "-skip360": skip360 = true; break;
-                    case "-hw": ffMpegHWAccelerationType = FFMpegHWAccelerationType.Cuda; break;
+                    case "-hw": ffMpegHWAccelerationType = Enum.Parse<FFMpegHWAccelerationType>(args[++i], true); break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -272,7 +272,7 @@ namespace Etherna.VideoImporter
                 {
                     if (customFFMpegFolderPath is not null)
                         encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
-
+                    encoderOptions.FFMpegHWAccelerationType = ffMpegHWAccelerationType;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
                     encoderOptions.Skip1440 = skip1440;
                     encoderOptions.Skip1080 = skip1080;
@@ -313,8 +313,7 @@ namespace Etherna.VideoImporter
                     services.AddSingleton<IValidateOptions<YouTubeChannelVideoProviderOptions>, YouTubeChannelVideoProviderOptionsValidation>();
 
                     //services
-                    services.AddTransient<IYoutubeClient, YoutubeClient>();
-                    services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
+                    AddYoutubeDownloader(services, ffMpegHWAccelerationType);
                     services.AddTransient<IVideoProvider, YouTubeChannelVideoProvider>();
                     break;
                 case SourceType.YouTubeVideo:
@@ -326,8 +325,7 @@ namespace Etherna.VideoImporter
                     services.AddSingleton<IValidateOptions<YouTubeSingleVideoProviderOptions>, YouTubeSingleVideoProviderOptionsValidation>();
 
                     //services
-                    services.AddTransient<IYoutubeClient, YoutubeClient>();
-                    services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
+                    AddYoutubeDownloader(services, ffMpegHWAccelerationType);
                     services.AddTransient<IVideoProvider, YouTubeSingleVideoProvider>();
                     break;
                 default:
@@ -346,6 +344,21 @@ namespace Etherna.VideoImporter
                 pinVideos,
                 userEthAddr,
                 unpinRemovedVideos);
+        }
+
+        // Helpers.
+        private static void AddYoutubeDownloader(
+            ServiceCollection services,
+            FFMpegHWAccelerationType ffMpegHWAccelerationType)
+        {
+            services.AddTransient<IYoutubeClient>(_ =>
+                ffMpegHWAccelerationType switch
+                {
+                    FFMpegHWAccelerationType.None => new YoutubeClient(),
+                    FFMpegHWAccelerationType.Cuda => new YoutubeClient("cuda"),
+                    _ => throw new InvalidOperationException()
+                });
+            services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
         }
     }
 }
