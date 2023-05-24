@@ -23,13 +23,13 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     {
         // Constructor.
         protected YouTubeVideoMetadataBase(
+            string title,
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
             Thumbnail? thumbnail,
-            string title,
             string youtubeUrl)
-            : base(description, duration, originVideoQualityLabel, title)
+            : base(title, description, duration, originVideoQualityLabel)
         {
             Thumbnail = thumbnail;
             YoutubeUrl = youtubeUrl;

@@ -1,5 +1,7 @@
 ﻿using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,43 +10,36 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public partial class EncoderService : IEncoderService
+    internal sealed class EncoderService : IEncoderService
     {
         // Fields.
-        private readonly List<Command> activedCommands = new(); 
-        private readonly FFMpegHWAccelerationType ffMpegHWAccelerationType;
+        private readonly List<Command> activedCommands = new();
+        private readonly EncoderServiceOptions options;
 
         // Constructor.
         public EncoderService(
-            string ffMpegBinaryPath,
-            FFMpegHWAccelerationType ffMpegHWAccelerationType)
+            IOptions<EncoderServiceOptions> options)
         {
-            FFMpegBinaryPath = ffMpegBinaryPath;
-            this.ffMpegHWAccelerationType = ffMpegHWAccelerationType;
+            this.options = options.Value;
         }
 
         // Properties.
-        public string FFMpegBinaryPath { get; }
+        public string FFMpegBinaryPath => options.FFMpegBinaryPath;
 
         // Methods.
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
-            VideoLocalFile originalVideoLocalFile,
-            DirectoryInfo importerTempDirectoryInfo,
-            IEnumerable<int> supportedHeightResolutions,
-            bool includeAudioTrack)
+            VideoLocalFile sourceVideoFile)
         {
-            if (originalVideoLocalFile is null)
-                throw new ArgumentNullException(nameof(originalVideoLocalFile));
-            if (importerTempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
+            if (sourceVideoFile is null)
+                throw new ArgumentNullException(nameof(sourceVideoFile));
 
             var videoEncodedFiles = new List<VideoLocalFile>();
             var fileNameGuid = Guid.NewGuid();
-            var resolutionRatio = (decimal)originalVideoLocalFile.Width / originalVideoLocalFile.Height;
+            var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
 
-            foreach (var heightResolution in supportedHeightResolutions.Union(new List<int> { originalVideoLocalFile.Height }))
+            foreach (var heightResolution in options.GetSupportedHeightResolutions().Union(new List<int> { sourceVideoFile.Height }))
             {
-                if (originalVideoLocalFile.Height < heightResolution)
+                if (sourceVideoFile.Height < heightResolution)
                     continue;
 
                 Console.WriteLine($"Encoding resolution {heightResolution}...");
@@ -60,20 +55,27 @@ namespace Etherna.VideoImporter.Core.Services
                     _ => throw new InvalidOperationException()
                 };
 
-                var fileName = $"{importerTempDirectoryInfo.FullName}/{fileNameGuid}_{heightResolution}.mp4";
+                var fileName = $"{CommonConsts.TempDirectory.FullName}/{fileNameGuid}_{heightResolution}.mp4";
                 var args = new string[] {
-                    $"-i {originalVideoLocalFile.FilePath}",
-                    "-c:a aac",
-                    "-c:v libx264",
-                    "-movflags faststart",
-                    ffMpegHWAccelerationType == FFMpegHWAccelerationType.None
-                        ? "libx264" : "h264_nvenc",
-                    ffMpegHWAccelerationType == FFMpegHWAccelerationType.None
-                        ? "" : "-hwaccel cuda -hwaccel_output_format cuda",
-                    $"-vf scale={roundedScaledWidth}:{heightResolution}",
-                    "-loglevel info"};
+                    "-i", sourceVideoFile.FilePath,
+                    "-c:a", "aac",
+                    "-c:v", ffMpegHWAccelerationType switch
+                    {
+                        FFMpegHWAccelerationType.None => "libx264",
+                        FFMpegHWAccelerationType.Cuda => "h264_nvenc"
+                    },
+                    ffMpegHWAccelerationType switch
+                    {
+                        FFMpegHWAccelerationType.None => "",
+                        FFMpegHWAccelerationType.Cuda => "-hwaccel cuda -hwaccel_output_format cuda"
+                    },
+                    "-movflags", "faststart",
+                    "-vf", $"scale={roundedScaledWidth}:{heightResolution}",
+                    "-loglevel", "info",
+                    fileName
+                };
 
-                var command = Command.Run(FFMpegBinaryPath, args.SelectMany(arg => arg.Split(' ')).Append(fileName));
+                var command = Command.Run(FFMpegBinaryPath, args);
 
                 activedCommands.Add(command);
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);

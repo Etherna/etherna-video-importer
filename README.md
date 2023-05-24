@@ -27,6 +27,7 @@ Usage:  EthernaVideoImporter SOURCE_TYPE SOURCE_URI [OPTIONS]
 Source types:
   ytchannel     YouTube channel
   ytvideo       YouTube video
+  local         Local videos
 
 Options:
   -ff   Path FFmpeg (default dir: .\FFmpeg\)
@@ -77,6 +78,34 @@ Options:
 
 Run 'EthernaVideoImporter.Devcon -h' to print help
 ```
+
+#### Local videos
+
+To import from local videos you will need a metadata descriptor file.  
+Metadata is a Json file with following structure.
+
+```
+[
+    {
+        "Id": "myId1",
+        "Title": "My video 1 title",
+        "Description": "My video description",
+        "VideoFilePath": "my/source/local/video/path.mp4",
+        "ThumbnailFilePath": "my/optional/thumbnail/path.jpg"
+    },
+    {
+        "Id": "myId2",
+        "Title": "My video 2 title",
+        ...
+    },
+    ...
+]
+```
+
+The `Id` field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique in the file.  
+The `ThumbnailFilePath` field is optional.
+
+The Json file path needs to be passed as source uri with the source type `local`.
 
 # Issue reports
 If you've discovered a bug, or have an idea for a new feature, please report it to our issue manager based on Jira https://etherna.atlassian.net/projects/EVI.

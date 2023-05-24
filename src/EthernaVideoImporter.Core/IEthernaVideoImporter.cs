@@ -14,22 +14,17 @@
 
 using System.Threading.Tasks;
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Core
 {
-    /// <summary>
-    /// Link services
-    /// </summary>
-    public interface ILinkReporterService
+    public interface IEthernaVideoImporter
     {
-        /// <summary>
-        /// Set etherna data in destination Uri.
-        /// </summary>
-        /// <param name="sourceVideoId">The video id on source</param>
-        /// <param name="ethernaIndexId">Video Id on index</param>
-        /// <param name="ethernaPermalinkHash">Video hash on permalink</param>
-        Task SetEthernaReferencesAsync(
-            string sourceVideoId,
-            string ethernaIndexId,
-            string ethernaPermalinkHash);
+        Task RunAsync(
+            bool deleteExogenousVideos,
+            bool deleteVideosRemovedFromSource,
+            bool forceVideoUpload,
+            bool offerVideos,
+            bool pinVideos,
+            string userEthAddress,
+            bool unpinRemovedVideos);
     }
 }

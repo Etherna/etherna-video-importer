@@ -13,19 +13,19 @@
 //   limitations under the License.
 
 using Etherna.Authentication;
-using Etherna.BeeNet;
-using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
+using Etherna.VideoImporter.Core.Utilities;
+using Etherna.VideoImporter.Options;
 using Etherna.VideoImporter.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace Etherna.VideoImporter
 {
@@ -33,7 +33,6 @@ namespace Etherna.VideoImporter
     {
         // Consts.
         private const int DefaultTTLPostageStamp = 365;
-        private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "\n" +
             "Usage:\tEthernaVideoImporter SOURCE_TYPE SOURCE_URI [OPTIONS]\n" +
@@ -41,9 +40,12 @@ namespace Etherna.VideoImporter
             "Source types:\n" +
             "  ytchannel\tYouTube channel\n" +
             "  ytvideo\tYouTube video\n" +
+            "  local\tLocal videos\n" +
+            "\n" +
+            "See Readme to get info on how to use the local videos source." +
             "\n" +
             "Options:\n" +
-            $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
+            $"  -ff\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
             $"  -hw\tUse NVIDIA CUDA hardware acceleration on FFmpeg (default: false)\n" +
             $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
             "  -o\tOffer video downloads to everyone\n" +
@@ -71,7 +73,7 @@ namespace Etherna.VideoImporter
             // Parse arguments.
             SourceType? sourceType = null;
             string? sourceUri = null;
-            string ffMpegFolderPath = DefaultFFmpegFolder;
+            string? customFFMpegFolderPath = null;
             string? ttlPostageStampStr = null;
             string? beeNodeApiPortStr = null;
             string? beeNodeDebugPortStr = null;
@@ -85,7 +87,7 @@ namespace Etherna.VideoImporter
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
-            bool forceUploadVideo = false;
+            bool forceVideoUpload = false;
             bool acceptPurchaseOfAllBatches = false;
             bool ignoreNewVersionsOfImporter = false;
             bool skip1440 = false;
@@ -129,6 +131,16 @@ namespace Etherna.VideoImporter
                     sourceUri = args[1];
                     break;
 
+                case "local":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Local videos JSON metadata path is missing");
+                        throw new ArgumentException("Invalid argument");
+                    }
+                    sourceType = SourceType.LocalVideos;
+                    sourceUri = args[1];
+                    break;
+
                 default:
                     Console.WriteLine($"Invalid argument");
                     Console.WriteLine(HelpText);
@@ -143,7 +155,7 @@ namespace Etherna.VideoImporter
                     case "-ff":
                         if (args.Length == i + 1)
                             throw new InvalidOperationException("ffMpeg folder is missing");
-                        ffMpegFolderPath = args[++i];
+                        customFFMpegFolderPath = args[++i];
                         break;
                     case "-t":
                         if (args.Length == i + 1)
@@ -178,7 +190,7 @@ namespace Etherna.VideoImporter
                     case "-m": deleteVideosMissingFromSource = true; break;
                     case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
-                    case "-f": forceUploadVideo = true; break;
+                    case "-f": forceVideoUpload = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
                     case "-i": ignoreNewVersionsOfImporter = true; break;
                     case "-skip1440": skip1440 = true; break;
@@ -192,14 +204,6 @@ namespace Etherna.VideoImporter
             }
 
             // Input validation.
-            //FFmpeg
-            var ffMpegBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFMpegBinaryName);
-            if (!File.Exists(ffMpegBinaryPath))
-            {
-                Console.WriteLine($"FFmpeg not found at ({ffMpegBinaryPath})");
-                return;
-            }
-
             //ttl postage batch
             if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
                 !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
@@ -247,7 +251,7 @@ namespace Etherna.VideoImporter
                 Console.WriteLine(authResult.Error);
                 return;
             }
-            var userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).FirstOrDefault()?.Value;
+            var userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).First().Value;
             if (string.IsNullOrWhiteSpace(userEthAddr))
             {
                 Console.WriteLine($"Missing ether address");
@@ -255,109 +259,93 @@ namespace Etherna.VideoImporter
             }
             Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
 
-            // Inizialize services.
-            using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
-            httpClient.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
-
-            //index
-            var ethernaUserClients = new EthernaUserClients(
-                new Uri(CommonConsts.EthernaCreditUrl),
-                new Uri(CommonConsts.EthernaGatewayUrl),
-                new Uri(CommonConsts.EthernaIndexUrl),
-                new Uri(CommonConsts.EthernaSsoUrl),
-                () => httpClient);
-
-            //bee
-            using var beeNodeClient = new BeeNodeClient(
-                useBeeNativeNode ? beeNodeUrl : CommonConsts.EthernaGatewayUrl,
-                useBeeNativeNode ? beeNodeApiPort : CommonConsts.EthernaGatewayPort,
-                useBeeNativeNode ? beeNodeDebugPort : null,
-                CommonConsts.BeeNodeGatewayVersion,
-                CommonConsts.BeeNodeDebugVersion,
-                httpClient);
-
-            //gateway
-            IGatewayService gatewayService = useBeeNativeNode ? 
-                new BeeGatewayService(beeNodeClient.GatewayClient!) : 
-                new EthernaGatewayService(
-                    beeNodeClient.GatewayClient!,
-                    ethernaUserClients.GatewayClient);
-
-            //video uploader service
-            var videoUploaderService = new VideoUploaderService(
-                gatewayService,
-                ethernaUserClients.IndexClient,
-                userEthAddr,
-                TimeSpan.FromDays(ttlPostageStamp),
-                acceptPurchaseOfAllBatches);
-            var encoderService = new EncoderService(ffMpegBinaryPath, ffMpegHWAccelerationType);
-
-            IVideoProvider videoProvider = sourceType switch
-            {
-                SourceType.YouTubeChannel => new YouTubeChannelVideoProvider(
-                    sourceUri,
-                    encoderService,
-                    includeAudioTrack,
-                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
-                SourceType.YouTubeVideo => new YouTubeSingleVideoProvider(
-                    sourceUri,
-                    encoderService,
-                    includeAudioTrack,
-                    GetSupportedHeightResolutions(skip1440, skip1080, skip720, skip480, skip360)),
-                _ => throw new InvalidOperationException()
-            };
-
-            // Migration service.
-            var migrationService = new MigrationService();
-
-            // Check for new version
+            // Check for new versions.
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
-            // Call runner.
-            var importer = new EthernaVideoImporter(
-                new CleanerVideoService(
-                    ethernaUserClients.IndexClient,
-                    gatewayService),
-                gatewayService,
-                ethernaUserClients.IndexClient,
-                new LinkReporterService(),
-                videoProvider,
-                videoUploaderService,
-                migrationService);
+            // Setup DI.
+            var services = new ServiceCollection();
 
+            services.AddCoreServices(
+                encoderOptions =>
+                {
+                    if (customFFMpegFolderPath is not null)
+                        encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
+
+                    encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                    encoderOptions.Skip1440 = skip1440;
+                    encoderOptions.Skip1080 = skip1080;
+                    encoderOptions.Skip720 = skip720;
+                    encoderOptions.Skip480 = skip480;
+                    encoderOptions.Skip360 = skip360;
+                },
+                uploaderOptions =>
+                {
+                    uploaderOptions.AcceptPurchaseOfAllBatches = acceptPurchaseOfAllBatches;
+                    uploaderOptions.TtlPostageStamp = TimeSpan.FromSeconds(ttlPostageStamp);
+                    uploaderOptions.UserEthAddr = userEthAddr;
+                },
+                useBeeNativeNode,
+                authResult.RefreshTokenHandler);
+
+            switch (sourceType.Value)
+            {
+                case SourceType.LocalVideos:
+                    //options
+                    services.Configure<LocalVideoProviderOptions>(options =>
+                    {
+                        if (customFFMpegFolderPath is not null)
+                            options.FFProbeFolderPath = customFFMpegFolderPath;
+                        options.JsonMetadataFilePath = sourceUri;
+                    });
+                    services.AddSingleton<IValidateOptions<LocalVideoProviderOptions>, LocalVideoProviderOptionsValidation>();
+
+                    //services
+                    services.AddTransient<IVideoProvider, LocalVideoProvider>();
+                    break;
+                case SourceType.YouTubeChannel:
+                    //options
+                    services.Configure<YouTubeChannelVideoProviderOptions>(options =>
+                    {
+                        options.ChannelUrl = sourceUri;
+                    });
+                    services.AddSingleton<IValidateOptions<YouTubeChannelVideoProviderOptions>, YouTubeChannelVideoProviderOptionsValidation>();
+
+                    //services
+                    services.AddTransient<IYoutubeClient, YoutubeClient>();
+                    services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
+                    services.AddTransient<IVideoProvider, YouTubeChannelVideoProvider>();
+                    break;
+                case SourceType.YouTubeVideo:
+                    //options
+                    services.Configure<YouTubeSingleVideoProviderOptions>(options =>
+                    {
+                        options.VideoUrl = sourceUri;
+                    });
+                    services.AddSingleton<IValidateOptions<YouTubeSingleVideoProviderOptions>, YouTubeSingleVideoProviderOptionsValidation>();
+
+                    //services
+                    services.AddTransient<IYoutubeClient, YoutubeClient>();
+                    services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
+                    services.AddTransient<IVideoProvider, YouTubeSingleVideoProvider>();
+                    break;
+                default:
+                    throw new InvalidOperationException();
+            }
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Start importer.
+            var importer = serviceProvider.GetRequiredService<EthernaVideoImporter>();
             await importer.RunAsync(
-                userEthAddr,
+                deleteExogenousVideos,
+                deleteVideosMissingFromSource,
+                forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                deleteVideosMissingFromSource,
-                deleteExogenousVideos,
-                unpinRemovedVideos,
-                forceUploadVideo);
-        }
-
-        // Helpers.
-        private static IEnumerable<int> GetSupportedHeightResolutions(
-            bool skip1440,
-            bool skip1080,
-            bool skip720,
-            bool skip480,
-            bool skip360)
-        {
-            var supportedHeightResolutions = new List<int>();
-            if (!skip1440)
-                supportedHeightResolutions.Add(1440);
-            if (!skip1080)
-                supportedHeightResolutions.Add(1080);
-            if (!skip720)
-                supportedHeightResolutions.Add(720);
-            if (!skip480)
-                supportedHeightResolutions.Add(480);
-            if (!skip360)
-                supportedHeightResolutions.Add(360);
-
-            return supportedHeightResolutions;
+                userEthAddr,
+                unpinRemovedVideos);
         }
     }
 }

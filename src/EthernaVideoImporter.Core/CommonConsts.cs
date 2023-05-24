@@ -15,6 +15,7 @@
 using Etherna.BeeNet.Clients.DebugApi;
 using Etherna.BeeNet.Clients.GatewayApi;
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Etherna.VideoImporter.Core
@@ -26,6 +27,7 @@ namespace Etherna.VideoImporter.Core
         public const string BeeNodeUrl = "http://localhost/";
         public const GatewayApiVersion BeeNodeGatewayVersion = GatewayApiVersion.v4_0_0;
         public const DebugApiVersion BeeNodeDebugVersion = DebugApiVersion.v4_0_0;
+        public const string DefaultFFmpegFolder = @".\FFmpeg\";
         public const int DownloadMaxRetry = 3;
         public static readonly TimeSpan DownloadTimespanRetry = TimeSpan.FromMilliseconds(3500);
         public const string EthernaCreditUrl = "https://credit.etherna.io/";
@@ -50,7 +52,22 @@ namespace Etherna.VideoImporter.Core
                 throw new InvalidOperationException("OS not supported");
             }
         }
+        public static string FFProbeBinaryName
+        {
+            get
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    return "ffprobe.exe";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    return "ffprobe";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    return "ffprobe";
+
+                throw new InvalidOperationException("OS not supported");
+            }
+        }
         public static readonly TimeSpan GnosisBlockTime = TimeSpan.FromSeconds(5);
         public const string ImporterIdentifier = "EthernaImporter";
+        public static DirectoryInfo TempDirectory { get; } = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), ImporterIdentifier));
     }
 }
