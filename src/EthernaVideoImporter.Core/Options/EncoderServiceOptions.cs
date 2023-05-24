@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Etherna.VideoImporter.Core.Models.Domain;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Etherna.VideoImporter.Core.Options
@@ -8,6 +9,7 @@ namespace Etherna.VideoImporter.Core.Options
         // Properties.
         public string FFMpegBinaryPath => Path.Combine(FFMpegFolderPath, CommonConsts.FFMpegBinaryName);
         public string FFMpegFolderPath { get; set; } = CommonConsts.DefaultFFmpegFolder;
+        public FFMpegHwAccelerations FFMpegHwAcceleration { get; set; } = FFMpegHwAccelerations.None;
         public bool IncludeAudioTrack { get; set; }
         public bool Skip360 { get; set; }
         public bool Skip480 { get; set; }
