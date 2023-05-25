@@ -27,6 +27,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using YoutubeExplode.Exceptions;
@@ -86,12 +87,26 @@ namespace Etherna.VideoImporter.Devcon.Services
                     .WithNamingConvention(CamelCaseNamingConvention.Instance)
                     .IgnoreUnmatchedProperties()
                     .Build();
-                var videoDataInfoDto = deserializer.Deserialize<ArchiveMdFileDto>(yamlString);
 
-                if (videoDataInfoDto is null)
+                ArchiveMdFileDto videoDataInfoDto;
+                try
+                {
+                    videoDataInfoDto = deserializer.Deserialize<ArchiveMdFileDto>(yamlString);
+                    if (videoDataInfoDto is null)
+                        continue;
+
+                    Console.Write($"\tparsed md file...");
+                }
+                catch (YamlException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine();
+                    Console.WriteLine($"Error parsing metadata from md file \"{mdFilePath}\"");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+
                     continue;
-
-                Console.Write($"\tparsed md file...");
+                }
 
                 // Get from youtube.
                 try
