@@ -86,14 +86,15 @@ namespace Etherna.VideoImporter.Core.Services
 
                     switch (Console.ReadKey())
                     {
-                        case ConsoleKeyInfo yk when yk.Key == ConsoleKey.Y:
+                        case { Key: ConsoleKey.Y }:
+                        case { Key: ConsoleKey.Enter }:
                             validSelection = true;
                             break;
-                        case ConsoleKeyInfo ak when ak.Key == ConsoleKey.A:
+                        case { Key: ConsoleKey.A }:
                             options.AcceptPurchaseOfAllBatches = true;
                             validSelection = true;
                             break;
-                        case ConsoleKeyInfo nk when nk.Key == ConsoleKey.N:
+                        case { Key: ConsoleKey.N }:
                             throw new InvalidOperationException("Batch purchase denied");
                         default:
                             Console.WriteLine("Invalid selection");

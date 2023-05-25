@@ -68,6 +68,7 @@ namespace Etherna.VideoImporter.Core
         }
         public static readonly TimeSpan GnosisBlockTime = TimeSpan.FromSeconds(5);
         public const string ImporterIdentifier = "EthernaImporter";
+        public const string SwarmNullReference = "0000000000000000000000000000000000000000000000000000000000000000";
         public static DirectoryInfo TempDirectory { get; } = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), ImporterIdentifier));
     }
 }

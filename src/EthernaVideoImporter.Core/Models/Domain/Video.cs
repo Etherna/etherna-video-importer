@@ -47,6 +47,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public long GetTotalByteSize() =>
             EncodedFiles.Sum(f => f.ByteSize) +
             ThumbnailFiles.Sum(t => t.ByteSize) +
-            JsonSerializer.Serialize(new ManifestDto(this, "0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000")).Length;
+            JsonSerializer.Serialize(new ManifestDto(this, CommonConsts.SwarmNullReference, "0x0000000000000000000000000000000000000000", true)).Length;
     }
 }

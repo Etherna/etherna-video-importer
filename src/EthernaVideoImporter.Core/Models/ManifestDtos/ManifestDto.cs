@@ -32,7 +32,8 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         public ManifestDto(
             Video video,
             string batchId,
-            string ownerAddress)
+            string ownerAddress,
+            bool allowFakeReferences = false)
         {
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
@@ -42,7 +43,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             OriginalQuality = video.Metadata.OriginVideoQualityLabel;
             OwnerAddress = ownerAddress;
             Duration = (long)video.Metadata.Duration.TotalSeconds;
-            Sources = video.EncodedFiles.OfType<IVideoFile>().Select(vf => new ManifestVideoSourceDto(vf));
+            Sources = video.EncodedFiles.OfType<IVideoFile>().Select(vf => new ManifestVideoSourceDto(vf, allowFakeReferences));
             Thumbnail = video.ThumbnailFiles.Any() ?
                 new ManifestThumbnailDto(video.ThumbnailFiles) :
                 null;
