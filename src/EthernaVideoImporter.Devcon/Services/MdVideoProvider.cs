@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using YamlDotNet.Core;
@@ -41,11 +42,14 @@ namespace Etherna.VideoImporter.Devcon.Services
         private const string EthernaIndexPrefix = "ethernaIndex:";
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
 
-        [GeneratedRegex("---\\r?\\n[\\s\\S]*?---")]
-        private static partial Regex YamlRegex();
+        [GeneratedRegex("(?<!\\\\)\"")]
+        private static partial Regex UnescapedQuotesCounterRegex();
+
+        [GeneratedRegex("^\\s*---(?<body>[\\s\\S]+)---\\s*$")]
+        private static partial Regex YamlBodyRegex();
 
         // Fields.
-        public static readonly string[] _keywordForArrayString = Array.Empty<string>();
+        private readonly IDeserializer deserializer;
         private readonly MdVideoProviderOptions options;
         private readonly IYoutubeDownloader youtubeDownloader;
 
@@ -54,6 +58,10 @@ namespace Etherna.VideoImporter.Devcon.Services
             IOptions<MdVideoProviderOptions> options,
             IYoutubeDownloader youtubeDownloader)
         {
+            deserializer = new DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .IgnoreUnmatchedProperties()
+                .Build();
             this.options = options.Value;
             this.youtubeDownloader = youtubeDownloader;
         }
@@ -78,29 +86,17 @@ namespace Etherna.VideoImporter.Devcon.Services
 
                 Console.WriteLine($"File #{i + 1} of {mdFilesPaths.Length}: {mdFileRelativePath}");
 
-                // Deserialize YAML section from MD.
-                string content = File.ReadAllText(mdFilePath);
-                var yamlMatch = YamlRegex().Match(content);
-                string yamlString = yamlMatch.ToString().Trim('-');
-
-                var deserializer = new DeserializerBuilder()
-                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                    .IgnoreUnmatchedProperties()
-                    .Build();
-
                 ArchiveMdFileDto videoDataInfoDto;
                 try
                 {
-                    videoDataInfoDto = deserializer.Deserialize<ArchiveMdFileDto>(yamlString);
-                    if (videoDataInfoDto is null)
-                        continue;
+                    string content = File.ReadAllText(mdFilePath);
+                    videoDataInfoDto = DeserializeYamlContent(content);
 
                     Console.Write($"\tparsed md file...");
                 }
-                catch (YamlException ex)
+                catch (Exception ex) when (ex is InvalidDataException or YamlException)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine();
                     Console.WriteLine($"Error parsing metadata from md file \"{mdFilePath}\"");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
@@ -124,7 +120,6 @@ namespace Etherna.VideoImporter.Devcon.Services
                 catch (HttpRequestException ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine();
                     Console.WriteLine($"Error retrieving video from YouTube. Try again later");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
@@ -132,7 +127,6 @@ namespace Etherna.VideoImporter.Devcon.Services
                 catch (VideoUnplayableException ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine();
                     Console.WriteLine($"Unplayable video from YouTube");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
@@ -185,6 +179,48 @@ namespace Etherna.VideoImporter.Devcon.Services
         }
 
         // Helpers.
+        private ArchiveMdFileDto DeserializeYamlContent(string content)
+        {
+            //extract body
+            var yamlMatch = YamlBodyRegex().Match(content);
+            if (!yamlMatch.Success)
+                throw new InvalidDataException("Document not well formatted");
+
+            string yamlBodyString = yamlMatch.Groups["body"].Value;
+
+            //normalize multiline fields
+            string fixedYaml;
+            {
+                string[] lines = yamlBodyString.Split('\n');
+                var fixedYamlBuilder = new StringBuilder();
+
+                bool isInString = false;
+                foreach (var line in lines)
+                {
+                    //add an empty line if necessary. Deserializator only read "folded" scalar type and not "literal"
+                    if (isInString)
+                        fixedYamlBuilder.AppendLine();
+
+                    //add two initial spaces is necessary
+                    var fixedLine = isInString && (string.IsNullOrWhiteSpace(line) || !char.IsWhiteSpace(line[0])) ?
+                        "  " + line.TrimEnd() :
+                        line.TrimEnd();
+                    fixedYamlBuilder.AppendLine(fixedLine);
+
+                    //count unescaped quotes in the current line to identify open strings after endline
+                    var quoteMatches = UnescapedQuotesCounterRegex().Matches(fixedLine);
+                    if (quoteMatches.Count % 2 != 0)
+                        isInString = !isInString;
+                }
+
+                fixedYaml = fixedYamlBuilder.ToString();
+            }
+
+            //deserialize
+            return deserializer.Deserialize<ArchiveMdFileDto>(fixedYaml) ??
+                throw new InvalidDataException("Can't parse valid YAML metadata");
+        }
+
         private int GetLineNumber(List<string> lines, string prefix)
         {
             var lineIndex = 0;

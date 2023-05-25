@@ -44,9 +44,18 @@ namespace Etherna.VideoImporter.Core.Services
 
                 Console.WriteLine($"Encoding resolution {heightResolution}...");
 
-#pragma warning disable IDE0028 // Simplify collection initialization
                 // Build args.
                 var args = new List<string>();
+
+                //hw acceleration
+                switch (options.FFMpegHwAcceleration)
+                {
+                    case FFMpegHwAccelerations.Cuda:
+                        args.Add("-hwaccel"); args.Add("cuda");
+                        args.Add("-hwaccel_output_format"); args.Add("cuda");
+                        break;
+                    default: break;
+                }
 
                 //input
                 args.Add("-i"); args.Add(sourceVideoFile.FilePath);
@@ -61,18 +70,6 @@ namespace Etherna.VideoImporter.Core.Services
                                                FFMpegHwAccelerations.Cuda => "h264_nvenc",
                                                _ => throw new InvalidOperationException()
                                            });
-
-                //preset
-                args.Add("-preset"); args.Add("slow");
-
-                //hw acceleration
-                switch (options.FFMpegHwAcceleration)
-                {
-                    case FFMpegHwAccelerations.Cuda:
-                        args.Add("-hwaccel"); args.Add("cuda");
-                        break;
-                    default: break;
-                }
 
                 //flags
                 args.Add("-movflags"); args.Add("faststart");
@@ -91,36 +88,26 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     var filters = new List<string>();
 
-                    //memory management
-                    switch (options.FFMpegHwAcceleration)
-                    {
-                        case FFMpegHwAccelerations.Cuda:
-                            filters.Add("hwupload_cuda");
-                            break;
-                        default: break;
-                    }
-
                     //scale
                     switch (options.FFMpegHwAcceleration)
                     {
                         case FFMpegHwAccelerations.Cuda:
-                            filters.Add($"scale_npp={roundedScaledWidth}:{heightResolution}");
+                            filters.Add($"scale_cuda=w={roundedScaledWidth}:h={heightResolution}");
                             break;
                         default:
-                            filters.Add($"scale={roundedScaledWidth}:{heightResolution}");
+                            filters.Add($"scale=w={roundedScaledWidth}:h={heightResolution}");
                             break;
                     }
 
-                    args.Add($"\"{filters.Aggregate((r, f) => $"{r},{f}")}\"");
+                    args.Add($"{filters.Aggregate((r, f) => $"{r},{f}")}");
                 }
 
                 //logs
                 args.Add("-loglevel"); args.Add("info");
 
                 //output
-                var fileName = $"{CommonConsts.TempDirectory.FullName}/{fileNameGuid}_{heightResolution}.mp4";
-                args.Add(fileName);
-#pragma warning restore IDE0028 // Simplify collection initialization
+                var filePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{fileNameGuid}_{heightResolution}.mp4");
+                args.Add(filePath);
 
                 var command = Command.Run(FFMpegBinaryPath, args);
 
@@ -156,7 +143,7 @@ namespace Etherna.VideoImporter.Core.Services
                 Console.WriteLine();
                 Console.WriteLine($"Processing resolution {heightResolution} completed...");
 
-                videoEncodedFiles.Add(new VideoLocalFile(fileName, heightResolution, roundedScaledWidth, new FileInfo(fileName).Length));
+                videoEncodedFiles.Add(new VideoLocalFile(filePath, heightResolution, roundedScaledWidth, new FileInfo(filePath).Length));
             }
 
             return videoEncodedFiles;
