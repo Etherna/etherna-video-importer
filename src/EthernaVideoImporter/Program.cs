@@ -15,6 +15,7 @@
 using Etherna.Authentication;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Core.Utilities;
@@ -33,7 +34,6 @@ namespace Etherna.VideoImporter
     internal static class Program
     {
         // Consts.
-        private const int DefaultTTLPostageStamp = 365;
         private static readonly string HelpText =
             "\n" +
             "Usage:\tEthernaVideoImporter SOURCE_TYPE SOURCE_URI [OPTIONS]\n" +
@@ -48,7 +48,7 @@ namespace Etherna.VideoImporter
             "Options:\n" +
             $"  -ff\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
             $"  -hw\tUse hardware acceleration on FFmpeg (default: {nameof(FFMpegHwAccelerations.None).ToLowerInvariant()}). Valid values: [{Enum.GetNames<FFMpegHwAccelerations>().Aggregate((r, i) => $"{r}, {i}").ToLowerInvariant()}]\n" +
-            $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
+            $"  -t\tTTL (days) Postage Stamp (default value: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)\n" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
             "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
@@ -79,7 +79,6 @@ namespace Etherna.VideoImporter
             string? beeNodeApiPortStr = null;
             string? beeNodeDebugPortStr = null;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
-            int ttlPostageStamp = DefaultTTLPostageStamp;
             int beeNodeApiPort = CommonConsts.BeeApiPort;
             int beeNodeDebugPort = CommonConsts.BeeDebugPort;
             bool offerVideos = false;
@@ -205,14 +204,6 @@ namespace Etherna.VideoImporter
             }
 
             // Input validation.
-            //ttl postage batch
-            if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
-                !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
-            {
-                Console.WriteLine($"Invalid value for TTL Postage Stamp");
-                return;
-            }
-
             //offer video
             if (offerVideos &&
                 useBeeNativeNode)
@@ -253,12 +244,7 @@ namespace Etherna.VideoImporter
                 return;
             }
             var userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).First().Value;
-            if (string.IsNullOrWhiteSpace(userEthAddr))
-            {
-                Console.WriteLine($"Missing ether address");
-                return;
-            }
-            Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).FirstOrDefault()?.Value} autenticated");
+            Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).First().Value} autenticated");
 
             // Check for new versions.
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
@@ -284,7 +270,13 @@ namespace Etherna.VideoImporter
                 uploaderOptions =>
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = acceptPurchaseOfAllBatches;
-                    uploaderOptions.TtlPostageStamp = TimeSpan.FromSeconds(ttlPostageStamp);
+
+                    if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
+                        int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out var ttlPostageStamp))
+                        uploaderOptions.TtlPostageStamp = TimeSpan.FromDays(ttlPostageStamp);
+                    else
+                        throw new ArgumentException($"Invalid value for TTL Postage Stamp");
+
                     uploaderOptions.UserEthAddr = userEthAddr;
                 },
                 useBeeNativeNode,
