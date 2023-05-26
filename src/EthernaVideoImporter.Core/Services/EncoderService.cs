@@ -4,6 +4,7 @@ using Medallion.Shell;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -137,14 +138,22 @@ namespace Etherna.VideoImporter.Core.Services
                 if (!result.Success)
                     throw new InvalidOperationException($"command failed with exit code {result.ExitCode}: {result.StandardError}");
 
+                var fileSize = new FileInfo(filePath).Length;
+
                 // Print result of ffMpeg
                 Console.Write(new string(' ', Console.BufferWidth));
                 Console.SetCursorPosition(0, Console.CursorTop - 1);
                 Console.WriteLine();
-                Console.WriteLine($"Processing resolution {heightResolution} completed...");
+                Console.WriteLine($"Processing resolution {heightResolution} completed. File size: {fileSize} byte");
 
-                videoEncodedFiles.Add(new VideoLocalFile(filePath, heightResolution, roundedScaledWidth, new FileInfo(filePath).Length));
+                videoEncodedFiles.Add(new VideoLocalFile(filePath, heightResolution, roundedScaledWidth, fileSize));
             }
+
+            // Remove all video encodings where exists another with greater resolution, and equal or less file size.
+            videoEncodedFiles.RemoveAll(vf1 => videoEncodedFiles.Any(vf2 => vf1.Height < vf2.Height &&
+                                                                            vf1.ByteSize >= vf2.ByteSize));
+
+            Console.WriteLine($"Keep [{videoEncodedFiles.Select(vf => vf.Height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}] as valid resolutions to upload");
 
             return videoEncodedFiles;
         }
