@@ -271,11 +271,13 @@ namespace Etherna.VideoImporter
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = acceptPurchaseOfAllBatches;
 
-                    if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
-                        int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out var ttlPostageStamp))
-                        uploaderOptions.TtlPostageStamp = TimeSpan.FromDays(ttlPostageStamp);
-                    else
-                        throw new ArgumentException($"Invalid value for TTL Postage Stamp");
+                    if (!string.IsNullOrEmpty(ttlPostageStampStr))
+                    {
+                        if (int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out var ttlPostageStamp))
+                            uploaderOptions.TtlPostageStamp = TimeSpan.FromDays(ttlPostageStamp);
+                        else
+                            throw new ArgumentException($"Invalid value for TTL Postage Stamp");
+                    }
 
                     uploaderOptions.UserEthAddr = userEthAddr;
                 },
