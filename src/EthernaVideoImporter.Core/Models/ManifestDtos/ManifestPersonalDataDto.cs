@@ -33,6 +33,6 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         };
 
         public static string HashVideoId(string videoId) =>
-            BitConverter.ToString(Keccak256.ComputeHash(videoId));
+            BitConverter.ToString(Keccak256.ComputeHash(videoId)).Replace("-", "", StringComparison.OrdinalIgnoreCase);
     }
 }
