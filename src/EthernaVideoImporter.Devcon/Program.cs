@@ -261,13 +261,7 @@ namespace Etherna.VideoImporter.Devcon
                 },
                 useBeeNativeNode,
                 authResult.RefreshTokenHandler);
-            services.AddTransient<IYoutubeClient>(_ =>
-                ffMpegHwAcceleration switch
-                {
-                    FFMpegHwAccelerations.None => new YoutubeClient(),
-                    FFMpegHwAccelerations.Cuda => new YoutubeClient("cuda"),
-                    _ => throw new InvalidOperationException()
-                });
+            services.AddTransient<IYoutubeClient, YoutubeClient>();
             services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
             services.AddTransient<IVideoProvider, MdVideoProvider>();
 

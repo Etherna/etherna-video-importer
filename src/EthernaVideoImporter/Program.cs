@@ -308,7 +308,8 @@ namespace Etherna.VideoImporter
                     services.AddSingleton<IValidateOptions<YouTubeChannelVideoProviderOptions>, YouTubeChannelVideoProviderOptionsValidation>();
 
                     //services
-                    AddYoutubeDownloader(services, ffMpegHwAcceleration);
+                    services.AddTransient<IYoutubeClient, YoutubeClient>();
+                    services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
                     services.AddTransient<IVideoProvider, YouTubeChannelVideoProvider>();
                     break;
                 case SourceType.YouTubeVideo:
@@ -320,7 +321,8 @@ namespace Etherna.VideoImporter
                     services.AddSingleton<IValidateOptions<YouTubeSingleVideoProviderOptions>, YouTubeSingleVideoProviderOptionsValidation>();
 
                     //services
-                    AddYoutubeDownloader(services, ffMpegHwAcceleration);
+                    services.AddTransient<IYoutubeClient, YoutubeClient>();
+                    services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
                     services.AddTransient<IVideoProvider, YouTubeSingleVideoProvider>();
                     break;
                 default:
@@ -339,21 +341,6 @@ namespace Etherna.VideoImporter
                 pinVideos,
                 userEthAddr,
                 unpinRemovedVideos);
-        }
-
-        // Helpers.
-        private static void AddYoutubeDownloader(
-            ServiceCollection services,
-            FFMpegHwAccelerations hwAcceleration)
-        {
-            services.AddTransient<IYoutubeClient>(_ =>
-                hwAcceleration switch
-                {
-                    FFMpegHwAccelerations.None => new YoutubeClient(),
-                    FFMpegHwAccelerations.Cuda => new YoutubeClient("cuda"),
-                    _ => throw new InvalidOperationException()
-                });
-            services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
         }
     }
 }
