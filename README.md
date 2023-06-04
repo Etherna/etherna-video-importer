@@ -18,10 +18,6 @@ Future releases will improve this aspect accepting API keys instead.
 ### Setup FFmpeg
 To run the importer it is necessary to download [FFmpeg](https://ffmpeg.org/download.html) locally, and copy the binary file into the default folder "\FFmpeg", or specify its location with arguments.
 
-### Setup CUDA Toolkit (optional)
-To use hardware acceleration with CUDA is necessary to install [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit).  
-Moreover, is necessary to use an FFmpeg version compiled with support to hardware acceleration.
-
 ### How to use
 
 **EthernaVideoImporter's help**
@@ -35,7 +31,6 @@ Source types:
 
 Options:
   -ff   Path FFmpeg (default dir: .\FFmpeg\)
-  -hw   Use hardware acceleration on FFmpeg (default: none). Valid values: [none, cuda]
   -t    TTL (days) Postage Stamp (default value: 365 days)
   -o    Offer video downloads to everyone
   -p    Pin videos
@@ -62,7 +57,6 @@ Usage:  EthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]
 
 Options:
   -ff   Path FFmpeg (default dir: .\FFmpeg\)
-  -hw   Use hardware acceleration on FFmpeg (default: none). Valid values: [none, cuda]
   -t    TTL (days) Postage Stamp (default value: 365 days)
   -o    Offer video downloads to everyone
   -p    Pin videos
