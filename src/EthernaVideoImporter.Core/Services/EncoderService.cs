@@ -100,12 +100,7 @@ namespace Etherna.VideoImporter.Core.Services
             args.Add("-c:a"); args.Add("aac");
 
             //video codec
-            args.Add("-c:v"); args.Add(options.FFMpegHwAcceleration switch
-            {
-                FFMpegHwAccelerations.None => "libx264",
-                FFMpegHwAccelerations.Cuda => "h264_nvenc",
-                _ => throw new InvalidOperationException()
-            });
+            args.Add("-c:v"); args.Add("libx264");
 
             //flags
             args.Add("-movflags"); args.Add("faststart");
@@ -113,18 +108,11 @@ namespace Etherna.VideoImporter.Core.Services
             //filters
             args.Add("-vf");
             {
-                var filters = new List<string>();
-
-                //scale
-                switch (options.FFMpegHwAcceleration)
+                var filters = new List<string>
                 {
-                    case FFMpegHwAccelerations.Cuda:
-                        filters.Add($"scale_cuda=w={width}:h={height}");
-                        break;
-                    default:
-                        filters.Add($"scale=w={width}:h={height}");
-                        break;
-                }
+                    //scale
+                    $"scale=w={width}:h={height}"
+                };
 
                 args.Add($"{filters.Aggregate((r, f) => $"{r},{f}")}");
             }
@@ -151,16 +139,6 @@ namespace Etherna.VideoImporter.Core.Services
             var fileNameGuid = Guid.NewGuid();
             var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
             var outputsList = new List<(string filePath, int height, int width)>();
-
-            //hw acceleration
-            switch (options.FFMpegHwAcceleration)
-            {
-                case FFMpegHwAccelerations.Cuda:
-                    args.Add("-hwaccel"); args.Add("cuda");
-                    args.Add("-hwaccel_output_format"); args.Add("cuda");
-                    break;
-                default: break;
-            }
 
             //input
             args.Add("-i"); args.Add(sourceVideoFile.FilePath);
