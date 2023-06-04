@@ -12,15 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using IdentityModel.Client;
 using IdentityModel.OidcClient;
+using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.SSO
 {
-    public static class SignServices
+    public static class SignInService
     {
-        public static async Task<LoginResult> SigInSSO()
+        public static async Task<LoginResult> CodeFlowSigIn()
         {
             // create a redirect URI using an available port on the loopback address.
             // requires the OP to allow random ports on 127.0.0.1 - otherwise set a static port
@@ -41,6 +43,42 @@ namespace Etherna.VideoImporter.Core.SSO
 
             var oidcClient = new OidcClient(options);
             return await oidcClient.LoginAsync(new LoginRequest());
+        }
+
+        public static async Task<UserInfoResponse> PasswordFlowGetUserInfoAsync(string accessToken)
+        {
+            using var client = new HttpClient();
+            using var request = new UserInfoRequest
+            {
+                Address = CommonConsts.EthernaSsoUrl + "connect/userinfo",
+                Token = accessToken
+            };
+
+            return await client.GetUserInfoAsync(request);
+        }
+
+        public static async Task<TokenResponse> PasswordFlowSignInAsync(string apiKey)
+        {
+            if (apiKey is null)
+                throw new ArgumentNullException(nameof(apiKey));
+
+            var splitApiKey = apiKey.Split('.');
+            if (splitApiKey.Length != 2)
+                throw new ArgumentException("Invalid api key", nameof(apiKey));
+
+            using var client = new HttpClient();
+            using var request = new PasswordTokenRequest
+            {
+                Address = CommonConsts.EthernaSsoUrl + "connect/token",
+
+                ClientId = "apiKeyClientId",
+                Scope = "openid profile offline_access ether_accounts userApi.gateway userApi.index",
+
+                UserName = splitApiKey[0],
+                Password = splitApiKey[1]
+            };
+
+            return await client.RequestPasswordTokenAsync(request);
         }
     }
 }

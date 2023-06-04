@@ -40,9 +40,10 @@ namespace Etherna.VideoImporter.Devcon
             "Usage:\tEthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]\n" +
             "\n" +
             "Options:\n" +
-            $"  -ff\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
-            $"  -hw\tUse hardware acceleration on FFmpeg (default: {nameof(FFMpegHwAccelerations.None).ToLowerInvariant()}). Valid values: [{Enum.GetNames<FFMpegHwAccelerations>().Aggregate((r, i) => $"{r}, {i}").ToLowerInvariant()}]\n" +
-            $"  -t\tTTL (days) Postage Stamp (default value: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)\n" +
+            $"  -ff <path>\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
+            $"  -hw <type>\tUse hardware acceleration on FFmpeg (default: {nameof(FFMpegHwAccelerations.None).ToLowerInvariant()}). Valid values: [{Enum.GetNames<FFMpegHwAccelerations>().Aggregate((r, i) => $"{r}, {i}").ToLowerInvariant()}]\n" +
+            $"  -t <days>\tTTL (days) Postage Stamp (default value: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)\n" +
+            "  -ak <key>\tApi Key (optional)" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
             "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
@@ -52,9 +53,9 @@ namespace Etherna.VideoImporter.Devcon
             "  -y\tAccept automatically purchase of all batches\n" +
             "  -i\tIgnore new versions of EthernaVideoImporter.Devcon\n" +
             "  --beenode\tUse bee native node\n" +
-            $"  --beenodeurl\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
-            $"  --beenodeapiport\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
-            $"  --beenodedebugport\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
+            $"  --beenodeurl <url>\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
+            $"  --beenodeapiport <apiPort>\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
+            $"  --beenodedebugport <debugPort>\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
             "  --skip1440\tSkip upload resolution 1440p\n" +
             "  --skip1080\tSkip upload resolution 1080p\n" +
             "  --skip720\tSkip upload resolution 720p\n" +
@@ -67,6 +68,7 @@ namespace Etherna.VideoImporter.Devcon
         {
             // Parse arguments.
             string? mdSourceFolderPath = null;
+            string? apiKey = null;
             string? customFFMpegFolderPath = null;
             string? ttlPostageStampStr = null;
             string? beeNodeApiPortStr = null;
@@ -129,14 +131,19 @@ namespace Etherna.VideoImporter.Devcon
             {
                 switch (args[i])
                 {
+                    case "-ak":
+                        if (args.Length == i + 1)
+                            throw new ArgumentException("Api Key is missing");
+                        apiKey = args[++i];
+                        break;
                     case "-ff":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("ffMpeg folder is missing");
+                            throw new ArgumentException("FFmpeg folder is missing");
                         customFFMpegFolderPath = args[++i];
                         break;
                     case "-t":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("TTL value is missing");
+                            throw new ArgumentException("TTL value is missing");
                         ttlPostageStampStr = args[++i];
                         break;
                     case "--beenode":
@@ -144,7 +151,7 @@ namespace Etherna.VideoImporter.Devcon
                         break;
                     case "--beenodeurl":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("Bee node value is missing");
+                            throw new ArgumentException("Bee node value is missing");
                         beeNodeUrl = args[++i];
                         useBeeNativeNode = true;
                         if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
@@ -152,13 +159,13 @@ namespace Etherna.VideoImporter.Devcon
                         break;
                     case "--beenodeapiport":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("Bee node API port missing");
+                            throw new ArgumentException("Bee node API port missing");
                         beeNodeApiPortStr = args[++i];
                         useBeeNativeNode = true;
                         break;
                     case "--beenodedebugport":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("Bee node Debug port missing");
+                            throw new ArgumentException("Bee node Debug port missing");
                         beeNodeDebugPortStr = args[++i];
                         useBeeNativeNode = true;
                         break;
@@ -205,25 +212,57 @@ namespace Etherna.VideoImporter.Devcon
                 return;
             }
 
-            // Sign with SSO and create auth client.
-            var authResult = await SignServices.SigInSSO();
-            if (authResult.IsError)
-            {
-                Console.WriteLine($"Error during authentication");
-                Console.WriteLine(authResult.Error);
-                return;
-            }
-            var userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).First().Value;
-            Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).First().Value} autenticated");
-
             // Check for new versions.
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
-            // Setup DI.
+            // Sign with SSO and register authenticated http client.
+            string userEthAddr;
+            string userName;
             var services = new ServiceCollection();
+            if (apiKey is null) //"code" grant flow
+            {
+                var authResult = await SignInService.CodeFlowSigIn();
+                if (authResult.IsError)
+                {
+                    Console.WriteLine($"Error during authentication");
+                    Console.WriteLine(authResult.Error);
+                    return;
+                }
+                userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).First().Value;
+                userName = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).First().Value;
 
+                //register HttpClient
+                services.AddEthernaHttpClient(authResult.RefreshTokenHandler);
+            }
+            else //"password" grant flow
+            {
+                var tokenResponse = await SignInService.PasswordFlowSignInAsync(apiKey);
+                if (tokenResponse.IsError || tokenResponse.AccessToken is null)
+                {
+                    Console.WriteLine($"Error during authentication");
+                    Console.WriteLine($"{tokenResponse.Error}: {tokenResponse.ErrorDescription}");
+                    return;
+                }
+
+                var userInfoResponse = await SignInService.PasswordFlowGetUserInfoAsync(tokenResponse.AccessToken);
+                if (userInfoResponse.IsError)
+                {
+                    Console.WriteLine($"Error retrieving user info");
+                    Console.WriteLine($"{userInfoResponse.Error}: {userInfoResponse.HttpErrorReason}");
+                    return;
+                }
+
+                userEthAddr = userInfoResponse.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).First().Value;
+                userName = userInfoResponse.Claims.Where(i => i.Type == EthernaClaimTypes.Username).First().Value;
+
+                //register HttpClient
+                services.AddEthernaHttpClient(tokenResponse);
+            }
+            Console.WriteLine($"User {userName} autenticated");
+
+            // Setup DI.
             //configure options
             services.Configure<MdVideoProviderOptions>(options =>
             {
@@ -259,8 +298,7 @@ namespace Etherna.VideoImporter.Devcon
 
                     uploaderOptions.UserEthAddr = userEthAddr;
                 },
-                useBeeNativeNode,
-                authResult.RefreshTokenHandler);
+                useBeeNativeNode);
             services.AddTransient<IYoutubeClient, YoutubeClient>();
             services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
             services.AddTransient<IVideoProvider, MdVideoProvider>();

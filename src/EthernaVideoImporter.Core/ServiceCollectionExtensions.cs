@@ -3,6 +3,7 @@ using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
+using IdentityModel.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
@@ -18,8 +19,7 @@ namespace Etherna.VideoImporter.Core
             this IServiceCollection services,
             Action<EncoderServiceOptions> configureEncoderOptions,
             Action<VideoUploaderServiceOptions> configureVideoUploaderOptions,
-            bool useBeeNativeNode,
-            HttpMessageHandler ethernaServicesHttpMessageHandler)
+            bool useBeeNativeNode)
         {
             // Configure options.
             services.Configure(configureEncoderOptions);
@@ -62,14 +62,28 @@ namespace Etherna.VideoImporter.Core
                     CommonConsts.BeeNodeGatewayVersion);
             });
             services.AddSingleton<IBeeNodeClient, BeeNodeClient>();
+        }
 
-            // Add http clients.
+        public static void AddEthernaHttpClient(
+            this IServiceCollection services,
+            HttpMessageHandler httpMessageHandler)
+        {
             services.AddHttpClient(EthernaServicesHttpClientName, c =>
             {
                 c.Timeout = TimeSpan.FromMinutes(30);
                 c.DefaultRequestHeaders.ConnectionClose = true; //fixes https://etherna.atlassian.net/browse/EVI-74
             })
-            .ConfigurePrimaryHttpMessageHandler(() => ethernaServicesHttpMessageHandler);
+            .ConfigurePrimaryHttpMessageHandler(() => httpMessageHandler);
+        }
+
+        public static void AddEthernaHttpClient(
+            this IServiceCollection services,
+            TokenResponse tokenResponse)
+        {
+            services.AddHttpClient(EthernaServicesHttpClientName, c =>
+            {
+                c.SetBearerToken(tokenResponse.AccessToken);
+            });
         }
     }
 }
