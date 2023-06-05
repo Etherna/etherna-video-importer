@@ -41,7 +41,6 @@ namespace Etherna.VideoImporter.Devcon
             "\n" +
             "Options:\n" +
             $"  -ff <path>\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
-            $"  -hw <type>\tUse hardware acceleration on FFmpeg (default: {nameof(FFMpegHwAccelerations.None).ToLowerInvariant()}). Valid values: [{Enum.GetNames<FFMpegHwAccelerations>().Aggregate((r, i) => $"{r}, {i}").ToLowerInvariant()}]\n" +
             $"  -t <days>\tTTL (days) Postage Stamp (default value: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)\n" +
             "  -ak <key>\tApi Key (optional)" +
             "  -o\tOffer video downloads to everyone\n" +
@@ -91,7 +90,6 @@ namespace Etherna.VideoImporter.Devcon
             bool skip480 = false;
             bool skip360 = false;
             bool useBeeNativeNode = false;
-            var ffMpegHwAcceleration = FFMpegHwAccelerations.None;
 
             // Parse input.
             if (args.Length == 0)
@@ -182,7 +180,6 @@ namespace Etherna.VideoImporter.Devcon
                     case "-skip720": skip720 = true; break;
                     case "-skip480": skip480 = true; break;
                     case "-skip360": skip360 = true; break;
-                    case "-hw": ffMpegHwAcceleration = Enum.Parse<FFMpegHwAccelerations>(args[++i], true); break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -276,7 +273,6 @@ namespace Etherna.VideoImporter.Devcon
                 {
                     if (customFFMpegFolderPath is not null)
                         encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
-                    encoderOptions.FFMpegHwAcceleration = ffMpegHwAcceleration;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
                     encoderOptions.Skip1440 = skip1440;
                     encoderOptions.Skip1080 = skip1080;
