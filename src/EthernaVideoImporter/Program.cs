@@ -12,12 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.Authentication;
+using Etherna.ServicesClient.Users.Native;
 using Etherna.VideoImporter.Core;
-using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
-using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Options;
 using Etherna.VideoImporter.Services;
@@ -25,7 +23,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Globalization;
-using System.Linq;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -46,8 +43,9 @@ namespace Etherna.VideoImporter
             "See Readme to get info on how to use the local videos source." +
             "\n" +
             "Options:\n" +
-            $"  -ff\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
-            $"  -t\tTTL (days) Postage Stamp (default value: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)\n" +
+            $"  -ff <path>\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
+            $"  -t <days>\tTTL (days) Postage Stamp (default value: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)\n" +
+            "  -ak <key>\tApi Key (optional)" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
             "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
@@ -57,9 +55,9 @@ namespace Etherna.VideoImporter
             "  -y\tAccept automatically purchase of all batches\n" +
             "  -i\tIgnore new versions of EthernaVideoImporter\n" +
             "  --beenode\tUse bee native node\n" +
-            $"  --beenodeurl\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
-            $"  --beenodeapiport\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
-            $"  --beenodedebugport\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
+            $"  --beenodeurl <url>\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
+            $"  --beenodeapiport <apiPort>\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
+            $"  --beenodedebugport <debugPort>\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
             "  --skip1440\tSkip upload resolution 1440p\n" +
             "  --skip1080\tSkip upload resolution 1080p\n" +
             "  --skip720\tSkip upload resolution 720p\n" +
@@ -73,6 +71,7 @@ namespace Etherna.VideoImporter
             // Parse arguments.
             SourceType? sourceType = null;
             string? sourceUri = null;
+            string? apiKey = null;
             string? customFFMpegFolderPath = null;
             string? ttlPostageStampStr = null;
             string? beeNodeApiPortStr = null;
@@ -150,14 +149,19 @@ namespace Etherna.VideoImporter
             {
                 switch (args[i])
                 {
+                    case "-ak":
+                        if (args.Length == i + 1)
+                            throw new ArgumentException("Api Key is missing");
+                        apiKey = args[++i];
+                        break;
                     case "-ff":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("ffMpeg folder is missing");
+                            throw new ArgumentException("FFmpeg folder is missing");
                         customFFMpegFolderPath = args[++i];
                         break;
                     case "-t":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("TTL value is missing");
+                            throw new ArgumentException("TTL value is missing");
                         ttlPostageStampStr = args[++i];
                         break;
                     case "--beenode":
@@ -165,7 +169,7 @@ namespace Etherna.VideoImporter
                         break;
                     case "--beenodeurl":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("Bee node value is missing");
+                            throw new ArgumentException("Bee node value is missing");
                         beeNodeUrl = args[++i];
                         useBeeNativeNode = true;
                         if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
@@ -173,13 +177,13 @@ namespace Etherna.VideoImporter
                         break;
                     case "--beenodeapiport":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("Bee node API port missing");
+                            throw new ArgumentException("Bee node API port missing");
                         beeNodeApiPortStr = args[++i];
                         useBeeNativeNode = true;
                         break;
                     case "--beenodedebugport":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("Bee node Debug port missing");
+                            throw new ArgumentException("Bee node Debug port missing");
                         beeNodeDebugPortStr = args[++i];
                         useBeeNativeNode = true;
                         break;
@@ -232,25 +236,34 @@ namespace Etherna.VideoImporter
                 return;
             }
 
-            // Sign with SSO and create auth client.
-            var authResult = await SignServices.SigInSSO();
-            if (authResult.IsError)
-            {
-                Console.WriteLine($"Error during authentication");
-                Console.WriteLine(authResult.Error);
-                return;
-            }
-            var userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).First().Value;
-            Console.WriteLine($"User {authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).First().Value} autenticated");
-
             // Check for new versions.
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
-            // Setup DI.
+            // Register etherna service clients.
             var services = new ServiceCollection();
+            IEthernaUserClientsBuilder ethernaClientsBuilder;
+            if (apiKey is null) //"code" grant flow
+            {
+                ethernaClientsBuilder = services.AddEthernaUserClientsWithCodeAuth(
+                    CommonConsts.EthernaSsoUrl,
+                    CommonConsts.EthernaVideoImporterClientId,
+                    null,
+                    11420,
+                    new[] { "userApi.gateway", "userApi.index" });
+            }
+            else //"password" grant flow
+            {
+                ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
+                    CommonConsts.EthernaSsoUrl,
+                    apiKey,
+                    new[] { "userApi.gateway", "userApi.index" });
+            }
+            ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
+                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
 
+            // Setup DI.
             services.AddCoreServices(
                 encoderOptions =>
                 {
@@ -274,11 +287,8 @@ namespace Etherna.VideoImporter
                         else
                             throw new ArgumentException($"Invalid value for TTL Postage Stamp");
                     }
-
-                    uploaderOptions.UserEthAddr = userEthAddr;
                 },
-                useBeeNativeNode,
-                authResult.RefreshTokenHandler);
+                useBeeNativeNode);
 
             switch (sourceType.Value)
             {
@@ -335,7 +345,6 @@ namespace Etherna.VideoImporter
                 forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                userEthAddr,
                 unpinRemovedVideos);
         }
     }

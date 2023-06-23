@@ -1,6 +1,6 @@
 ﻿using Etherna.BeeNet.Clients.GatewayApi;
-using Etherna.ServicesClient;
-using Etherna.ServicesClient.Clients.Gateway;
+using Etherna.ServicesClient.GeneratedClients.Gateway;
+using Etherna.ServicesClient.Users;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -13,21 +13,21 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
 
         // Fields.
-        private readonly IEthernaUserClients ethernaUserClients;
+        private readonly IEthernaUserGatewayClient ethernaGatewayClient;
 
         // Constructor.
         public EthernaGatewayService(
             IBeeGatewayClient beeGatewayClient,
-            IEthernaUserClients ethernaUserClients)
+            IEthernaUserGatewayClient ethernaGatewayClient)
             : base(beeGatewayClient)
         {
-            this.ethernaUserClients = ethernaUserClients;
+            this.ethernaGatewayClient = ethernaGatewayClient;
         }
 
         // Methods.
         public override async Task<string> CreatePostageBatchAsync(long amount, int batchDepth)
         {
-            var batchReferenceId = await ethernaUserClients.GatewayClient.UsersClient.BatchesPostAsync(batchDepth, amount);
+            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDepth, amount);
 
             // Wait until created batch is avaiable.
             Console.Write("Waiting for batch created... (it may take a while)");
@@ -46,9 +46,9 @@ namespace Etherna.VideoImporter.Core.Services
 
                 try
                 {
-                    batchId = await ethernaUserClients.GatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
+                    batchId = await ethernaGatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
                 }
-                catch (GatewayApiException)
+                catch (EthernaGatewayApiException)
                 {
                     //waiting for batchId available
                     await Task.Delay(BatchCheckTimeSpan);
@@ -63,18 +63,18 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         public override Task DeletePinAsync(string hash) =>
-            ethernaUserClients.GatewayClient.ResourcesClient.PinDeleteAsync(hash);
+            ethernaGatewayClient.ResourcesClient.PinDeleteAsync(hash);
 
         public override async Task<long> GetCurrentChainPriceAsync() =>
-            (await ethernaUserClients.GatewayClient.SystemClient.ChainstateAsync()).CurrentPrice;
+            (await ethernaGatewayClient.SystemClient.ChainstateAsync()).CurrentPrice;
 
         public override async Task<IEnumerable<string>> GetPinnedResourcesAsync() =>
-            await ethernaUserClients.GatewayClient.UsersClient.PinnedResourcesAsync();
+            await ethernaGatewayClient.UsersClient.PinnedResourcesAsync();
 
         public override async Task<bool> IsBatchUsableAsync(string batchId) =>
-            (await ethernaUserClients.GatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
+            (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
 
         public override Task OfferContentAsync(string hash) =>
-            ethernaUserClients.GatewayClient.ResourcesClient.OffersPostAsync(hash);
+            ethernaGatewayClient.ResourcesClient.OffersPostAsync(hash);
     }
 }
