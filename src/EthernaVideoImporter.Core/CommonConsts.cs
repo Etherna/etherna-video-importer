@@ -36,8 +36,9 @@ namespace Etherna.VideoImporter.Core
         public const int EthernaGatewayPort = 443;
         public const string EthernaGatewayUrl = "https://gateway.etherna.io/";
         public const string EthernaPermalinkContentUrlPrefix = "https://etherna.io/embed/";
-        public const string EthernaSsoClientId = "ethernaVideoImporterId";
+        public const string EthernaServicesClientName = "ethernaServicesClient";
         public const string EthernaSsoUrl = "https://sso.etherna.io/";
+        public const string EthernaVideoImporterClientId = "ethernaVideoImporterId";
         public static string FFMpegBinaryName
         {
             get

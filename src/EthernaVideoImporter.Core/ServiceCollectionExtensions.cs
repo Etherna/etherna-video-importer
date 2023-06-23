@@ -1,6 +1,5 @@
 ﻿using Etherna.BeeNet;
 using Etherna.BeeNet.Clients.GatewayApi;
-using Etherna.ServicesClient;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using IdentityModel.Client;
@@ -25,7 +24,6 @@ namespace Etherna.VideoImporter.Core
             services.Configure(configureEncoderOptions);
             services.AddSingleton<IValidateOptions<EncoderServiceOptions>, EncoderServiceOptionsValidation>();
             services.Configure(configureVideoUploaderOptions);
-            services.AddSingleton<IValidateOptions<VideoUploaderServiceOptions>, VideoUploaderServiceOptionsValidation>();
 
             // Add transient services.
             services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
@@ -40,18 +38,6 @@ namespace Etherna.VideoImporter.Core
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             // Add singleton services.
-            //etherna services user client
-            services.AddSingleton<IEthernaUserClients>((sp) =>
-            {
-                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-                return new EthernaUserClients(
-                    new Uri(CommonConsts.EthernaCreditUrl),
-                    new Uri(CommonConsts.EthernaGatewayUrl),
-                    new Uri(CommonConsts.EthernaIndexUrl),
-                    new Uri(CommonConsts.EthernaIndexUrl),
-                    () => httpClientFactory.CreateClient(EthernaServicesHttpClientName));
-            });
-
             //bee.net
             services.AddSingleton<IBeeGatewayClient>((sp) =>
             {
@@ -82,7 +68,7 @@ namespace Etherna.VideoImporter.Core
         {
             services.AddHttpClient(EthernaServicesHttpClientName, c =>
             {
-                c.SetBearerToken(tokenResponse.AccessToken);
+                c.SetBearerToken(tokenResponse.AccessToken ?? throw new InvalidOperationException());
             });
         }
     }

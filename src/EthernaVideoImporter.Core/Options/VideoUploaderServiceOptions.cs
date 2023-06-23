@@ -10,6 +10,5 @@ namespace Etherna.VideoImporter.Core.Options
         // Properties.
         public bool AcceptPurchaseOfAllBatches { get; set; }
         public TimeSpan TtlPostageStamp { get; set; } = DefaultTtlPostageStamp;
-        public string UserEthAddr { get; set; } = default!;
     }
 }

@@ -12,12 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.Authentication;
+using Etherna.ServicesClient.Users.Native;
 using Etherna.VideoImporter.Core;
-using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
-using Etherna.VideoImporter.Core.SSO;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Devcon.Options;
 using Etherna.VideoImporter.Devcon.Services;
@@ -26,7 +24,6 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -214,50 +211,27 @@ namespace Etherna.VideoImporter.Devcon
             if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
                 return;
 
-            // Sign with SSO and register authenticated http client.
-            string userEthAddr;
-            string userName;
+            // Register etherna service clients.
             var services = new ServiceCollection();
+            IEthernaUserClientsBuilder ethernaClientsBuilder;
             if (apiKey is null) //"code" grant flow
             {
-                var authResult = await SignInService.CodeFlowSigIn();
-                if (authResult.IsError)
-                {
-                    Console.WriteLine($"Error during authentication");
-                    Console.WriteLine(authResult.Error);
-                    return;
-                }
-                userEthAddr = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).First().Value;
-                userName = authResult.User.Claims.Where(i => i.Type == EthernaClaimTypes.Username).First().Value;
-
-                //register HttpClient
-                services.AddEthernaHttpClient(authResult.RefreshTokenHandler);
+                ethernaClientsBuilder = services.AddEthernaUserClientsWithCodeAuth(
+                    CommonConsts.EthernaSsoUrl,
+                    CommonConsts.EthernaVideoImporterClientId,
+                    null,
+                    11420,
+                    new[] { "userApi.gateway", "userApi.index" });
             }
             else //"password" grant flow
             {
-                var tokenResponse = await SignInService.PasswordFlowSignInAsync(apiKey);
-                if (tokenResponse.IsError || tokenResponse.AccessToken is null)
-                {
-                    Console.WriteLine($"Error during authentication");
-                    Console.WriteLine($"{tokenResponse.Error}: {tokenResponse.ErrorDescription}");
-                    return;
-                }
-
-                var userInfoResponse = await SignInService.PasswordFlowGetUserInfoAsync(tokenResponse.AccessToken);
-                if (userInfoResponse.IsError)
-                {
-                    Console.WriteLine($"Error retrieving user info");
-                    Console.WriteLine($"{userInfoResponse.Error}: {userInfoResponse.HttpErrorReason}");
-                    return;
-                }
-
-                userEthAddr = userInfoResponse.Claims.Where(i => i.Type == EthernaClaimTypes.EtherAddress).First().Value;
-                userName = userInfoResponse.Claims.Where(i => i.Type == EthernaClaimTypes.Username).First().Value;
-
-                //register HttpClient
-                services.AddEthernaHttpClient(tokenResponse);
+                ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
+                    CommonConsts.EthernaSsoUrl,
+                    apiKey,
+                    new[] { "userApi.gateway", "userApi.index" });
             }
-            Console.WriteLine($"User {userName} autenticated");
+            ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
+                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
 
             // Setup DI.
             //configure options
@@ -291,8 +265,6 @@ namespace Etherna.VideoImporter.Devcon
                         else
                             throw new ArgumentException($"Invalid value for TTL Postage Stamp");
                     }
-
-                    uploaderOptions.UserEthAddr = userEthAddr;
                 },
                 useBeeNativeNode);
             services.AddTransient<IYoutubeClient, YoutubeClient>();
@@ -309,7 +281,6 @@ namespace Etherna.VideoImporter.Devcon
                 forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                userEthAddr,
                 unpinRemovedVideos);
         }
     }
