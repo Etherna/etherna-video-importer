@@ -12,38 +12,51 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeeNet;
-using Etherna.ServicesClient;
+using Etherna.ServicesClient.Users.Native;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
-using Etherna.VideoImporter.Core.SSO;
+using Etherna.VideoImporter.Core.Utilities;
+using Etherna.VideoImporter.Devcon.Options;
 using Etherna.VideoImporter.Devcon.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace Etherna.VideoImporter.Devcon
 {
     internal static class Program
     {
         // Consts.
-        private const int DefaultTTLPostageStamp = 365;
-        private const string DefaultFFmpegFolder = @".\FFmpeg\";
         private static readonly string HelpText =
             "\n" +
             "Usage:\tEthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]\n" +
             "\n" +
             "Options:\n" +
-            $"  -ff\tPath FFmpeg (default dir: {DefaultFFmpegFolder})\n" +
-            $"  -t\tTTL (days) Postage Stamp (default value: {DefaultTTLPostageStamp} days)\n" +
+            $"  -ff <path>\tPath FFmpeg (default dir: {CommonConsts.DefaultFFmpegFolder})\n" +
+            $"  -t <days>\tTTL (days) Postage Stamp (default value: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)\n" +
+            "  -ak <key>\tApi Key (optional)" +
             "  -o\tOffer video downloads to everyone\n" +
             "  -p\tPin videos\n" +
             "  -m\tRemove indexed videos generated with this tool but missing from source\n" +
             "  -e\tRemove indexed videos not generated with this tool\n" +
             "  -u\tTry to unpin contents removed from index\n" +
+            "  -f\tForce upload video if they already has been uploaded\n" +
+            "  -y\tAccept automatically purchase of all batches\n" +
+            "  -i\tIgnore new versions of EthernaVideoImporter.Devcon\n" +
+            "  --beenode\tUse bee native node\n" +
+            $"  --beenodeurl <url>\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
+            $"  --beenodeapiport <apiPort>\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
+            $"  --beenodedebugport <debugPort>\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
+            "  --skip1440\tSkip upload resolution 1440p\n" +
+            "  --skip1080\tSkip upload resolution 1080p\n" +
+            "  --skip720\tSkip upload resolution 720p\n" +
+            "  --skip480\tSkip upload resolution 480p\n" +
+            "  --skip360\tSkip upload resolution 360p\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
 
@@ -51,15 +64,29 @@ namespace Etherna.VideoImporter.Devcon
         {
             // Parse arguments.
             string? mdSourceFolderPath = null;
-            string ffMpegFolderPath = DefaultFFmpegFolder;
+            string? apiKey = null;
+            string? customFFMpegFolderPath = null;
             string? ttlPostageStampStr = null;
-            int ttlPostageStamp = DefaultTTLPostageStamp;
+            string? beeNodeApiPortStr = null;
+            string? beeNodeDebugPortStr = null;
+            string beeNodeUrl = CommonConsts.BeeNodeUrl;
+            int beeNodeApiPort = CommonConsts.BeeApiPort;
+            int beeNodeDebugPort = CommonConsts.BeeDebugPort;
             bool offerVideos = false;
             bool pinVideos = false;
             bool deleteVideosMissingFromSource = false;
             bool deleteExogenousVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             bool unpinRemovedVideos = false;
+            bool forceVideoUpload = false;
+            bool acceptPurchaseOfAllBatches = false;
+            bool ignoreNewVersionsOfImporter = false;
+            bool skip1440 = false;
+            bool skip1080 = false;
+            bool skip720 = false;
+            bool skip480 = false;
+            bool skip360 = false;
+            bool useBeeNativeNode = false;
 
             // Parse input.
             if (args.Length == 0)
@@ -99,100 +126,161 @@ namespace Etherna.VideoImporter.Devcon
             {
                 switch (args[i])
                 {
+                    case "-ak":
+                        if (args.Length == i + 1)
+                            throw new ArgumentException("Api Key is missing");
+                        apiKey = args[++i];
+                        break;
                     case "-ff":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("ffMpeg folder is missing");
-                        ffMpegFolderPath = args[++i];
+                            throw new ArgumentException("FFmpeg folder is missing");
+                        customFFMpegFolderPath = args[++i];
                         break;
                     case "-t":
                         if (args.Length == i + 1)
-                            throw new InvalidOperationException("TTL value is missing");
+                            throw new ArgumentException("TTL value is missing");
                         ttlPostageStampStr = args[++i];
+                        break;
+                    case "--beenode":
+                        useBeeNativeNode = true;
+                        break;
+                    case "--beenodeurl":
+                        if (args.Length == i + 1)
+                            throw new ArgumentException("Bee node value is missing");
+                        beeNodeUrl = args[++i];
+                        useBeeNativeNode = true;
+                        if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
+                            beeNodeUrl += "/";
+                        break;
+                    case "--beenodeapiport":
+                        if (args.Length == i + 1)
+                            throw new ArgumentException("Bee node API port missing");
+                        beeNodeApiPortStr = args[++i];
+                        useBeeNativeNode = true;
+                        break;
+                    case "--beenodedebugport":
+                        if (args.Length == i + 1)
+                            throw new ArgumentException("Bee node Debug port missing");
+                        beeNodeDebugPortStr = args[++i];
+                        useBeeNativeNode = true;
                         break;
                     case "-o": offerVideos = true; break;
                     case "-p": pinVideos = true; break;
                     case "-m": deleteVideosMissingFromSource = true; break;
                     case "-e": deleteExogenousVideos = true; break;
                     case "-u": unpinRemovedVideos = true; break;
+                    case "-f": forceVideoUpload = true; break;
+                    case "-y": acceptPurchaseOfAllBatches = true; break;
+                    case "-i": ignoreNewVersionsOfImporter = true; break;
+                    case "-skip1440": skip1440 = true; break;
+                    case "-skip1080": skip1080 = true; break;
+                    case "-skip720": skip720 = true; break;
+                    case "-skip480": skip480 = true; break;
+                    case "-skip360": skip360 = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
 
             // Input validation.
-            //FFmpeg
-            var ffMpegBinaryPath = Path.Combine(ffMpegFolderPath, CommonConsts.FFMpegBinaryName);
-            if (!File.Exists(ffMpegBinaryPath))
+            //offer video
+            if (offerVideos &&
+                useBeeNativeNode)
             {
-                Console.WriteLine($"FFmpeg not found at ({ffMpegBinaryPath})");
+                Console.WriteLine($"Only Etherna Gateway supports offering video downloads to everyone");
                 return;
             }
 
-            //ttl postage batch
-            if (!string.IsNullOrEmpty(ttlPostageStampStr) &&
-                !int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out ttlPostageStamp))
+            //bee node api port
+            if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
+                !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
             {
-                Console.WriteLine($"Invalid value for TTL Postage Stamp");
+                Console.WriteLine($"Invalid value for Gateway API port");
                 return;
             }
 
-            // Sign with SSO and create auth client.
-            var authResult = await SignServices.SigInSSO();
-            if (authResult.IsError)
+            //bee node debug port
+            if (!string.IsNullOrEmpty(beeNodeDebugPortStr) &&
+                !int.TryParse(beeNodeDebugPortStr, CultureInfo.InvariantCulture, out beeNodeDebugPort))
             {
-                Console.WriteLine($"Error during authentication");
-                Console.WriteLine(authResult.Error);
-                return;
-            }
-            var userEthAddr = authResult.User.Claims.Where(i => i.Type == "ether_address").FirstOrDefault()?.Value;
-            if (string.IsNullOrWhiteSpace(userEthAddr))
-            {
-                Console.WriteLine($"Missing ether address");
+                Console.WriteLine($"Invalid value for Gateway Debug port");
                 return;
             }
 
-            // Inizialize services.
-            using var httpClient = new HttpClient(authResult.RefreshTokenHandler) { Timeout = TimeSpan.FromMinutes(30) };
+            // Check for new versions.
+            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
+            if (newVersionAvaiable && !ignoreNewVersionsOfImporter)
+                return;
 
-            var ethernaUserClients = new EthernaUserClients(
-                new Uri(CommonConsts.EthernaCreditUrl),
-                new Uri(CommonConsts.EthernaGatewayUrl),
-                new Uri(CommonConsts.EthernaIndexUrl),
-                new Uri(CommonConsts.EthernaSsoUrl),
-                () => httpClient);
-            using var beeNodeClient = new BeeNodeClient(
-                CommonConsts.EthernaGatewayUrl,
-                CommonConsts.BeeNodeGatewayPort,
-                null,
-                CommonConsts.BeeNodeGatewayVersion,
-                CommonConsts.BeeNodeDebugVersion,
-                httpClient);
-            var videoUploaderService = new VideoUploaderService(
-                beeNodeClient,
-                ethernaUserClients.GatewayClient,
-                ethernaUserClients.IndexClient,
-                userEthAddr,
-                TimeSpan.FromDays(ttlPostageStamp));
+            // Register etherna service clients.
+            var services = new ServiceCollection();
+            IEthernaUserClientsBuilder ethernaClientsBuilder;
+            if (apiKey is null) //"code" grant flow
+            {
+                ethernaClientsBuilder = services.AddEthernaUserClientsWithCodeAuth(
+                    CommonConsts.EthernaSsoUrl,
+                    CommonConsts.EthernaVideoImporterClientId,
+                    null,
+                    11420,
+                    new[] { "userApi.gateway", "userApi.index" });
+            }
+            else //"password" grant flow
+            {
+                ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
+                    CommonConsts.EthernaSsoUrl,
+                    apiKey,
+                    new[] { "userApi.gateway", "userApi.index" });
+            }
+            ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
+                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
 
-            // Call runner.
-            var importer = new EthernaVideoImporter(
-                new CleanerVideoService(
-                    ethernaUserClients.GatewayClient,
-                    ethernaUserClients.IndexClient),
-                ethernaUserClients.GatewayClient,
-                ethernaUserClients.IndexClient,
-                new DevconLinkReporterService(mdSourceFolderPath),
-                new MdVideoProvider(
-                    mdSourceFolderPath,
-                    ffMpegBinaryPath,
-                    includeAudioTrack),
-                videoUploaderService);
+            // Setup DI.
+            //configure options
+            services.Configure<MdVideoProviderOptions>(options =>
+            {
+                options.MdSourceFolderPath = mdSourceFolderPath;
+            });
+            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
 
+            //add services
+            services.AddCoreServices(
+                encoderOptions =>
+                {
+                    if (customFFMpegFolderPath is not null)
+                        encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
+                    encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                    encoderOptions.Skip1440 = skip1440;
+                    encoderOptions.Skip1080 = skip1080;
+                    encoderOptions.Skip720 = skip720;
+                    encoderOptions.Skip480 = skip480;
+                    encoderOptions.Skip360 = skip360;
+                },
+                uploaderOptions =>
+                {
+                    uploaderOptions.AcceptPurchaseOfAllBatches = acceptPurchaseOfAllBatches;
+
+                    if (!string.IsNullOrEmpty(ttlPostageStampStr))
+                    {
+                        if (int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out var ttlPostageStamp))
+                            uploaderOptions.TtlPostageStamp = TimeSpan.FromDays(ttlPostageStamp);
+                        else
+                            throw new ArgumentException($"Invalid value for TTL Postage Stamp");
+                    }
+                },
+                useBeeNativeNode);
+            services.AddTransient<IYoutubeClient, YoutubeClient>();
+            services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
+            services.AddTransient<IVideoProvider, MdVideoProvider>();
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Start importer.
+            var importer = serviceProvider.GetRequiredService<IEthernaVideoImporter>();
             await importer.RunAsync(
-                userEthAddr,
+                deleteExogenousVideos,
+                deleteVideosMissingFromSource,
+                forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                deleteVideosMissingFromSource,
-                deleteExogenousVideos,
                 unpinRemovedVideos);
         }
     }

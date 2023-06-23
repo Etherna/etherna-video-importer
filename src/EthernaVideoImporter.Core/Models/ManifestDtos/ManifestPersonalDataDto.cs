@@ -12,17 +12,27 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Epoche;
+using System;
+
 namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public class ManifestPersonalDataDto
     {
+        // Properties.
         public string? ClientName { get; set; }
-        public string? VideoId { get; set; }
+        public string? ClientVersion { get; set; }
+        public string? VideoIdHash { get; set; }
 
+        // Public methods.
         public static ManifestPersonalDataDto BuildNew(string videoId) => new()
         {
             ClientName = CommonConsts.ImporterIdentifier,
-            VideoId = videoId
+            ClientVersion = EthernaVersionControl.CurrentVersion.ToString(),
+            VideoIdHash = HashVideoId(videoId),
         };
+
+        public static string HashVideoId(string videoId) =>
+            BitConverter.ToString(Keccak256.ComputeHash(videoId)).Replace("-", "", StringComparison.OrdinalIgnoreCase);
     }
 }

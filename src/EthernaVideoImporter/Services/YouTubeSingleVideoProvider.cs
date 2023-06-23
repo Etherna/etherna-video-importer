@@ -16,46 +16,41 @@ using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Models.Domain;
+using Etherna.VideoImporter.Options;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using YoutubeExplode;
 
 namespace Etherna.VideoImporter.Services
 {
-    public sealed class YouTubeSingleVideoProvider : IVideoProvider
+    internal sealed class YouTubeSingleVideoProvider : IVideoProvider
     {
         // Fields.
-        private readonly string videoUrl;
-        private readonly bool includeAudioTrack;
-        private readonly YoutubeClient youtubeClient;
+        private readonly YouTubeSingleVideoProviderOptions options;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public YouTubeSingleVideoProvider(
-            string videoUrl,
-            string ffMpegPath,
-            bool includeAudioTrack)
+            IOptions<YouTubeSingleVideoProviderOptions> options,
+            IYoutubeDownloader youtubeDownloader)
         {
-            this.videoUrl = videoUrl;
-            this.includeAudioTrack = includeAudioTrack;
-            youtubeClient = new();
-            youtubeDownloader = new YoutubeDownloader(ffMpegPath, youtubeClient);
+            this.options = options.Value;
+            this.youtubeDownloader = youtubeDownloader;
         }
 
         // Properties.
-        public string SourceName => videoUrl;
+        public string SourceName => options.VideoUrl;
 
         // Methods.
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
-            includeAudioTrack,
             videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var metadata = await youtubeClient.Videos.GetAsync(videoUrl);
-            var bestStreamInfo = (await youtubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
+            var metadata = await youtubeDownloader.YoutubeClient.Videos.GetAsync(options.VideoUrl);
+            var bestStreamInfo = (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
                 .GetVideoOnlyStreams()
                 .OrderByDescending(s => s.VideoResolution.Area)
                 .First();
@@ -63,13 +58,16 @@ namespace Etherna.VideoImporter.Services
             return new[]
             {
                 new YouTubeVideoMetadata(
+                    metadata.Title,
                     metadata.Description,
                     metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
                     bestStreamInfo.VideoQuality.Label,
                     metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
-                    metadata.Title,
                     metadata.Url)
             };
         }
+
+        public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
+            Task.CompletedTask;
     }
 }

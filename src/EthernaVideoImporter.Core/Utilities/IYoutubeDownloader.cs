@@ -14,11 +14,17 @@
 
 using Etherna.VideoImporter.Core.Models.Domain;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace Etherna.VideoImporter.Core.Utilities
 {
     public interface IYoutubeDownloader
     {
-        Task<Video> GetVideoAsync(bool includeAudioTrack, YouTubeVideoMetadataBase videoMetadata);
+        // Properties.
+        IYoutubeClient YoutubeClient { get; }
+
+        // Methods.
+        Task<Video> GetVideoAsync(
+            YouTubeVideoMetadataBase videoMetadata);
     }
 }

@@ -12,64 +12,90 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Clients.Gateway;
-using Etherna.ServicesClient.Clients.Index;
+using Etherna.Authentication;
+using Etherna.Authentication.Native;
+using Etherna.ServicesClient.GeneratedClients.Index;
+using Etherna.ServicesClient.Users;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core
 {
-    public class EthernaVideoImporter
+    public class EthernaVideoImporter : IEthernaVideoImporter
     {
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
-        private readonly IUserGatewayClient ethernaGatewayClient;
-        private readonly IUserIndexClient ethernaIndexClient;
-        private readonly ILinkReporterService linkReporterService;
+        private readonly IEthernaUserIndexClient ethernaIndexClient;
+        private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
+        private readonly IEthernaSignInService ethernaSignInService;
+        private readonly IGatewayService gatewayService;
+        private readonly IMigrationService migrationService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
         // Constructor.
         public EthernaVideoImporter(
             ICleanerVideoService cleanerVideoService,
-            IUserGatewayClient ethernaGatewayClient,
-            IUserIndexClient ethernaIndexClient,
-            ILinkReporterService linkReporterService,
+            IEthernaUserIndexClient ethernaIndexClient,
+            IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
+            IEthernaSignInService ethernaSignInService,
+            IGatewayService gatewayService,
+            IMigrationService migrationService,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
             if (cleanerVideoService is null)
                 throw new ArgumentNullException(nameof(cleanerVideoService));
-            if (linkReporterService is null)
-                throw new ArgumentNullException(nameof(linkReporterService));
             if (videoProvider is null)
                 throw new ArgumentNullException(nameof(videoProvider));
             if (videoUploaderService is null)
                 throw new ArgumentNullException(nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
-            this.ethernaGatewayClient = ethernaGatewayClient;
             this.ethernaIndexClient = ethernaIndexClient;
-            this.linkReporterService = linkReporterService;
+            this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
+            this.ethernaSignInService = ethernaSignInService;
+            this.gatewayService = gatewayService;
+            this.migrationService = migrationService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
 
         // Public methods.
         public async Task RunAsync(
-            string userEthAddress,
+            bool deleteExogenousVideos,
+            bool deleteVideosRemovedFromSource,
+            bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
-            bool deleteVideosRemovedFromSource,
-            bool deleteExogenousVideos,
             bool unpinRemovedVideos)
         {
+            // Signin user.
+            try
+            {
+                await ethernaSignInService.SignInAsync();
+            }
+            catch (InvalidOperationException e)
+            {
+                Console.WriteLine($"Error during authentication");
+                Console.WriteLine(e.Message);
+                throw;
+            }
+
+            // Get info from authenticated user.
+            var userEthAddress = await ethernaOpenIdConnectClient.GetEtherAddressAsync();
+            var userName = await ethernaOpenIdConnectClient.GetUsernameAsync();
+
+            Console.WriteLine($"User {userName} authenticated");
+
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
 
@@ -89,10 +115,12 @@ namespace Etherna.VideoImporter.Core
             // Import each video.
             Console.WriteLine("Start importing videos");
 
+            var importSummaryModelView = new ImportSummaryModelView();
             foreach (var (sourceMetadata, i) in sourceVideosMetadata.Select((m, i) => (m, i)))
             {
                 string updatedIndexId;
                 string updatedPermalinkHash;
+                OperationType operationType;
 
                 try
                 {
@@ -102,41 +130,59 @@ namespace Etherna.VideoImporter.Core
 
                     // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
-                        v => v.LastValidManifest?.PersonalData?.VideoId == sourceMetadata.Id);
+                        v => v.LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id));
 
-                    if (alreadyPresentVideo != null)
+                    // Check if need a migration operation.
+                    var minRequiredMigrationOp = migrationService.DecideOperation(alreadyPresentVideo?.LastValidManifest?.PersonalData);
+
+                    //try to update only manifest, or to skip if possible
+                    if (alreadyPresentVideo is not null &&
+                        !forceVideoUpload &&
+                        minRequiredMigrationOp is OperationType.Skip or OperationType.UpdateManifest)
                     {
                         Console.WriteLine("Video already uploaded on etherna");
 
                         // Verify if manifest needs to be updated with new metadata.
                         updatedIndexId = alreadyPresentVideo.IndexId;
 
-                        if (alreadyPresentVideo.IsEqualTo(sourceMetadata))
+                        //try to skip
+                        if (alreadyPresentVideo.IsEqualTo(sourceMetadata) &&
+                            minRequiredMigrationOp is OperationType.Skip)
                         {
+                            operationType = OperationType.Skip;
                             updatedPermalinkHash = alreadyPresentVideo.LastValidManifest!.Hash;
                         }
+
+                        //else update manifest
                         else
                         {
                             Console.WriteLine($"Metadata has changed, update the video manifest");
 
-                            var updatedManifest = new ManifestDto(
-                                sourceMetadata.Title,
-                                sourceMetadata.Description,
-                                alreadyPresentVideo.LastValidManifest!.OriginalQuality,
-                                userEthAddress,
-                                alreadyPresentVideo.LastValidManifest.Duration,
-                                new ManifestThumbnailDto(
+                            operationType = OperationType.UpdateManifest;
+
+                            // Create manifest.
+                            var thumbnailFiles = alreadyPresentVideo.LastValidManifest!.Thumbnail.Sources.Select(t =>
+                                new ThumbnailSwarmFile(
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
-                                    alreadyPresentVideo.LastValidManifest.Thumbnail.Sources),
-                                alreadyPresentVideo.LastValidManifest.Sources.Select(s => new ManifestVideoSourceDto(s)),
-                                alreadyPresentVideo.CreationDateTime.ToUnixTimeMilliseconds(), //this should be retrieved from manifest. See: https://etherna.atlassian.net/browse/EVI-60
-                                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                                alreadyPresentVideo.LastValidManifest.BatchId,
-                                JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(sourceMetadata.Id!)));
+                                    t.Value,
+                                    0,/*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
+                                    int.Parse(t.Key.Replace("w", "", StringComparison.OrdinalIgnoreCase), CultureInfo.InvariantCulture))); 
+
+                            var videoMetadata = new SwarmVideoMetadata(
+                                sourceMetadata.Id,
+                                sourceMetadata.Title,
+                                sourceMetadata.Description,
+                                TimeSpan.FromSeconds(alreadyPresentVideo.LastValidManifest!.Duration),
+                                alreadyPresentVideo.LastValidManifest!.OriginalQuality);
+
+                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference));
+
+                            var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
                             // Upload new manifest.
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(updatedManifest, pinVideos);
+                            var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
+                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(
@@ -144,8 +190,12 @@ namespace Etherna.VideoImporter.Core
                                 updatedPermalinkHash);
                         }
                     }
-                    else //try to upload new video on etherna
+
+                    //else, full upload the new video on etherna
+                    else
                     {
+                        operationType = OperationType.ImportAll;
+
                         // Validate metadata.
                         if (sourceMetadata.Title.Length > ethernaIndexParameters.VideoTitleMaxLength)
                         {
@@ -164,6 +214,7 @@ namespace Etherna.VideoImporter.Core
 
                         // Get and encode video from source.
                         var video = await videoProvider.GetVideoAsync(sourceMetadata);
+                        video.EthernaIndexId = alreadyPresentVideo?.IndexId;
 
                         if (!video.EncodedFiles.Any())
                         {
@@ -174,7 +225,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Upload video and all related data.
-                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos);
+                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos, userEthAddress);
 
                         updatedIndexId = video.EthernaIndexId!;
                         updatedPermalinkHash = video.EthernaPermalinkHash!;
@@ -184,6 +235,20 @@ namespace Etherna.VideoImporter.Core
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine($"#{i + 1} Video imported successfully");
                     Console.ResetColor();
+
+                    // Summary count.
+                    switch (operationType)
+                    {
+                        case OperationType.ImportAll:
+                            importSummaryModelView.TotSuccessVideoImported++;
+                            break;
+                        case OperationType.UpdateManifest:
+                            importSummaryModelView.TotUpdatedVideoImported++;
+                            break;
+                        case OperationType.Skip:
+                            importSummaryModelView.TotSkippedVideoImported++;
+                            break;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -193,7 +258,25 @@ namespace Etherna.VideoImporter.Core
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
 
+                    importSummaryModelView.TotErrorVideoImported++;
                     continue;
+                }
+                finally {
+                    try
+                    {
+                        // Clear tmp folder.
+                        foreach (var file in CommonConsts.TempDirectory.GetFiles())
+                            file.Delete();
+                        foreach (var dir in CommonConsts.TempDirectory.GetDirectories())
+                            dir.Delete(true);
+                    }
+                    catch
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+                        Console.WriteLine($"Warning: unable to delete some files inside of {CommonConsts.TempDirectory.FullName}.");
+                        Console.WriteLine($"Please remove manually after the process.");
+                        Console.ResetColor();
+                    }
                 }
 
                 // Report etherna new references.
@@ -203,7 +286,7 @@ namespace Etherna.VideoImporter.Core
                      * Report etherna references even if video is already present on index.
                      * This handle cases where references are missing for some previous execution error.
                      */
-                    await linkReporterService.SetEthernaReferencesAsync(
+                    await videoProvider.ReportEthernaReferencesAsync(
                         sourceMetadata.Id,
                         updatedIndexId,
                         updatedPermalinkHash);
@@ -222,24 +305,37 @@ namespace Etherna.VideoImporter.Core
             // Clean up user channel on etherna index.
             IEnumerable<string>? gatewayPinnedHashes = null;
             if (unpinRemovedVideos)
-                gatewayPinnedHashes = await ethernaGatewayClient.UsersClient.PinnedResourcesAsync();
+                gatewayPinnedHashes = await gatewayService.GetPinnedResourcesAsync();
 
             if (deleteVideosRemovedFromSource)
-                await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
+                importSummaryModelView.TotDeletedRemovedFromSource = await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
                     sourceVideosMetadata,
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
 
             if (deleteExogenousVideos)
-                await cleanerVideoService.DeleteExogenousVideosAsync(
+                importSummaryModelView.TotDeletedExogenous = await cleanerVideoService.DeleteExogenousVideosAsync(
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
+
+            // Print summary.
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
+            Console.WriteLine("Import completed.");
+            Console.WriteLine();
+            Console.WriteLine($"Total video processed: {importSummaryModelView.TotProcessedVideos}");
+            Console.WriteLine($"Total video imported: {importSummaryModelView.TotSuccessVideoImported}");
+            Console.WriteLine($"Total video updated: {importSummaryModelView.TotUpdatedVideoImported}");
+            Console.WriteLine($"Total video skipped (already present): {importSummaryModelView.TotSkippedVideoImported}");
+            Console.WriteLine($"Total video with errors: {importSummaryModelView.TotErrorVideoImported}");
+            Console.WriteLine($"Total video deleted for missing in source: {importSummaryModelView.TotDeletedRemovedFromSource}");
+            Console.WriteLine($"Total video deleted because not from this tool: {importSummaryModelView.TotDeletedExogenous}");
+            Console.ResetColor();
         }
 
         // Helpers.
-        public async Task<IEnumerable<IndexedVideo>> GetUserVideosOnEthernaAsync(string userAddress)
+        private async Task<IEnumerable<IndexedVideo>> GetUserVideosOnEthernaAsync(string userAddress)
         {
             var videos = new List<VideoDto>();
             const int MaxForPage = 100;

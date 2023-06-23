@@ -12,7 +12,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.ServicesClient.GeneratedClients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 
 namespace Etherna.VideoImporter.Core.Models.Index
@@ -20,7 +22,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
     public sealed class IndexedVideo
     {
         // Constructors.
-        public IndexedVideo(ServicesClient.Clients.Index.VideoDto video)
+        public IndexedVideo(VideoDto video)
         {
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
@@ -38,7 +40,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
 
         // Internal methods.
         internal bool IsEqualTo(VideoMetadataBase sourceMetadata) =>
-            LastValidManifest?.PersonalData?.VideoId == sourceMetadata.Id &&
+            LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id) &&
             LastValidManifest?.Title == sourceMetadata.Title &&
             LastValidManifest?.Description == sourceMetadata.Description;
     }
