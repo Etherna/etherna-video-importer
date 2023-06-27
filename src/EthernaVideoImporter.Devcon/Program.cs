@@ -52,11 +52,6 @@ namespace Etherna.VideoImporter.Devcon
             $"  --beenodeurl <url>\tUrl of Bee node (default value: {CommonConsts.BeeNodeUrl})\n" +
             $"  --beenodeapiport <apiPort>\tPort used by API (default value: {CommonConsts.BeeApiPort})\n" +
             $"  --beenodedebugport <debugPort>\tPort used by Debug (default value: {CommonConsts.BeeDebugPort})\n" +
-            "  --skip1440\tSkip upload resolution 1440p\n" +
-            "  --skip1080\tSkip upload resolution 1080p\n" +
-            "  --skip720\tSkip upload resolution 720p\n" +
-            "  --skip480\tSkip upload resolution 480p\n" +
-            "  --skip360\tSkip upload resolution 360p\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
         private const string HttpClientName = "ethernaAuthnHttpClient";
@@ -83,11 +78,6 @@ namespace Etherna.VideoImporter.Devcon
             bool forceVideoUpload = false;
             bool acceptPurchaseOfAllBatches = false;
             bool ignoreNewVersionsOfImporter = false;
-            bool skip1440 = false;
-            bool skip1080 = false;
-            bool skip720 = false;
-            bool skip480 = false;
-            bool skip360 = false;
             bool useBeeNativeNode = false;
 
             // Parse input.
@@ -174,11 +164,6 @@ namespace Etherna.VideoImporter.Devcon
                     case "-f": forceVideoUpload = true; break;
                     case "-y": acceptPurchaseOfAllBatches = true; break;
                     case "-i": ignoreNewVersionsOfImporter = true; break;
-                    case "-skip1440": skip1440 = true; break;
-                    case "-skip1080": skip1080 = true; break;
-                    case "-skip720": skip720 = true; break;
-                    case "-skip480": skip480 = true; break;
-                    case "-skip360": skip360 = true; break;
                     default: throw new ArgumentException(args[i] + " is not a valid argument");
                 }
             }
@@ -260,11 +245,6 @@ namespace Etherna.VideoImporter.Devcon
                     if (customFFMpegFolderPath is not null)
                         encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
-                    encoderOptions.Skip1440 = skip1440;
-                    encoderOptions.Skip1080 = skip1080;
-                    encoderOptions.Skip720 = skip720;
-                    encoderOptions.Skip480 = skip480;
-                    encoderOptions.Skip360 = skip360;
                 },
                 uploaderOptions =>
                 {
