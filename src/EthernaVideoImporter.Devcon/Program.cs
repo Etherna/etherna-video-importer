@@ -59,7 +59,9 @@ namespace Etherna.VideoImporter.Devcon
             "  --skip360\tSkip upload resolution 360p\n" +
             "\n" +
             "Run 'EthernaVideoImporter.Devcon -h' to print help\n";
+        private const string HttpClientName = "ethernaAuthnHttpClient";
 
+        // Methods.
         static async Task Main(string[] args)
         {
             // Parse arguments.
@@ -221,14 +223,24 @@ namespace Etherna.VideoImporter.Devcon
                     CommonConsts.EthernaVideoImporterClientId,
                     null,
                     11420,
-                    new[] { "userApi.gateway", "userApi.index" });
+                    new[] { "userApi.gateway", "userApi.index" },
+                    HttpClientName,
+                    c =>
+                    {
+                        c.Timeout = TimeSpan.FromMinutes(30);
+                    });
             }
             else //"password" grant flow
             {
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
                     CommonConsts.EthernaSsoUrl,
                     apiKey,
-                    new[] { "userApi.gateway", "userApi.index" });
+                    new[] { "userApi.gateway", "userApi.index" },
+                    HttpClientName,
+                    c =>
+                    {
+                        c.Timeout = TimeSpan.FromMinutes(30);
+                    });
             }
             ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
                                  .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
@@ -266,6 +278,7 @@ namespace Etherna.VideoImporter.Devcon
                             throw new ArgumentException($"Invalid value for TTL Postage Stamp");
                     }
                 },
+                HttpClientName,
                 useBeeNativeNode);
             services.AddTransient<IYoutubeClient, YoutubeClient>();
             services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
