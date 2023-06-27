@@ -27,7 +27,7 @@ namespace Etherna.VideoImporter.Core
         public const string BeeNodeUrl = "http://localhost/";
         public const GatewayApiVersion BeeNodeGatewayVersion = GatewayApiVersion.v4_0_0;
         public const DebugApiVersion BeeNodeDebugVersion = DebugApiVersion.v4_0_0;
-        public const string DefaultFFmpegFolder = @".\FFmpeg\";
+        public static readonly string DefaultFFmpegFolder = Path.Combine(".", "FFmpeg");
         public const int DownloadMaxRetry = 3;
         public static readonly TimeSpan DownloadTimespanRetry = TimeSpan.FromMilliseconds(3500);
         public const string EthernaCreditUrl = "https://credit.etherna.io/";

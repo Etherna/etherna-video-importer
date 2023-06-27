@@ -71,8 +71,8 @@ namespace Etherna.VideoImporter.Core
 
         // Public methods.
         public async Task RunAsync(
-            bool deleteExogenousVideos,
-            bool deleteVideosRemovedFromSource,
+            bool removeUnrecognizedVideos,
+            bool removeMissingVideosFromSource,
             bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
@@ -307,14 +307,14 @@ namespace Etherna.VideoImporter.Core
             if (unpinRemovedVideos)
                 gatewayPinnedHashes = await gatewayService.GetPinnedResourcesAsync();
 
-            if (deleteVideosRemovedFromSource)
+            if (removeMissingVideosFromSource)
                 importSummaryModelView.TotDeletedRemovedFromSource = await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
                     sourceVideosMetadata,
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
 
-            if (deleteExogenousVideos)
+            if (removeUnrecognizedVideos)
                 importSummaryModelView.TotDeletedExogenous = await cleanerVideoService.DeleteExogenousVideosAsync(
                     userVideosOnIndex,
                     gatewayPinnedHashes,

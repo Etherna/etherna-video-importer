@@ -19,8 +19,8 @@ namespace Etherna.VideoImporter.Core
     public interface IEthernaVideoImporter
     {
         Task RunAsync(
-            bool deleteExogenousVideos,
-            bool deleteVideosRemovedFromSource,
+            bool removeUnrecognizedVideos,
+            bool removeMissingVideosFromSource,
             bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
