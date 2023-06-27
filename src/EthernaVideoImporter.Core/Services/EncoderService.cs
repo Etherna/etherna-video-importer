@@ -13,6 +13,9 @@ namespace Etherna.VideoImporter.Core.Services
 {
     internal sealed class EncoderService : IEncoderService
     {
+        // Consts.
+        private readonly IEnumerable<int> SupportedHeightResolutions = new[] { 360, 480, 720, 1080, 1440 };
+
         // Fields.
         private readonly List<Command> activedCommands = new();
         private readonly EncoderServiceOptions options;
@@ -144,8 +147,8 @@ namespace Etherna.VideoImporter.Core.Services
             args.Add("-i"); args.Add(sourceVideoFile.FilePath);
 
             //all output streams
-            foreach (var height in options.GetSupportedHeightResolutions().Union(new List<int> { sourceVideoFile.Height })
-                                                                          .OrderDescending())
+            foreach (var height in SupportedHeightResolutions.Union(new List<int> { sourceVideoFile.Height })
+                                                             .OrderDescending())
             {
                 // Don't upscale, skip in case.
                 if (sourceVideoFile.Height < height)
