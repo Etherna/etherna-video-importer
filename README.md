@@ -22,73 +22,88 @@ To run the importer it is necessary to download [FFmpeg](https://ffmpeg.org/down
 
 **EthernaVideoImporter's help**
 ```
-Usage:  EthernaVideoImporter SOURCE_TYPE SOURCE_URI [OPTIONS]
+Usage:  evi COMMAND [OPTIONS] SOURCE_URI
 
-Source types:
-  ytchannel     YouTube channel
-  ytvideo       YouTube video
-  local         Local videos
+Commands:
+  youtube-channel   Import from a YouTube channel
+  youtube-video     Import from a YouTube video
+  local             Import from local videos (requires metadata descriptor, see below)
 
-Options:
-  -ff   Path FFmpeg (default dir: .\FFmpeg\)
-  -t    TTL (days) Postage Stamp (default value: 365 days)
-  -o    Offer video downloads to everyone
-  -p    Pin videos
-  -m    Remove indexed videos generated with this tool but missing from source
-  -e    Remove indexed videos not generated with this tool
-  -u    Try to unpin contents removed from index
-  -i    Ignore new version of EthernaVideoImporter
-  --beenode             Use bee native node
-  --beenodeurl          Url of Bee node (default value: http://localhost/)
-  --beenodeapiport      Port used by API (default value: 1633)
-  --beenodedebugport    Port used by Debug (default value: 1635)
+General Options:
+  -k, --api-key           Api Key (optional)
+  -f, --ffmpeg-path       Path to FFmpeg folder (default: ./FFmpeg)
+  -i, --ignore-update     Ignore new version of EthernaVideoImporter
+  -a, --auto-purchase     Accept automatically purchase of all batches
 
-Run 'EthernaVideoImporter -h' to print help
-```
+Video Management Options:
+  -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
+  -o, --offer             Offer video downloads to everyone
+  -p, --pin               Pin videos
+  --force                 Force upload video if they already have been uploaded
+  -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
+  --remove-unrecognized   Remove indexed videos not generated with this tool
+  -u, --unpin             Try to unpin contents removed from index
 
-**EthernaVideoImporter.Devcon's help**
-```
-Usage:  EthernaVideoImporter.Devcon md MD_FOLDER [OPTIONS]
+Bee Node Options:
+  --bee-node              Use bee native node
+  --bee-url               URL of Bee node (default: http://localhost/)
+  --bee-api-port          Port used by API (default: 1633)
+  --bee-debug-port        Port used by Debug (default: 1635)
 
-Options:
-  -ff   Path FFmpeg (default dir: .\FFmpeg\)
-  -t    TTL (days) Postage Stamp (default value: 365 days)
-  -o    Offer video downloads to everyone
-  -p    Pin videos
-  -m    Remove indexed videos generated with this tool but missing from source
-  -e    Remove indexed videos not generated with this tool
-  -u    Try to unpin contents removed from index
-  -i    Ignore new version of EthernaVideoImporter.Devcon
-  --beenode             Use bee native node
-  --beenodeurl          Url of Bee node (default value: http://localhost/)
-  --beenodeapiport      Port used by API (default value: 1633)
-  --beenodedebugport    Port used by Debug (default value: 1635)
+Local video metadata format:
+To import from local videos you will need a metadata descriptor file. Metadata is a JSON file with the following structure:
 
-Run 'EthernaVideoImporter.Devcon -h' to print help
-```
-
-#### Local videos
-
-To import from local videos you will need a metadata descriptor file.  
-Metadata is a Json file with following structure.
-
-```
 [
     {
         "Id": "myId1",
-        "Title": "My video 1 title",
+        "Title": "My video1 title",
         "Description": "My video description",
-        "VideoFilePath": "my/source/local/video/path.mp4",
-        "ThumbnailFilePath": "my/optional/thumbnail/path.jpg"
+        "VideoFilePath": "path/to/your/video1.mp4",
+        "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg"
     },
     {
         "Id": "myId2",
-        "Title": "My video 2 title",
+        "Title": "My video2 title",
         ...
     },
     ...
 ]
+
+Paths can be either relative or absolute. ThumbnailFilePath is optional.
+
+Run 'evi -h' or 'evi --help' to print help.
 ```
+
+**EthernaVideoImporter.Devcon's help**
+```
+Usage:  evid [OPTIONS] MD_FOLDER
+
+General Options:
+  -k, --api-key           Api Key (optional)
+  -f, --ffmpeg-path       Path to FFmpeg folder (default: .\FFmpeg)
+  -i, --ignore-update     Ignore new version of EthernaVideoImporter
+  -a, --auto-purchase     Accept automatically purchase of all batches
+
+Video Management Options:
+  -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
+  -o, --offer             Offer video downloads to everyone
+  -p, --pin               Pin videos
+  --force                 Force upload video if they already have been uploaded
+  -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
+  --remove-unrecognized   Remove indexed videos not generated with this tool
+  -u, --unpin             Try to unpin contents removed from index
+
+Bee Node Options:
+  --bee-node              Use bee native node
+  --bee-url               URL of Bee node (default: http://localhost/)
+  --bee-api-port          Port used by API (default: 1633)
+  --bee-debug-port        Port used by Debug (default: 1635)
+
+Run 'evid -h' or 'evid --help' to print help.
+```
+
+#### Local videos
+To import from local videos you will need a JSON metadata descriptor file.
 
 The `Id` field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique in the file.  
 The `ThumbnailFilePath` field is optional.
