@@ -23,6 +23,7 @@ using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -83,7 +84,8 @@ namespace Etherna.VideoImporter.Core
             {
                 await ethernaSignInService.SignInAsync();
             }
-            catch (InvalidOperationException e)
+            catch (Exception e) when (e is InvalidOperationException or
+                                           Win32Exception)
             {
                 Console.WriteLine($"Error during authentication");
                 Console.WriteLine(e.Message);
