@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -85,7 +86,8 @@ namespace Etherna.VideoImporter.Services
 
                     // Get video info.
                     var absoluteVideoFilePath = metadataDto.VideoFilePath;
-                    if (!Uri.IsWellFormedUriString(metadataDto.VideoFilePath, UriKind.Absolute))
+                    if (!Uri.IsWellFormedUriString(metadataDto.VideoFilePath, UriKind.Absolute) && 
+                         (metadataDto.VideoFilePath.StartsWith("http:") || metadataDto.VideoFilePath.StartsWith("https:")))
                         absoluteVideoFilePath = Path.IsPathFullyQualified(metadataDto.VideoFilePath) ?
                         metadataDto.VideoFilePath :
                         Path.Combine(jsonMetadataFileDirectory, metadataDto.VideoFilePath);
