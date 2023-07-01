@@ -56,6 +56,7 @@ namespace Etherna.VideoImporter.Services
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
+            var jsonMetadataFileDirectory = Path.GetDirectoryName(Path.GetFullPath(options.JsonMetadataFilePath))!;
             var localVideosMetadataDto = JsonSerializer.Deserialize<List<LocalVideoMetadataDto>>(
                 await File.ReadAllTextAsync(options.JsonMetadataFilePath)) 
                 ?? throw new InvalidDataException($"LocalFile wrong format in {options.JsonMetadataFilePath}");
@@ -72,14 +73,22 @@ namespace Etherna.VideoImporter.Services
                     ThumbnailLocalFile? thumbnail = null;
                     if (!string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
                     {
-                        using var thumbFileStream = File.OpenRead(metadataDto.ThumbnailFilePath);
+                        var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
+                            metadataDto.ThumbnailFilePath :
+                            Path.Combine(jsonMetadataFileDirectory, metadataDto.ThumbnailFilePath);
+
+                        using var thumbFileStream = File.OpenRead(absoluteThumbnailFilePath);
                         using var thumbManagedStream = new SKManagedStream(thumbFileStream);
                         using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-                        thumbnail = new ThumbnailLocalFile(metadataDto.ThumbnailFilePath, thumbBitmap.ByteCount, thumbBitmap.Height, thumbBitmap.Width);
+                        thumbnail = new ThumbnailLocalFile(absoluteThumbnailFilePath, thumbBitmap.ByteCount, thumbBitmap.Height, thumbBitmap.Width);
                     }
 
                     // Get video info.
-                    var ffProbeResult = GetFFProbeVideoInfo(metadataDto.VideoFilePath);
+                    var absoluteVideoFilePath = Path.IsPathFullyQualified(metadataDto.VideoFilePath) ?
+                        metadataDto.VideoFilePath :
+                        Path.Combine(jsonMetadataFileDirectory, metadataDto.VideoFilePath);
+
+                    var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
 
                     videosMetadataDictionary.Add(
                         metadataDto.Id,
@@ -91,10 +100,10 @@ namespace Etherna.VideoImporter.Services
                             $"{ffProbeResult.Streams.First().Height}p",
                             thumbnail,
                             new VideoLocalFile(
-                                metadataDto.VideoFilePath,
+                                absoluteVideoFilePath,
                                 ffProbeResult.Streams.First().Height,
                                 ffProbeResult.Streams.First().Width,
-                                new FileInfo(metadataDto.VideoFilePath).Length)));
+                                new FileInfo(absoluteVideoFilePath).Length)));
 
                     Console.WriteLine($"Loaded metadata for {metadataDto.Title}");
                 }
