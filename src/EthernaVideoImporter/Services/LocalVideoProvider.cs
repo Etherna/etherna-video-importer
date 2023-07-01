@@ -75,7 +75,7 @@ namespace Etherna.VideoImporter.Services
                     {
                         var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
                             metadataDto.ThumbnailFilePath :
-                            Path.Combine(jsonMetadataFileDirectory, metadataDto.ThumbnailFilePath)
+                            Path.Combine(jsonMetadataFileDirectory, metadataDto.ThumbnailFilePath);
 
                         using var thumbFileStream = File.OpenRead(absoluteThumbnailFilePath);
                         using var thumbManagedStream = new SKManagedStream(thumbFileStream);
