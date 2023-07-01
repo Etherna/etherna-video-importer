@@ -12,9 +12,6 @@ Currently exists two versions:
 
 Etherna Video Importer requires at least [.NET 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) and [ASP.NET Core 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
 
-**Warning**: this client still requires to be able to open a browser to provide authentication.  
-Future releases will improve this aspect accepting API keys instead.
-
 ### Setup FFmpeg
 To run the importer it is necessary to download [FFmpeg](https://ffmpeg.org/download.html) locally, and copy the binary file into the default folder "\FFmpeg", or specify its location with arguments.
 
@@ -31,7 +28,7 @@ Commands:
 
 General Options:
   -k, --api-key           Api Key (optional)
-  -f, --ffmpeg-path       Path to FFmpeg folder (default: ./FFmpeg)
+  -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
 
@@ -80,7 +77,7 @@ Usage:  evid [OPTIONS] MD_FOLDER
 
 General Options:
   -k, --api-key           Api Key (optional)
-  -f, --ffmpeg-path       Path to FFmpeg folder (default: ./FFmpeg)
+  -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
 

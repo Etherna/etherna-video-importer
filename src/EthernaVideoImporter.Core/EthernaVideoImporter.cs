@@ -23,6 +23,7 @@ using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -86,6 +87,12 @@ namespace Etherna.VideoImporter.Core
             catch (InvalidOperationException e)
             {
                 Console.WriteLine($"Error during authentication");
+                Console.WriteLine(e.Message);
+                throw;
+            }
+            catch (Win32Exception e)
+            {
+                Console.WriteLine($"Error opening browser on local system. Try to authenticate with API key.");
                 Console.WriteLine(e.Message);
                 throw;
             }
