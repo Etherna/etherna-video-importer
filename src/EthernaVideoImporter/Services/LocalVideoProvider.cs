@@ -87,8 +87,8 @@ namespace Etherna.VideoImporter.Services
                     var absoluteVideoFilePath = metadataDto.VideoFilePath;
                     if (!Uri.IsWellFormedUriString(metadataDto.VideoFilePath, UriKind.Absolute))
                         absoluteVideoFilePath = Path.IsPathFullyQualified(metadataDto.VideoFilePath) ?
-                                                metadataDto.VideoFilePath :
-                                                Path.Combine(jsonMetadataFileDirectory, metadataDto.VideoFilePath);
+                        metadataDto.VideoFilePath :
+                        Path.Combine(jsonMetadataFileDirectory, metadataDto.VideoFilePath);
 
                     var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
 
