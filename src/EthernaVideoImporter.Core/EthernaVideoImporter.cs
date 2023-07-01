@@ -84,10 +84,15 @@ namespace Etherna.VideoImporter.Core
             {
                 await ethernaSignInService.SignInAsync();
             }
-            catch (Exception e) when (e is InvalidOperationException or
-                                           Win32Exception)
+            catch (InvalidOperationException e)
             {
                 Console.WriteLine($"Error during authentication");
+                Console.WriteLine(e.Message);
+                throw;
+            }
+            catch (Win32Exception e)
+            {
+                Console.WriteLine($"Error opening browser on local system. Try to authenticate with API key.");
                 Console.WriteLine(e.Message);
                 throw;
             }
