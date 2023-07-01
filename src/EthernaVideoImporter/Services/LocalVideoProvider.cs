@@ -57,8 +57,7 @@ namespace Etherna.VideoImporter.Services
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             var localVideosMetadataDto = JsonSerializer.Deserialize<List<LocalVideoMetadataDto>>(
-                await File.ReadAllTextAsync(options.JsonMetadataFilePath),
-                new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) 
+                await File.ReadAllTextAsync(options.JsonMetadataFilePath)) 
                 ?? throw new InvalidDataException($"LocalFile wrong format in {options.JsonMetadataFilePath}");
 
             var videosMetadataDictionary = new Dictionary<string, VideoMetadataBase>();
