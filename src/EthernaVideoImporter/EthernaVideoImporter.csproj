@@ -13,6 +13,8 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
 
+    <InvariantGlobalization>true</InvariantGlobalization>
+
     <AssemblyName>evi</AssemblyName>
     <RepositoryUrl>https://github.com/Etherna/etherna-video-importer</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
