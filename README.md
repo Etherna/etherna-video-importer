@@ -28,7 +28,7 @@ Commands:
 
 General Options:
   -k, --api-key           Api Key (optional)
-  -f, --ffmpeg-path       Path to FFmpeg folder (default: ./FFmpeg)
+  -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
 
@@ -77,7 +77,7 @@ Usage:  evid [OPTIONS] MD_FOLDER
 
 General Options:
   -k, --api-key           Api Key (optional)
-  -f, --ffmpeg-path       Path to FFmpeg folder (default: ./FFmpeg)
+  -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
 
