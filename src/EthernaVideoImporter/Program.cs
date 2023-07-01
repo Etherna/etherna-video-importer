@@ -74,7 +74,9 @@ namespace Etherna.VideoImporter
                 {
                     "Id": "myId2",
                     "Title": "My video2 title",
-                    ...
+                    "Description": "My video2 description",
+                    "VideoFilePath": "http://example.com/stream.m3u8",
+                    "ThumbnailFilePath": "path/to/your/optional/thumbnail2.jpg"
                 },
                 ...
             ]

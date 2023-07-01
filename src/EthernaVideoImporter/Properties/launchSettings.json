@@ -1,7 +1,8 @@
 {
   "profiles": {
     "EthernaVideoImporter": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "local C:\\tmp\\LocalVideo\\localvideo.json"
     }
   }
 }

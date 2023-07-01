@@ -74,8 +74,8 @@ namespace Etherna.VideoImporter.Services
                     if (!string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
                     {
                         var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
-                            metadataDto.ThumbnailFilePath :
-                            Path.Combine(jsonMetadataFileDirectory, metadataDto.ThumbnailFilePath);
+                                                        metadataDto.ThumbnailFilePath :
+                                                        Path.Combine(jsonMetadataFileDirectory, metadataDto.ThumbnailFilePath);
 
                         using var thumbFileStream = File.OpenRead(absoluteThumbnailFilePath);
                         using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -84,9 +84,11 @@ namespace Etherna.VideoImporter.Services
                     }
 
                     // Get video info.
-                    var absoluteVideoFilePath = Path.IsPathFullyQualified(metadataDto.VideoFilePath) ?
-                        metadataDto.VideoFilePath :
-                        Path.Combine(jsonMetadataFileDirectory, metadataDto.VideoFilePath);
+                    var absoluteVideoFilePath = metadataDto.VideoFilePath;
+                    if (!Uri.IsWellFormedUriString(metadataDto.VideoFilePath, UriKind.Absolute))
+                        absoluteVideoFilePath = Path.IsPathFullyQualified(metadataDto.VideoFilePath) ?
+                                                metadataDto.VideoFilePath :
+                                                Path.Combine(jsonMetadataFileDirectory, metadataDto.VideoFilePath);
 
                     var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
 
@@ -103,7 +105,7 @@ namespace Etherna.VideoImporter.Services
                                 absoluteVideoFilePath,
                                 ffProbeResult.Streams.First().Height,
                                 ffProbeResult.Streams.First().Width,
-                                new FileInfo(absoluteVideoFilePath).Length)));
+                                ffProbeResult.Format.SizeLong)));
 
                     Console.WriteLine($"Loaded metadata for {metadataDto.Title}");
                 }
@@ -129,7 +131,7 @@ namespace Etherna.VideoImporter.Services
         {
             var args = new string[] {
                 $"-v", "error",
-                "-show_entries", "format=duration",
+                "-show_entries", "format=duration,size",
                 "-show_entries", "stream=width,height",
                 "-of", "json",
                 "-sexagesimal",
