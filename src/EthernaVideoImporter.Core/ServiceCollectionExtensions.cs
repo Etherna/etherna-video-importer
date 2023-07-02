@@ -2,7 +2,6 @@
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
-using IdentityModel.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
