@@ -360,10 +360,16 @@ namespace Etherna.VideoImporter
             switch (sourceType)
             {
                 case SourceType.LocalVideos:
+                    var selectedFFProbeFolderPath = await FFmpegUtility.FFProbeCheckAndGetAsync(customFFMpegFolderPath);
+                    if (selectedFFProbeFolderPath is null)
+                    {
+                        Console.WriteLine("FFProbe not found");
+                        return;
+                    }
                     //options
                     services.Configure<LocalVideoProviderOptions>(options =>
                     {
-                        options.FFProbeFolderPath = selectedFFMpegFolderPath;
+                        options.FFProbeFolderPath = selectedFFProbeFolderPath;
                         options.JsonMetadataFilePath = sourceUri;
                     });
                     services.AddSingleton<IValidateOptions<LocalVideoProviderOptions>, LocalVideoProviderOptionsValidation>();
