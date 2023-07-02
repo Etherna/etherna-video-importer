@@ -32,7 +32,7 @@ namespace Etherna.VideoImporter
     {
         // Consts.
         private static readonly string HelpText = $$"""
-            Usage:  evi COMMAND [OPTIONS] SOURCE_URI
+            Usage:  evi COMMAND SOURCE_URI [OPTIONS]
 
             Commands:
               json              Import from json video list (requires metadata descriptor, see below)
@@ -155,8 +155,11 @@ namespace Etherna.VideoImporter
                     throw new ArgumentException($"Invalid command: {args[0]}");
             }
 
+            //source uri
+            sourceUri = args[1];
+
             //options
-            var optArgs = args[1..^1];
+            var optArgs = args[2..];
             for (int i = 0; i < optArgs.Length; i++)
             {
                 switch (optArgs[i])
@@ -254,9 +257,6 @@ namespace Etherna.VideoImporter
                         throw new ArgumentException(optArgs[i] + " is not a valid option");
                 }
             }
-
-            //source uri
-            sourceUri = args[^1];
 
             // Input validation.
             //offer video
