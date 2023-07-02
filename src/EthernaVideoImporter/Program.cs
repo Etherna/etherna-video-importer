@@ -359,7 +359,7 @@ namespace Etherna.VideoImporter
                     {
                         if (customFFMpegFolderPath is not null)
                             options.FFProbeFolderPath = customFFMpegFolderPath;
-                        options.JsonMetadataFilePath = sourceUri;
+                        options.JsonMetadataUri = sourceUri;
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 

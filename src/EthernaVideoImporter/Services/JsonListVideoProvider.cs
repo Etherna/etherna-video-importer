@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -20,6 +21,9 @@ namespace Etherna.VideoImporter.Services
 {
     internal sealed class JsonListVideoProvider : IVideoProvider
     {
+        // Static fields.
+        private static readonly IDictionary<string, string> jsonDataCache = new Dictionary<string, string>();
+
         // Fields.
         private readonly IEncoderService encoderService;
         private readonly JsonListVideoProviderOptions options;
@@ -34,7 +38,7 @@ namespace Etherna.VideoImporter.Services
         }
 
         // Properties.
-        public string SourceName => options.JsonMetadataFilePath;
+        public string SourceName => options.JsonMetadataUri;
 
         // Methods.
         public async Task<Video> GetVideoAsync(
@@ -57,10 +61,32 @@ namespace Etherna.VideoImporter.Services
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var jsonMetadataFileDirectory = Path.GetDirectoryName(Path.GetFullPath(options.JsonMetadataFilePath))!;
-            var localVideosMetadataDto = JsonSerializer.Deserialize<List<LocalVideoMetadataDto>>(
-                await File.ReadAllTextAsync(options.JsonMetadataFilePath)) 
-                ?? throw new InvalidDataException($"LocalFile wrong format in {options.JsonMetadataFilePath}");
+            // Read json list.
+            string jsonData;
+            string jsonMetadataDirectoryAbsoluteUri;
+            switch (options.JsonMetadataUriType)
+            {
+                case UriType.Absolute:
+                case UriType.Relative:
+                    jsonData = await File.ReadAllTextAsync(options.JsonMetadataAbsoluteUri);
+                    jsonMetadataDirectoryAbsoluteUri = Path.GetDirectoryName(options.JsonMetadataAbsoluteUri)!;
+                    break;
+
+                case UriType.Url:
+                    jsonData = (await TryGetJsonDataOnlineAsync(options.JsonMetadataAbsoluteUri))!;
+
+                    var lastSegment = new Uri(options.JsonMetadataAbsoluteUri, UriKind.Absolute).Segments.Last();
+                    jsonMetadataDirectoryAbsoluteUri = lastSegment.EndsWith("/") ?
+                        options.JsonMetadataAbsoluteUri :
+                        options.JsonMetadataAbsoluteUri[..^lastSegment.Length];
+                    break;
+
+                default: throw new InvalidOperationException();
+            }
+
+            // Parse json video list.
+            var localVideosMetadataDto = JsonSerializer.Deserialize<List<LocalVideoMetadataDto>>(jsonData) 
+                ?? throw new InvalidDataException("Invalid Json metadata");
 
             var videosMetadataDictionary = new Dictionary<string, VideoMetadataBase>();
             foreach (var metadataDto in localVideosMetadataDto)
@@ -76,7 +102,7 @@ namespace Etherna.VideoImporter.Services
                     {
                         var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
                             metadataDto.ThumbnailFilePath :
-                            Path.Combine(jsonMetadataFileDirectory, metadataDto.ThumbnailFilePath);
+                            Path.Combine(jsonMetadataDirectoryAbsoluteUri, metadataDto.ThumbnailFilePath);
 
                         using var thumbFileStream = File.OpenRead(absoluteThumbnailFilePath);
                         using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -85,7 +111,7 @@ namespace Etherna.VideoImporter.Services
                     }
 
                     // Get video info.
-                    var absoluteVideoFilePath = metadataDto.VideoFilePath.ToAbsolutePath(jsonMetadataFileDirectory);
+                    var absoluteVideoFilePath = metadataDto.VideoFilePath.ToAbsoluteUri(jsonMetadataDirectoryAbsoluteUri);
                     var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
 
                     videosMetadataDictionary.Add(
@@ -120,7 +146,31 @@ namespace Etherna.VideoImporter.Services
         public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
             Task.CompletedTask;
 
-        // Helpers.
+        // Public static helpers.
+        public static async Task<string?> TryGetJsonDataOnlineAsync(string jsonDataUrl)
+        {
+            if (!jsonDataCache.TryGetValue(jsonDataUrl, out var jsonData))
+            {
+                using var httpClient = new HttpClient();
+                try
+                {
+                    var response = await httpClient.GetAsync(jsonDataUrl);
+                    if (!response.IsSuccessStatusCode)
+                        return null;
+
+                    jsonData = await response.Content.ReadAsStringAsync();
+                    jsonDataCache[jsonDataUrl] = jsonData;
+                    return jsonData;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            return jsonData;
+        }
+
+        // Private helpers.
         private FFProbeResultDto GetFFProbeVideoInfo(string videoFilePath)
         {
             var args = new string[] {

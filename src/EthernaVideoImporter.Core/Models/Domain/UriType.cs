@@ -1,9 +1,9 @@
 ﻿namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public enum PathType
+    public enum UriType
     {
-        Relative,
         Absolute,
+        Relative,
         Url
     }
 }
