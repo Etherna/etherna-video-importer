@@ -7,7 +7,9 @@ namespace Etherna.VideoImporter.Options
     {
         public ValidateOptionsResult Validate(string? name, LocalVideoProviderOptions options)
         {
-            if (!File.Exists(options.FFProbeBinaryPath))
+            if (options.FFProbeBinaryPath is null ||
+                (!string.IsNullOrWhiteSpace(options.FFProbeBinaryPath) &&
+                 !File.Exists(options.FFProbeBinaryPath)))
                 return ValidateOptionsResult.Fail($"FFProbe not found at ({options.FFProbeBinaryPath})");
             if (!File.Exists(options.JsonMetadataFilePath))
                 return ValidateOptionsResult.Fail($"Local videos JSON metadata not found at ({options.JsonMetadataFilePath})");
