@@ -53,20 +53,23 @@ To import from local videos you will need a metadata descriptor file. Metadata i
 [
     {
         "Id": "myId1",
-        "Title": "My video1 title",
-        "Description": "My video description",
+        "Title": "First video title",
+        "Description": "My first video description",
         "VideoFilePath": "path/to/your/video1.mp4",
         "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg"
     },
     {
         "Id": "myId2",
-        "Title": "My video2 title",
-        ...
+        "Title": "Second video title",
+        "Description": "My second video description",
+        "VideoFilePath": "http://example.com/stream.m3u8",
+        "ThumbnailFilePath": "path/to/your/optional/thumbnail2.jpg"
     },
     ...
 ]
 
-Paths can be either relative or absolute. ThumbnailFilePath is optional.
+Video paths can be local or online uris. Thumbnail paths are optional, and can only be local.
+Local paths can be relative or absolute, online urls can only be absolute.
 
 Run 'evi -h' or 'evi --help' to print help.
 ```
