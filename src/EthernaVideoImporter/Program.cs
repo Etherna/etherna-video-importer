@@ -20,10 +20,12 @@ using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Options;
 using Etherna.VideoImporter.Services;
+using Medallion.Shell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Globalization;
+using System.IO;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -42,7 +44,7 @@ namespace Etherna.VideoImporter
 
             General Options:
               -k, --api-key           Api Key (optional)
-              -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
+              -f, --ffmpeg-path       Path to FFmpeg folder (default: find for <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
 
@@ -295,6 +297,15 @@ namespace Etherna.VideoImporter
             if (newVersionAvaiable && !ignoreUpdate)
                 return;
 
+            // Check for ffmpeg
+            var selectedFFMpegFolderPath = await FFmpegUtility.CheckAndGetAsync(customFFMpegFolderPath);
+            if (selectedFFMpegFolderPath is null)
+            {
+                Console.WriteLine("FFmpeg not found");
+                return;
+            }
+            Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFMpegFolderPath) ? "Global installation" : selectedFFMpegFolderPath)}");
+
             // Register etherna service clients.
             var services = new ServiceCollection();
             IEthernaUserClientsBuilder ethernaClientsBuilder;
@@ -331,6 +342,7 @@ namespace Etherna.VideoImporter
             services.AddCoreServices(
                 encoderOptions =>
                 {
+                    encoderOptions.FFMpegFolderPath = selectedFFMpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
                 },
                 ffMpegOptions =>
