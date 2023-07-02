@@ -22,9 +22,9 @@ To run the importer it is necessary to download [FFmpeg](https://ffmpeg.org/down
 Usage:  evi COMMAND [OPTIONS] SOURCE_URI
 
 Commands:
+  json              Import from json video list (requires metadata descriptor, see below)
   youtube-channel   Import from a YouTube channel
   youtube-video     Import from a YouTube video
-  local             Import from local videos (requires metadata descriptor, see below)
 
 General Options:
   -k, --api-key           Api Key (optional)
@@ -47,8 +47,8 @@ Bee Node Options:
   --bee-api-port          Port used by API (default: 1633)
   --bee-debug-port        Port used by Debug (default: 1635)
 
-Local video metadata format:
-To import from local videos you will need a metadata descriptor file. Metadata is a JSON file with the following structure:
+Json videos metadata format:
+To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
 
 [
     {
@@ -68,6 +68,7 @@ To import from local videos you will need a metadata descriptor file. Metadata i
     ...
 ]
 
+Id field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique.
 Video paths can be local or online uris. Thumbnail paths are optional, and can only be local.
 Local paths can be relative or absolute, online urls can only be absolute.
 
@@ -101,14 +102,6 @@ Bee Node Options:
 
 Run 'evid -h' or 'evid --help' to print help.
 ```
-
-#### Local videos
-To import from local videos you will need a JSON metadata descriptor file.
-
-The `Id` field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique in the file.  
-The `ThumbnailFilePath` field is optional.
-
-The Json file path needs to be passed as source uri with the source type `local`.
 
 # Issue reports
 If you've discovered a bug, or have an idea for a new feature, please report it to our issue manager based on Jira https://etherna.atlassian.net/projects/EVI.
