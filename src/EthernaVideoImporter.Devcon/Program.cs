@@ -33,7 +33,7 @@ namespace Etherna.VideoImporter.Devcon
     {
         // Consts.
         private static readonly string HelpText = $$"""
-            Usage:  evid [OPTIONS] MD_FOLDER
+            Usage:  evid MD_FOLDER [OPTIONS]
 
             General Options:
               -k, --api-key           Api Key (optional)
@@ -102,8 +102,16 @@ namespace Etherna.VideoImporter.Devcon
                 }
             }
 
+            //md source folder
+            mdSourceFolderPath = args[0];
+            if (!Directory.Exists(mdSourceFolderPath))
+            {
+                Console.WriteLine($"Not found MD directory path {mdSourceFolderPath}");
+                throw new ArgumentException("Not found MD directory path");
+            }
+
             //options
-            var optArgs = args[..^1];
+            var optArgs = args[1..];
             for (int i = 0; i < optArgs.Length; i++)
             {
                 switch (optArgs[i])
@@ -200,14 +208,6 @@ namespace Etherna.VideoImporter.Devcon
                     default:
                         throw new ArgumentException(optArgs[i] + " is not a valid option");
                 }
-            }
-
-            //md source folder
-            mdSourceFolderPath = args[^1];
-            if (!Directory.Exists(mdSourceFolderPath))
-            {
-                Console.WriteLine($"Not found MD directory path {mdSourceFolderPath}");
-                throw new ArgumentException("Not found MD directory path");
             }
 
             // Input validation.
