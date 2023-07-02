@@ -368,6 +368,12 @@ namespace Etherna.VideoImporter
             switch (sourceType)
             {
                 case SourceType.JsonList:
+                    var selectedFFProbeFolderPath = await FFmpegUtility.FFProbeCheckAndGetAsync(customFFMpegFolderPath);
+                    if (selectedFFProbeFolderPath is null)
+                    {
+                        Console.WriteLine("FFProbe not found");
+                        return;
+                    }
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {

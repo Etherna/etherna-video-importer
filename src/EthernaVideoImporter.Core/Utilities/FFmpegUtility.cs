@@ -47,5 +47,48 @@ namespace Etherna.VideoImporter.Core.Utilities
             // Not found.
             return null;
         }
+
+        public static async Task<string?> FFProbeCheckAndGetAsync(string? customFFMpegFolderPath)
+        {
+            // Custom FFmpeg folder.
+            if (!string.IsNullOrWhiteSpace(customFFMpegFolderPath))
+            {
+                if (!Directory.Exists(customFFMpegFolderPath))
+                    return null; // Not found.
+
+                try
+                {
+                    var command = Command.Run($"{customFFMpegFolderPath}/{CommonConsts.FFProbeBinaryName}", "-version");
+                    var result = await command.Task;
+                    if (result.Success)
+                        return customFFMpegFolderPath;
+                }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
+
+            // Default FFmpeg folder.
+            try
+            {
+                var command = Command.Run($"{CommonConsts.DefaultFFmpegFolder}/{CommonConsts.FFProbeBinaryName}", "-version");
+                var result = await command.Task;
+                if (result.Success)
+                    return CommonConsts.DefaultFFmpegFolder;
+            }
+            catch (System.ComponentModel.Win32Exception) { }
+
+            // Global FFmpeg.
+            try
+            {
+                var command = Command.Run(CommonConsts.FFProbeBinaryName, "-version");
+                var result = await command.Task;
+                if (result.Success)
+                    return "";
+            }
+            catch (System.ComponentModel.Win32Exception) { }
+
+            // Not found.
+            return null;
+        }
     }
+    
 }
