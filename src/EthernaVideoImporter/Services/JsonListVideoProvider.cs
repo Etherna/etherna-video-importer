@@ -18,16 +18,16 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Services
 {
-    internal sealed class LocalVideoProvider : IVideoProvider
+    internal sealed class JsonListVideoProvider : IVideoProvider
     {
         // Fields.
         private readonly IEncoderService encoderService;
-        private readonly LocalVideoProviderOptions options;
+        private readonly JsonListVideoProviderOptions options;
 
         // Constructor.
-        public LocalVideoProvider(
+        public JsonListVideoProvider(
             IEncoderService encoderService,
-            IOptions<LocalVideoProviderOptions> options)
+            IOptions<JsonListVideoProviderOptions> options)
         {
             this.encoderService = encoderService;
             this.options = options.Value;
