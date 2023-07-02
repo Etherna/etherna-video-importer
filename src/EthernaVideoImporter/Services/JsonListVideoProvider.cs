@@ -1,4 +1,5 @@
 ﻿using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
@@ -17,16 +18,16 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Services
 {
-    internal sealed class LocalVideoProvider : IVideoProvider
+    internal sealed class JsonListVideoProvider : IVideoProvider
     {
         // Fields.
         private readonly IEncoderService encoderService;
-        private readonly LocalVideoProviderOptions options;
+        private readonly JsonListVideoProviderOptions options;
 
         // Constructor.
-        public LocalVideoProvider(
+        public JsonListVideoProvider(
             IEncoderService encoderService,
-            IOptions<LocalVideoProviderOptions> options)
+            IOptions<JsonListVideoProviderOptions> options)
         {
             this.encoderService = encoderService;
             this.options = options.Value;
@@ -84,10 +85,7 @@ namespace Etherna.VideoImporter.Services
                     }
 
                     // Get video info.
-                    var absoluteVideoFilePath = Path.IsPathFullyQualified(metadataDto.VideoFilePath) ?
-                        metadataDto.VideoFilePath :
-                        Path.Combine(jsonMetadataFileDirectory, metadataDto.VideoFilePath);
-
+                    var absoluteVideoFilePath = metadataDto.VideoFilePath.ToAbsolutePath(jsonMetadataFileDirectory);
                     var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
 
                     videosMetadataDictionary.Add(
@@ -103,7 +101,7 @@ namespace Etherna.VideoImporter.Services
                                 absoluteVideoFilePath,
                                 ffProbeResult.Streams.First().Height,
                                 ffProbeResult.Streams.First().Width,
-                                new FileInfo(absoluteVideoFilePath).Length)));
+                                ffProbeResult.Format.SizeLong))); //size here could be wrong in case of url pointing to HLS index file. In any case it's not needed.
 
                     Console.WriteLine($"Loaded metadata for {metadataDto.Title}");
                 }
@@ -116,8 +114,6 @@ namespace Etherna.VideoImporter.Services
                 }
             }
 
-            Console.WriteLine($"Found {videosMetadataDictionary.Count} videos");
-
             return videosMetadataDictionary.Values;
         }
 
@@ -129,7 +125,7 @@ namespace Etherna.VideoImporter.Services
         {
             var args = new string[] {
                 $"-v", "error",
-                "-show_entries", "format=duration",
+                "-show_entries", "format=duration,size",
                 "-show_entries", "stream=width,height",
                 "-of", "json",
                 "-sexagesimal",
