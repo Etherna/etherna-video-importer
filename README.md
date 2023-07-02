@@ -13,13 +13,13 @@ Currently exists two versions:
 Etherna Video Importer requires at least [.NET 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) and [ASP.NET Core 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
 
 ### Setup FFmpeg
-To run the importer it is necessary to download [FFmpeg](https://ffmpeg.org/download.html) locally, and copy the binary file into the default folder "\FFmpeg", or specify its location with arguments.
+To run the importer you need to download [FFmpeg](https://ffmpeg.org/download.html) locally, and copy the binary file into the default folder "\FFmpeg", or specify its location with arguments.
 
 ### How to use
 
 **EthernaVideoImporter's help**
 ```
-Usage:  evi COMMAND [OPTIONS] SOURCE_URI
+Usage:  evi COMMAND SOURCE_URI [OPTIONS]
 
 Commands:
   json              Import from json video list (requires metadata descriptor, see below)
@@ -77,7 +77,7 @@ Run 'evi -h' or 'evi --help' to print help.
 
 **EthernaVideoImporter.Devcon's help**
 ```
-Usage:  evid [OPTIONS] MD_FOLDER
+Usage:  evid MD_FOLDER [OPTIONS]
 
 General Options:
   -k, --api-key           Api Key (optional)
