@@ -242,7 +242,7 @@ namespace Etherna.VideoImporter.Devcon
                 return;
 
             // Check for ffmpeg
-            var selectedFFMpegFolderPath = await FFmpegUtility.CheckAndGetAsync(customFFMpegFolderPath);
+            var selectedFFMpegFolderPath = await FFmpegUtility.FFmpegCheckAndGetAsync(customFFMpegFolderPath);
             if (selectedFFMpegFolderPath is null)
             {
                 Console.WriteLine("FFmpeg not found");
