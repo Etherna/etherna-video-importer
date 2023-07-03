@@ -296,7 +296,7 @@ namespace Etherna.VideoImporter
             var ffProbeRequired = sourceType == SourceType.LocalVideos;
             string? selectedFFprobeFolderPath = null;
 
-            var selectedFFmpegFolderPath = await FFmpegUtility.CheckAndGetAsync(customFFMpegFolderPath);
+            var selectedFFmpegFolderPath = await FFmpegUtility.FFmpegCheckAndGetAsync(customFFMpegFolderPath);
             if (ffProbeRequired)
                 selectedFFprobeFolderPath = await FFmpegUtility.FFProbeCheckAndGetAsync(customFFMpegFolderPath);
 

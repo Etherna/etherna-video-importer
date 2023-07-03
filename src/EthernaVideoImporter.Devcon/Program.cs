@@ -243,7 +243,7 @@ namespace Etherna.VideoImporter.Devcon
                 return;
 
             // Check for FFmpeg.
-            var selectedFFmpegFolderPath = await FFmpegUtility.CheckAndGetAsync(customFFMpegFolderPath);
+            var selectedFFmpegFolderPath = await FFmpegUtility.FFmpegCheckAndGetAsync(customFFMpegFolderPath);
             selectedFFmpegFolderPath = selectedFFmpegFolderPath ?? await FFmpegUtility.DownloadFFmpegAsync(true, false);
             Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFmpegFolderPath) ? "Global installation" : selectedFFmpegFolderPath)}");
 
