@@ -19,12 +19,10 @@ using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Options;
 using Etherna.VideoImporter.Services;
-using Medallion.Shell;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Globalization;
-using System.IO;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -294,14 +292,27 @@ namespace Etherna.VideoImporter
             if (newVersionAvaiable && !ignoreUpdate)
                 return;
 
-            // Check for ffmpeg
-            var selectedFFMpegFolderPath = await FFmpegUtility.CheckAndGetAsync(customFFMpegFolderPath);
-            if (selectedFFMpegFolderPath is null)
+            // Check for FFmpeg.
+            var ffProbeRequired = sourceType == SourceType.LocalVideos;
+            string? selectedFFprobeFolderPath = null;
+
+            var selectedFFmpegFolderPath = await FFmpegUtility.CheckAndGetAsync(customFFMpegFolderPath);
+            if (ffProbeRequired)
+                selectedFFprobeFolderPath = await FFmpegUtility.FFProbeCheckAndGetAsync(customFFMpegFolderPath);
+
+            var ffProbeDownload = ffProbeRequired &&
+                                  selectedFFprobeFolderPath is null; 
+            var ffMpegDownload = selectedFFmpegFolderPath is null;
+            if (ffMpegDownload ||
+                ffProbeDownload)
             {
-                Console.WriteLine("FFmpeg not found");
-                return;
+                var downloadPath = await FFmpegUtility.DownloadFFmpegAsync(ffMpegDownload, ffProbeDownload);
+                selectedFFmpegFolderPath = selectedFFmpegFolderPath ?? downloadPath;
+                selectedFFprobeFolderPath = selectedFFprobeFolderPath ?? downloadPath;
             }
-            Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFMpegFolderPath) ? "Global installation" : selectedFFMpegFolderPath)}");
+            Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFmpegFolderPath) ? "Global installation" : selectedFFmpegFolderPath)}");
+            if (ffProbeRequired)
+                Console.WriteLine($"FFprobe path: {(string.IsNullOrWhiteSpace(selectedFFprobeFolderPath) ? "Global installation" : selectedFFprobeFolderPath)}");
 
             // Register etherna service clients.
             var services = new ServiceCollection();
@@ -339,7 +350,7 @@ namespace Etherna.VideoImporter
             services.AddCoreServices(
                 encoderOptions =>
                 {
-                    encoderOptions.FFMpegFolderPath = selectedFFMpegFolderPath;
+                    encoderOptions.FFMpegFolderPath = selectedFFmpegFolderPath!;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
                 },
                 uploaderOptions =>
@@ -360,16 +371,10 @@ namespace Etherna.VideoImporter
             switch (sourceType)
             {
                 case SourceType.LocalVideos:
-                    var selectedFFProbeFolderPath = await FFmpegUtility.FFProbeCheckAndGetAsync(customFFMpegFolderPath);
-                    if (selectedFFProbeFolderPath is null)
-                    {
-                        Console.WriteLine("FFProbe not found");
-                        return;
-                    }
                     //options
                     services.Configure<LocalVideoProviderOptions>(options =>
                     {
-                        options.FFProbeFolderPath = selectedFFProbeFolderPath;
+                        options.FFProbeFolderPath = selectedFFprobeFolderPath!;
                         options.JsonMetadataFilePath = sourceUri;
                     });
                     services.AddSingleton<IValidateOptions<LocalVideoProviderOptions>, LocalVideoProviderOptionsValidation>();

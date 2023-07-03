@@ -24,6 +24,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Globalization;
 using System.IO;
+using System.Security.AccessControl;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -241,14 +242,10 @@ namespace Etherna.VideoImporter.Devcon
             if (newVersionAvaiable && !ignoreUpdate)
                 return;
 
-            // Check for ffmpeg
-            var selectedFFMpegFolderPath = await FFmpegUtility.CheckAndGetAsync(customFFMpegFolderPath);
-            if (selectedFFMpegFolderPath is null)
-            {
-                Console.WriteLine("FFmpeg not found");
-                return;
-            }
-            Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFMpegFolderPath) ? "Global installation" : selectedFFMpegFolderPath)}");
+            // Check for FFmpeg.
+            var selectedFFmpegFolderPath = await FFmpegUtility.CheckAndGetAsync(customFFMpegFolderPath);
+            selectedFFmpegFolderPath = selectedFFmpegFolderPath ?? await FFmpegUtility.DownloadFFmpegAsync(true, false);
+            Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFmpegFolderPath) ? "Global installation" : selectedFFmpegFolderPath)}");
 
             // Register etherna service clients.
             var services = new ServiceCollection();
@@ -294,7 +291,7 @@ namespace Etherna.VideoImporter.Devcon
             services.AddCoreServices(
                 encoderOptions =>
                 {
-                    encoderOptions.FFMpegFolderPath = selectedFFMpegFolderPath;
+                    encoderOptions.FFMpegFolderPath = selectedFFmpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
                 },
                 uploaderOptions =>
