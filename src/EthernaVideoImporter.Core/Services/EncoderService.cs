@@ -53,7 +53,6 @@ namespace Etherna.VideoImporter.Core.Services
             activedCommands.Add(command);
             Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
 
-            var regex = new Regex(@"time=([\d:.]+)|speed=([\d.]+x)");
             // Print filtered console output.
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             Task.Run(() =>
@@ -174,13 +173,14 @@ namespace Etherna.VideoImporter.Core.Services
         private void ManageInterrupted(object? sender, ConsoleCancelEventArgs args) =>
             activedCommands.ForEach(c => c.Kill());
 
-        private static void PrintFFmpegEncodeInfo(Command command, Regex regex)
+        private static void PrintFFmpegEncodeInfo(Command command)
         {
             /*
             * WTF! It works as an async method.
             * The enumerable is built on top of a "while(true)" that ends when the process is stopped.
             */
             int rowsStart = Console.CursorTop;
+            var regex = new Regex(@"time=([\d:.]+)|speed=([\d.]+x)");
             foreach (var line in command.GetOutputAndErrorLines())
             {
                 // Write info line.
