@@ -14,6 +14,7 @@
 
 using Etherna.ServicesClient.Users.Native;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -359,7 +360,7 @@ namespace Etherna.VideoImporter
                     {
                         if (customFFMpegFolderPath is not null)
                             options.FFProbeFolderPath = customFFMpegFolderPath;
-                        options.JsonMetadataUri = sourceUri;
+                        options.JsonMetadataUri = new UriResource(sourceUri);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 

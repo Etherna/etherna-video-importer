@@ -1,5 +1,4 @@
 ﻿using Etherna.VideoImporter.Core;
-using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
@@ -13,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -21,9 +19,6 @@ namespace Etherna.VideoImporter.Services
 {
     internal sealed class JsonListVideoProvider : IVideoProvider
     {
-        // Static fields.
-        private static readonly IDictionary<string, string> jsonDataCache = new Dictionary<string, string>();
-
         // Fields.
         private readonly IEncoderService encoderService;
         private readonly JsonListVideoProviderOptions options;
@@ -38,7 +33,7 @@ namespace Etherna.VideoImporter.Services
         }
 
         // Properties.
-        public string SourceName => options.JsonMetadataUri;
+        public string SourceName => options.JsonMetadataUri.OriginalUri;
 
         // Methods.
         public async Task<Video> GetVideoAsync(
@@ -62,27 +57,8 @@ namespace Etherna.VideoImporter.Services
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             // Read json list.
-            string jsonData;
-            string jsonMetadataDirectoryAbsoluteUri;
-            switch (options.JsonMetadataUriType)
-            {
-                case UriType.Absolute:
-                case UriType.Relative:
-                    jsonData = await File.ReadAllTextAsync(options.JsonMetadataAbsoluteUri);
-                    jsonMetadataDirectoryAbsoluteUri = Path.GetDirectoryName(options.JsonMetadataAbsoluteUri)!;
-                    break;
-
-                case UriType.Url:
-                    jsonData = (await TryGetJsonDataOnlineAsync(options.JsonMetadataAbsoluteUri))!;
-
-                    var lastSegment = new Uri(options.JsonMetadataAbsoluteUri, UriKind.Absolute).Segments.Last();
-                    jsonMetadataDirectoryAbsoluteUri = lastSegment.EndsWith("/") ?
-                        options.JsonMetadataAbsoluteUri :
-                        options.JsonMetadataAbsoluteUri[..^lastSegment.Length];
-                    break;
-
-                default: throw new InvalidOperationException();
-            }
+            string jsonData = await options.JsonMetadataUri.ReadResourceAsStringAsync(true);
+            string jsonMetadataDirectoryAbsoluteUri = options.JsonMetadataUri.ParentDirectoryAbsoluteUri;
 
             // Parse json video list.
             var localVideosMetadataDto = JsonSerializer.Deserialize<List<LocalVideoMetadataDto>>(jsonData) 
@@ -111,7 +87,7 @@ namespace Etherna.VideoImporter.Services
                     }
 
                     // Get video info.
-                    var absoluteVideoFilePath = metadataDto.VideoFilePath.ToAbsoluteUri(jsonMetadataDirectoryAbsoluteUri);
+                    var absoluteVideoFilePath = new UriResource(metadataDto.VideoFilePath).ToAbsoluteUri(jsonMetadataDirectoryAbsoluteUri);
                     var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
 
                     videosMetadataDictionary.Add(
@@ -145,30 +121,6 @@ namespace Etherna.VideoImporter.Services
 
         public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
             Task.CompletedTask;
-
-        // Public static helpers.
-        public static async Task<string?> TryGetJsonDataOnlineAsync(string jsonDataUrl)
-        {
-            if (!jsonDataCache.TryGetValue(jsonDataUrl, out var jsonData))
-            {
-                using var httpClient = new HttpClient();
-                try
-                {
-                    var response = await httpClient.GetAsync(jsonDataUrl);
-                    if (!response.IsSuccessStatusCode)
-                        return null;
-
-                    jsonData = await response.Content.ReadAsStringAsync();
-                    jsonDataCache[jsonDataUrl] = jsonData;
-                    return jsonData;
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-            return jsonData;
-        }
 
         // Private helpers.
         private FFProbeResultDto GetFFProbeVideoInfo(string videoFilePath)

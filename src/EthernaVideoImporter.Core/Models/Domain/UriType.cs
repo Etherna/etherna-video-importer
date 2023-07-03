@@ -2,8 +2,10 @@
 {
     public enum UriType
     {
-        Absolute,
-        Relative,
-        Url
+        LocalAbsolute,
+        LocalRelative,
+        OnlineAbsolute,
+        OnlineRelative,
+        UnknownRelative
     }
 }
