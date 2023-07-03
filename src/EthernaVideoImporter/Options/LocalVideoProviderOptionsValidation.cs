@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Etherna.VideoImporter.Core;
+using Microsoft.Extensions.Options;
 using System.IO;
 
 namespace Etherna.VideoImporter.Options
@@ -8,7 +9,7 @@ namespace Etherna.VideoImporter.Options
         public ValidateOptionsResult Validate(string? name, LocalVideoProviderOptions options)
         {
             if (options.FFProbeBinaryPath is null ||
-                (!string.IsNullOrWhiteSpace(options.FFProbeBinaryPath) &&
+                (options.FFProbeBinaryPath != CommonConsts.FFProbeBinaryName &&
                  !File.Exists(options.FFProbeBinaryPath)))
                 return ValidateOptionsResult.Fail($"FFProbe not found at ({options.FFProbeBinaryPath})");
             if (!File.Exists(options.JsonMetadataFilePath))
