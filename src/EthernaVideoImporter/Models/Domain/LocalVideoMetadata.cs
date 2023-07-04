@@ -12,8 +12,8 @@ namespace Etherna.VideoImporter.Models.Domain
             string description,
             TimeSpan duration,
             string originVideoQualityLabel,
-            ThumbnailLocalFile? sourceThumbnail,
-            VideoLocalFile sourceVideo)
+            ThumbnailSourceFile? sourceThumbnail,
+            VideoSourceFile sourceVideo)
             : base(title, description, duration, originVideoQualityLabel)
         {
             Id = id;
@@ -23,7 +23,7 @@ namespace Etherna.VideoImporter.Models.Domain
 
         // Properties.
         public override string Id { get; }
-        public ThumbnailLocalFile? SourceThumbnail { get; }
-        public VideoLocalFile SourceVideo { get; }
+        public ThumbnailSourceFile? SourceThumbnail { get; }
+        public VideoSourceFile SourceVideo { get; }
     }
 }

@@ -21,20 +21,19 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class ThumbnailLocalFile : LocalFileBase, IThumbnailFile
+    public class ThumbnailSourceFile : SourceFileBase, IThumbnailFile
     {
         // Consts.
         public static readonly int[] ThumbnailResponsiveSizes = { 480, 960, 1280 };
 
         // Constructor.
-        public ThumbnailLocalFile(
-            string filePath,
-            long byteSize,
+        public ThumbnailSourceFile(
+            SourceUri fileUri,
             int height,
             int width)
-            : base(filePath, byteSize)
+            : base(fileUri)
         {
-            using var thumbFileStream = File.OpenRead(filePath);
+            using var thumbFileStream = File.OpenRead(fileUri);
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
             Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
@@ -63,15 +62,15 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public int Width { get; }
 
         // Methods.
-        public async Task<IEnumerable<ThumbnailLocalFile>> GetScaledThumbnailsAsync(
+        public async Task<IEnumerable<ThumbnailSourceFile>> GetScaledThumbnailsAsync(
             DirectoryInfo importerTempDirectoryInfo)
         {
             if (importerTempDirectoryInfo is null)
                 throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
 
-            List<ThumbnailLocalFile> thumbnails = new();
+            List<ThumbnailSourceFile> thumbnails = new();
 
-            using var thumbFileStream = File.OpenRead(FilePath);
+            using var thumbFileStream = File.OpenRead(FileUri);
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
 
@@ -88,7 +87,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     await data.AsStream().CopyToAsync(outputFileStream);
                 }
 
-                thumbnails.Add(new ThumbnailLocalFile(
+                thumbnails.Add(new ThumbnailSourceFile(
                     thumbnailResizedPath,
                     new FileInfo(thumbnailResizedPath).Length,
                     responsiveHeightSize,

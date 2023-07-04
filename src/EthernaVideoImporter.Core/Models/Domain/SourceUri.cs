@@ -4,12 +4,12 @@ using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class Uri
+    public class SourceUri
     {
-        // Constructors.
-        public Uri(
+        // Constructor.
+        public SourceUri(
             string uri,
-            UriKind allowedUriKinds = UriKind.All)
+            SourceUriKind allowedUriKinds = SourceUriKind.All)
         {
             if (string.IsNullOrEmpty(uri))
                 throw new ArgumentException("Uri cannot be null or empty", nameof(uri));
@@ -18,13 +18,13 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             UriKind = GetUriKind(uri, allowedUriKinds);
 
             // Final check.
-            if (UriKind == UriKind.None)
+            if (UriKind == SourceUriKind.None)
                 throw new ArgumentException("Invalid uri with allowed uri types", nameof(uri));
         }
 
         // Properties.
         public string OriginalUri { get; }
-        public UriKind UriKind { get; }
+        public SourceUriKind UriKind { get; }
 
         // Methods.
         /// <summary>
@@ -33,30 +33,30 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         /// <param name="allowedUriKinds">Optional restrictions for original uri kind</param>
         /// <param name="baseDirectory">Optional base directory, required for online relative uri</param>
         /// <returns>Absolute uri and its kind</returns>
-        public (string, UriKind) ToAbsoluteUri(UriKind allowedUriKinds = UriKind.All, string? baseDirectory = null)
+        public (string, SourceUriKind) ToAbsoluteUri(SourceUriKind allowedUriKinds = SourceUriKind.All, string? baseDirectory = null)
         {
             // Define actual allowed uri kinds.
             var actualAllowedUriKinds = allowedUriKinds & UriKind;
 
             if (baseDirectory is not null)
             {
-                var baseDirectoryUriKind = GetUriKind(baseDirectory, UriKind.Absolute);
-                if (baseDirectoryUriKind == UriKind.None)
+                var baseDirectoryUriKind = GetUriKind(baseDirectory, SourceUriKind.Absolute);
+                if (baseDirectoryUriKind == SourceUriKind.None)
                     throw new ArgumentException("Base directory is not a valid absolute uri", nameof(baseDirectory));
 
-                if (baseDirectoryUriKind == UriKind.LocalAbsolute)
-                    actualAllowedUriKinds &= UriKind.Local;
-                else if (baseDirectoryUriKind == UriKind.OnlineAbsolute)
-                    actualAllowedUriKinds &= UriKind.Online;
+                if (baseDirectoryUriKind == SourceUriKind.LocalAbsolute)
+                    actualAllowedUriKinds &= SourceUriKind.Local;
+                else if (baseDirectoryUriKind == SourceUriKind.OnlineAbsolute)
+                    actualAllowedUriKinds &= SourceUriKind.Online;
                 else throw new InvalidOperationException("Base directory can only be absolute");
             }
 
             // Checks.
             //if could be an online relative uri, and base directory is null. If positive, in any case uri can't be absolute
-            if ((actualAllowedUriKinds | UriKind.OnlineRelative) != 0 &&
+            if ((actualAllowedUriKinds | SourceUriKind.OnlineRelative) != 0 &&
                 baseDirectory is null)
             {
-                if ((actualAllowedUriKinds | UriKind.LocalRelative) != 0)
+                if ((actualAllowedUriKinds | SourceUriKind.LocalRelative) != 0)
                     throw new InvalidOperationException("Can't resolve undefined relative uri. Specify if is local, or a base directory");
                 else
                     throw new InvalidOperationException("Can't resolve online relative uri. Specify a base directory");
@@ -75,11 +75,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
              */
             return actualAllowedUriKinds switch
             {
-                UriKind.LocalAbsolute => (OriginalUri, UriKind.LocalAbsolute),
-                UriKind.LocalRelative => (Path.GetFullPath(OriginalUri, baseDirectory ?? Directory.GetCurrentDirectory()), UriKind.LocalAbsolute),
-                UriKind.OnlineAbsolute => (OriginalUri, UriKind.OnlineAbsolute),
-                UriKind.OnlineRelative => (new System.Uri(new System.Uri(baseDirectory!, System.UriKind.Absolute), OriginalUri).ToString(),
-                                           UriKind.OnlineAbsolute),
+                SourceUriKind.LocalAbsolute => (OriginalUri, SourceUriKind.LocalAbsolute),
+                SourceUriKind.LocalRelative => (Path.GetFullPath(OriginalUri, baseDirectory ?? Directory.GetCurrentDirectory()), SourceUriKind.LocalAbsolute),
+                SourceUriKind.OnlineAbsolute => (OriginalUri, SourceUriKind.OnlineAbsolute),
+                SourceUriKind.OnlineRelative => (new System.Uri(new System.Uri(baseDirectory!, System.UriKind.Absolute), OriginalUri).ToString(),
+                                           SourceUriKind.OnlineAbsolute),
                 _ => throw new InvalidOperationException("Invalid uri kind. It should be well defined at this stage")
             };
         }
@@ -90,30 +90,30 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         /// <param name="allowedUriKinds">Optional restrictions for original uri kind</param>
         /// <param name="baseDirectory">Optional base directory, required for online relative uri</param>
         /// <returns>Parent directory absolute uri and its kind</returns>
-        public (string, UriKind)? TryGetParentDirectoryAsAbsoluteUri(UriKind allowedUriKinds = UriKind.All, string? baseDirectory = null)
+        public (string, SourceUriKind)? TryGetParentDirectoryAsAbsoluteUri(SourceUriKind allowedUriKinds = SourceUriKind.All, string? baseDirectory = null)
         {
             var (absoluteUri, absoluteUriKind) = ToAbsoluteUri(allowedUriKinds, baseDirectory);
 
             switch (absoluteUriKind)
             {
-                case UriKind.LocalAbsolute:
+                case SourceUriKind.LocalAbsolute:
                     var dirName = Path.GetDirectoryName(absoluteUri);
                     return dirName is null ? null :
-                        (dirName, UriKind.LocalAbsolute);
+                        (dirName, SourceUriKind.LocalAbsolute);
 
-                case UriKind.OnlineAbsolute:
+                case SourceUriKind.OnlineAbsolute:
                     var segments = new System.Uri(absoluteUri, System.UriKind.Absolute).Segments;
                     return segments.Length == 1 ? null : //if it's already root, return null
-                        (absoluteUri[..^segments.Last().Length], UriKind.OnlineAbsolute);
+                        (absoluteUri[..^segments.Last().Length], SourceUriKind.OnlineAbsolute);
 
                 default: throw new InvalidOperationException("Invalid absolute uri kind. It should be well defined and absolute");
             }
         }
 
         // Public static methods.
-        public static UriKind GetUriKind(string uri, UriKind allowedUriKinds)
+        public static SourceUriKind GetUriKind(string uri, SourceUriKind allowedUriKinds)
         {
-            var uriKind = UriKind.None;
+            var uriKind = SourceUriKind.None;
 
             //test local
             if (!uri.Intersect(Path.GetInvalidPathChars()).Any())
@@ -121,24 +121,24 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 var isRooted = Path.IsPathRooted(uri);
 
                 //absolute
-                if (isRooted && (allowedUriKinds & UriKind.LocalAbsolute) != 0)
-                    uriKind |= UriKind.LocalAbsolute;
+                if (isRooted && (allowedUriKinds & SourceUriKind.LocalAbsolute) != 0)
+                    uriKind |= SourceUriKind.LocalAbsolute;
 
                 //relative
-                if (!isRooted && (allowedUriKinds & UriKind.LocalRelative) != 0)
-                    uriKind |= UriKind.LocalRelative;
+                if (!isRooted && (allowedUriKinds & SourceUriKind.LocalRelative) != 0)
+                    uriKind |= SourceUriKind.LocalRelative;
             }
 
             //test online absolute
             if (System.Uri.TryCreate(uri, System.UriKind.Absolute, out var onlineAbsUriResult) &&
                 (onlineAbsUriResult.Scheme == System.Uri.UriSchemeHttp || onlineAbsUriResult.Scheme == System.Uri.UriSchemeHttps) &&
-                (allowedUriKinds & UriKind.OnlineAbsolute) != 0)
-                uriKind |= UriKind.OnlineAbsolute;
+                (allowedUriKinds & SourceUriKind.OnlineAbsolute) != 0)
+                uriKind |= SourceUriKind.OnlineAbsolute;
 
             //test online relative
             if (System.Uri.TryCreate(uri, System.UriKind.Relative, out var _) &&
-                (allowedUriKinds & UriKind.OnlineRelative) != 0)
-                uriKind |= UriKind.OnlineRelative;
+                (allowedUriKinds & SourceUriKind.OnlineRelative) != 0)
+                uriKind |= SourceUriKind.OnlineRelative;
 
             return uriKind;
         }

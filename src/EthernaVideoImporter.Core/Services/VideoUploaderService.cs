@@ -110,12 +110,12 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
-            foreach (var encodedFile in video.EncodedFiles.OfType<LocalFileBase>())
+            foreach (var encodedFile in video.EncodedFiles.OfType<SourceFileBase>())
             {
                 Console.WriteLine(encodedFile switch
                 {
-                    AudioLocalFile _ => "Uploading audio track in progress...",
-                    VideoLocalFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
+                    AudioSourceFile _ => "Uploading audio track in progress...",
+                    VideoSourceFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
                     _ => throw new InvalidOperationException()
                 });
 
@@ -154,7 +154,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Upload thumbnail.
             Console.WriteLine("Uploading thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<LocalFileBase>())
+            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<SourceFileBase>())
             {
                 var uploadSucceeded = false;
                 string thumbnailReference = null!;

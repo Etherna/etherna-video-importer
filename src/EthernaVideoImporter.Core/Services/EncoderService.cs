@@ -31,13 +31,13 @@ namespace Etherna.VideoImporter.Core.Services
         public string FFMpegBinaryPath => options.FFMpegBinaryPath;
 
         // Methods.
-        public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
-            VideoLocalFile sourceVideoFile)
+        public async Task<IEnumerable<VideoSourceFile>> EncodeVideosAsync(
+            VideoSourceFile sourceVideoFile)
         {
             if (sourceVideoFile is null)
                 throw new ArgumentNullException(nameof(sourceVideoFile));
 
-            var videoEncodedFiles = new List<VideoLocalFile>();
+            var videoEncodedFiles = new List<VideoSourceFile>();
 
             // Compose FFmpeg command args.
             var args = BuildFFmpegCommandArgs(
@@ -82,7 +82,7 @@ namespace Etherna.VideoImporter.Core.Services
             foreach (var (outputFilePath, outputHeight, outputWidth) in outputs)
             {
                 var outputFileSize = new FileInfo(outputFilePath).Length;
-                videoEncodedFiles.Add(new VideoLocalFile(outputFilePath, outputHeight, outputWidth, outputFileSize));
+                videoEncodedFiles.Add(new VideoSourceFile(outputFilePath, outputHeight, outputWidth, outputFileSize));
 
                 Console.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }
@@ -134,7 +134,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="outputs">Output video files info</param>
         /// <returns>FFmpeg args list</returns>
         private IEnumerable<string> BuildFFmpegCommandArgs(
-            VideoLocalFile sourceVideoFile,
+            VideoSourceFile sourceVideoFile,
             out IEnumerable<(string filePath, int height, int width)> outputs)
         {
             // Build FFmpeg args.

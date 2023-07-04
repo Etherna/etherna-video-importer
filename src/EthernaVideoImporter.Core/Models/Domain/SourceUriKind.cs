@@ -3,7 +3,7 @@
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     [Flags]
-    public enum UriKind
+    public enum SourceUriKind
     {
         None = 0,
         LocalAbsolute = 1,

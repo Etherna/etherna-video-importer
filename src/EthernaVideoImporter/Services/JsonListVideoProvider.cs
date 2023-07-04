@@ -33,7 +33,7 @@ namespace Etherna.VideoImporter.Services
         }
 
         // Properties.
-        public string SourceName => options.JsonMetadataResource.OriginalUri;
+        public string SourceName => options.JsonMetadataUri.OriginalUri;
 
         // Methods.
         public async Task<Video> GetVideoAsync(
@@ -49,7 +49,7 @@ namespace Etherna.VideoImporter.Services
             // Transcode thumbnail resolutions.
             var thumbnailFiles = localVideoMetadata.SourceThumbnail is not null ?
                 await localVideoMetadata.SourceThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory) :
-                Array.Empty<ThumbnailLocalFile>();
+                Array.Empty<ThumbnailSourceFile>();
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
@@ -57,8 +57,8 @@ namespace Etherna.VideoImporter.Services
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             // Read json list.
-            string jsonData = await options.JsonMetadataResource.ReadAsStringAsync(true);
-            string jsonMetadataDirectoryAbsoluteUri = (options.JsonMetadataResource.TryGetParentDirectoryAsAbsoluteUri() ??
+            string jsonData = await new GenericSourceFile(options.JsonMetadataUri).ReadAsStringAsync();
+            string jsonMetadataDirectoryAbsoluteUri = (options.JsonMetadataUri.TryGetParentDirectoryAsAbsoluteUri() ??
                 throw new InvalidOperationException("Must exist a parent directory")).Item1;
 
             // Parse json video list.
@@ -74,7 +74,7 @@ namespace Etherna.VideoImporter.Services
                 try
                 {
                     // Get thumbnail info.
-                    ThumbnailLocalFile? thumbnail = null;
+                    ThumbnailSourceFile? thumbnail = null;
                     if (!string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
                     {
                         var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
@@ -84,11 +84,11 @@ namespace Etherna.VideoImporter.Services
                         using var thumbFileStream = File.OpenRead(absoluteThumbnailFilePath);
                         using var thumbManagedStream = new SKManagedStream(thumbFileStream);
                         using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-                        thumbnail = new ThumbnailLocalFile(absoluteThumbnailFilePath, thumbBitmap.ByteCount, thumbBitmap.Height, thumbBitmap.Width);
+                        thumbnail = new ThumbnailSourceFile(absoluteThumbnailFilePath, thumbBitmap.ByteCount, thumbBitmap.Height, thumbBitmap.Width);
                     }
 
                     // Get video info.
-                    var absoluteVideoFilePath = new UriResource(metadataDto.VideoFilePath).ToAbsoluteUri(jsonMetadataDirectoryAbsoluteUri);
+                    var absoluteVideoFilePath = new SourceUri(metadataDto.VideoFilePath).ToAbsoluteUri(baseDirectory: jsonMetadataDirectoryAbsoluteUri);
                     var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
 
                     videosMetadataDictionary.Add(
@@ -100,7 +100,7 @@ namespace Etherna.VideoImporter.Services
                             ffProbeResult.Format.Duration,
                             $"{ffProbeResult.Streams.First().Height}p",
                             thumbnail,
-                            new VideoLocalFile(
+                            new VideoSourceFile(
                                 absoluteVideoFilePath,
                                 ffProbeResult.Streams.First().Height,
                                 ffProbeResult.Streams.First().Width,

@@ -73,7 +73,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
 
             // Get thumbnail.
-            IEnumerable<ThumbnailLocalFile> thumbnailFiles = Array.Empty<ThumbnailLocalFile>();
+            IEnumerable<ThumbnailSourceFile> thumbnailFiles = Array.Empty<ThumbnailSourceFile>();
             if (videoMetadata.Thumbnail is not null)
             {
                 var bestResolutionThumbnail = await DownloadThumbnailAsync(
@@ -87,7 +87,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         }
 
         // Helpers.
-        private async Task<ThumbnailLocalFile> DownloadThumbnailAsync(
+        private async Task<ThumbnailSourceFile> DownloadThumbnailAsync(
             Thumbnail thumbnail,
             string videoTitle)
         {
@@ -121,14 +121,14 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new ThumbnailLocalFile(
+            return new ThumbnailSourceFile(
                 thumbnailFilePath,
                 new FileInfo(thumbnailFilePath).Length,
                 thumbnail.Resolution.Height,
                 thumbnail.Resolution.Width);
         }
 
-        private async Task<VideoLocalFile> DownloadVideoAsync(
+        private async Task<VideoSourceFile> DownloadVideoAsync(
             IAudioStreamInfo audioOnlyStream,
             IVideoStreamInfo videoOnlyStream,
             string videoTitle)
@@ -169,7 +169,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new VideoLocalFile(
+            return new VideoSourceFile(
                 videoFilePath,
                 videoOnlyStream.VideoResolution.Height,
                 videoOnlyStream.VideoResolution.Width,

@@ -8,6 +8,6 @@ namespace Etherna.VideoImporter.Options
     {
         public string FFProbeFolderPath { get; set; } = CommonConsts.DefaultFFmpegFolder;
         public string FFProbeBinaryPath => Path.Combine(FFProbeFolderPath, CommonConsts.FFProbeBinaryName);
-        public UriResource JsonMetadataResource { get; set; } = default!;
+        public SourceUri JsonMetadataUri { get; set; } = default!;
     }
 }

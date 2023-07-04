@@ -12,29 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System;
-using System.Text.RegularExpressions;
-
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public partial class VideoLocalFile : LocalFileBase, IVideoFile
+    public class AudioSourceFile : SourceFileBase
     {
         // Constructors.
-        public VideoLocalFile(
-            string filePath,
-            int height,
-            int width,
-            long byteSize)
-            : base(filePath, byteSize)
-        {
-            Height = height;
-            VideoQualityLabel = $"{height}p";
-            Width = width;
-        }
-
-        // Properties.
-        public int Height { get; }
-        public string VideoQualityLabel { get; }
-        public int Width { get; }
+        public AudioSourceFile(
+            SourceUri fileUri)
+            : base(fileUri)
+        { }
     }
 }

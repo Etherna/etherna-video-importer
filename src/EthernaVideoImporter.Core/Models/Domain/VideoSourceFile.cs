@@ -14,13 +14,23 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class AudioLocalFile : LocalFileBase
+    public partial class VideoSourceFile : SourceFileBase, IVideoFile
     {
         // Constructors.
-        public AudioLocalFile(
-            string filePath,
-            long byteSize)
-            : base(filePath, byteSize)
-        { }
+        public VideoSourceFile(
+            SourceUri fileUri,
+            int height,
+            int width)
+            : base(fileUri)
+        {
+            Height = height;
+            VideoQualityLabel = $"{height}p";
+            Width = width;
+        }
+
+        // Properties.
+        public int Height { get; }
+        public string VideoQualityLabel { get; }
+        public int Width { get; }
     }
 }
