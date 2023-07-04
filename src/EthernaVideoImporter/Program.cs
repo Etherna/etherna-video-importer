@@ -326,8 +326,8 @@ namespace Etherna.VideoImporter
                         c.Timeout = TimeSpan.FromMinutes(30);
                     });
             }
-            ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
-                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
+            ethernaClientsBuilder.AddEthernaGatewayClient(new System.Uri(CommonConsts.EthernaGatewayUrl))
+                                 .AddEthernaIndexClient(new System.Uri(CommonConsts.EthernaIndexUrl));
 
             // Setup DI.
             services.AddCoreServices(
@@ -360,7 +360,7 @@ namespace Etherna.VideoImporter
                     {
                         if (customFFMpegFolderPath is not null)
                             options.FFProbeFolderPath = customFFMpegFolderPath;
-                        options.JsonMetadataUri = new UriResource(sourceUri);
+                        options.JsonMetadataResource = new UriResource(sourceUri);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 

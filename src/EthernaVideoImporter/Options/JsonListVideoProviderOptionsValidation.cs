@@ -9,13 +9,13 @@ namespace Etherna.VideoImporter.Options
         {
             if (!File.Exists(options.FFProbeBinaryPath))
                 return ValidateOptionsResult.Fail($"FFProbe not found at ({options.FFProbeBinaryPath})");
-            if (options.JsonMetadataUri is null)
-                return ValidateOptionsResult.Fail($"Json metadata uri can't be null");
+            if (options.JsonMetadataResource is null)
+                return ValidateOptionsResult.Fail($"Json metadata resource can't be null");
 
-            var existsTask = options.JsonMetadataUri.ExistsAsync(true);
+            var existsTask = options.JsonMetadataResource.ExistsAsync(true);
             existsTask.Wait();
             if (!existsTask.Result)
-                return ValidateOptionsResult.Fail($"JSON metadata video list not found at \"{options.JsonMetadataUri.OriginalUri}\"");
+                return ValidateOptionsResult.Fail($"JSON metadata video list not found at \"{options.JsonMetadataResource.OriginalUri}\"");
 
             return ValidateOptionsResult.Success;
         }

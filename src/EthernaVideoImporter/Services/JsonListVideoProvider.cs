@@ -33,7 +33,7 @@ namespace Etherna.VideoImporter.Services
         }
 
         // Properties.
-        public string SourceName => options.JsonMetadataUri.OriginalUri;
+        public string SourceName => options.JsonMetadataResource.OriginalUri;
 
         // Methods.
         public async Task<Video> GetVideoAsync(
@@ -57,8 +57,9 @@ namespace Etherna.VideoImporter.Services
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             // Read json list.
-            string jsonData = await options.JsonMetadataUri.ReadResourceAsStringAsync(true);
-            string jsonMetadataDirectoryAbsoluteUri = options.JsonMetadataUri.ParentDirectoryAbsoluteUri;
+            string jsonData = await options.JsonMetadataResource.ReadAsStringAsync(true);
+            string jsonMetadataDirectoryAbsoluteUri = (options.JsonMetadataResource.TryGetParentDirectoryAsAbsoluteUri() ??
+                throw new InvalidOperationException("Must exist a parent directory")).Item1;
 
             // Parse json video list.
             var localVideosMetadataDto = JsonSerializer.Deserialize<List<LocalVideoMetadataDto>>(jsonData) 
