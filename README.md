@@ -13,18 +13,18 @@ Currently exists two versions:
 Etherna Video Importer requires at least [.NET 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) and [ASP.NET Core 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
 
 ### Setup FFmpeg
-To run the importer it is necessary to download [FFmpeg](https://ffmpeg.org/download.html) locally, and copy the binary file into the default folder "\FFmpeg", or specify its location with arguments.
+To run the importer you need to download [FFmpeg](https://ffmpeg.org/download.html) locally, and copy the binary file into the default folder "\FFmpeg", or specify its location with arguments.
 
 ### How to use
 
 **EthernaVideoImporter's help**
 ```
-Usage:  evi COMMAND [OPTIONS] SOURCE_URI
+Usage:  evi COMMAND SOURCE_URI [OPTIONS]
 
 Commands:
+  json              Import from json video list (requires metadata descriptor, see below)
   youtube-channel   Import from a YouTube channel
   youtube-video     Import from a YouTube video
-  local             Import from local videos (requires metadata descriptor, see below)
 
 General Options:
   -k, --api-key           Api Key (optional)
@@ -47,33 +47,37 @@ Bee Node Options:
   --bee-api-port          Port used by API (default: 1633)
   --bee-debug-port        Port used by Debug (default: 1635)
 
-Local video metadata format:
-To import from local videos you will need a metadata descriptor file. Metadata is a JSON file with the following structure:
+Json videos metadata format:
+To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
 
 [
     {
         "Id": "myId1",
-        "Title": "My video1 title",
-        "Description": "My video description",
+        "Title": "First video title",
+        "Description": "My first video description",
         "VideoFilePath": "path/to/your/video1.mp4",
         "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg"
     },
     {
         "Id": "myId2",
-        "Title": "My video2 title",
-        ...
+        "Title": "Second video title",
+        "Description": "My second video description",
+        "VideoFilePath": "http://example.com/stream.m3u8",
+        "ThumbnailFilePath": "path/to/your/optional/thumbnail2.jpg"
     },
     ...
 ]
 
-Paths can be either relative or absolute. ThumbnailFilePath is optional.
+Id field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique.
+Video paths can be local or online uris. Thumbnail paths are optional, and can only be local.
+Local paths can be relative or absolute, online urls can only be absolute.
 
 Run 'evi -h' or 'evi --help' to print help.
 ```
 
 **EthernaVideoImporter.Devcon's help**
 ```
-Usage:  evid [OPTIONS] MD_FOLDER
+Usage:  evid MD_FOLDER [OPTIONS]
 
 General Options:
   -k, --api-key           Api Key (optional)
@@ -98,14 +102,6 @@ Bee Node Options:
 
 Run 'evid -h' or 'evid --help' to print help.
 ```
-
-#### Local videos
-To import from local videos you will need a JSON metadata descriptor file.
-
-The `Id` field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique in the file.  
-The `ThumbnailFilePath` field is optional.
-
-The Json file path needs to be passed as source uri with the source type `local`.
 
 # Issue reports
 If you've discovered a bug, or have an idea for a new feature, please report it to our issue manager based on Jira https://etherna.atlassian.net/projects/EVI.

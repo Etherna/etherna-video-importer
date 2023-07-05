@@ -75,7 +75,7 @@ namespace Etherna.VideoImporter.Core.Services
             var amount = (long)(options.TtlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
             var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
-            Console.WriteLine($"Creating postage batch... Depth: {batchDepth} Amount: {amount} BZZ price: {bzzPrice}");
+            Console.WriteLine($"Creating postage batch... Depth: {batchDepth}, Amount: {amount}, BZZ price: {bzzPrice}");
 
             if (!options.AcceptPurchaseOfAllBatches)
             {
