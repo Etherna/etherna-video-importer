@@ -6,14 +6,19 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public class SourceUri
     {
+        // Fields.
+        private readonly string? defaultBaseDirectory;
+
         // Constructor.
         public SourceUri(
             string uri,
-            SourceUriKind allowedUriKinds = SourceUriKind.All)
+            SourceUriKind allowedUriKinds = SourceUriKind.All,
+            string? defaultBaseDirectory = null)
         {
             if (string.IsNullOrEmpty(uri))
                 throw new ArgumentException("Uri cannot be null or empty", nameof(uri));
 
+            this.defaultBaseDirectory = defaultBaseDirectory;
             OriginalUri = uri;
             UriKind = GetUriKind(uri, allowedUriKinds);
 
@@ -38,6 +43,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             // Define actual allowed uri kinds.
             var actualAllowedUriKinds = allowedUriKinds & UriKind;
 
+            baseDirectory ??= defaultBaseDirectory;
             if (baseDirectory is not null)
             {
                 var baseDirectoryUriKind = GetUriKind(baseDirectory, SourceUriKind.Absolute);
@@ -111,6 +117,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         }
 
         // Public static methods.
+        public static SourceUri FromString(string uri) => new(uri);
+
         public static SourceUriKind GetUriKind(string uri, SourceUriKind allowedUriKinds)
         {
             var uriKind = SourceUriKind.None;
@@ -142,5 +150,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
             return uriKind;
         }
+
+        // Operators.
+        public static implicit operator SourceUri(string uri) => FromString(uri);
     }
 }

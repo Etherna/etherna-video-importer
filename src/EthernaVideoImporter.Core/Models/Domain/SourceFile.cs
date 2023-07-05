@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -92,7 +93,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             }
         }
 
-        public async Task<(byte[], Encoding?)> ReadAsByteArrayAsync(bool useCacheIfOnline = false, SourceUriKind allowedUriKinds = SourceUriKind.All, string? baseDirectory = null)
+        public async Task<(byte[] ByteArray, Encoding? Encoding)> ReadAsByteArrayAsync(
+            bool useCacheIfOnline = false,
+            SourceUriKind allowedUriKinds = SourceUriKind.All,
+            string? baseDirectory = null)
         {
             // Use cache if enabled and available.
             if (useCacheIfOnline && onlineResourceCache != null)
@@ -118,7 +122,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             }
         }
 
-        public async Task<(Stream, Encoding?)> ReadAsStreamAsync(SourceUriKind allowedUriKinds = SourceUriKind.All, string? baseDirectory = null)
+        public async Task<(Stream Stream, Encoding? Encoding)> ReadAsStreamAsync(
+            SourceUriKind allowedUriKinds = SourceUriKind.All,
+            string? baseDirectory = null)
         {
             // Get resource.
             var (absoluteUri, absoluteUriKind) = FileUri.ToAbsoluteUri(allowedUriKinds, baseDirectory);
@@ -149,6 +155,14 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             if (SwarmHash != null)
                 throw new InvalidOperationException("Swarm hash already set");
             SwarmHash = swarmHash;
+        }
+
+        public string? TryGetFileName()
+        {
+            if (FileUri.OriginalUri.EndsWith('/') ||
+                FileUri.OriginalUri.EndsWith('\\'))
+                return null;
+            return FileUri.OriginalUri.Split('/', '\\').Last();
         }
 
         // Helpers.

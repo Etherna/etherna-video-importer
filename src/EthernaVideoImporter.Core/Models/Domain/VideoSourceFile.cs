@@ -12,25 +12,45 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Services;
+using System;
+using System.Linq;
+
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public partial class VideoSourceFile : SourceFile, IVideoFile
+    public sealed partial class VideoSourceFile : SourceFile, IVideoFile
     {
-        // Constructors.
-        public VideoSourceFile(
-            SourceUri fileUri,
-            int height,
-            int width)
+        // Constructor.
+        private VideoSourceFile(SourceUri fileUri)
             : base(fileUri)
+        { }
+
+        // Static builders.
+        public static VideoSourceFile BuildNew(
+            SourceUri fileUri,
+            IFFmpegService ffMpegService)
         {
-            Height = height;
-            VideoQualityLabel = $"{height}p";
-            Width = width;
+            if (fileUri is null)
+                throw new ArgumentNullException(nameof(fileUri));
+            if (ffMpegService is null)
+                throw new ArgumentNullException(nameof(ffMpegService));
+
+            var video = new VideoSourceFile(fileUri);
+
+            var (absoluteFileUri, _) = fileUri.ToAbsoluteUri();
+            var ffProbeResult = ffMpegService.GetFFProbeVideoInfo(absoluteFileUri);
+
+            video.Duration = ffProbeResult.Format.Duration;
+            video.Height = ffProbeResult.Streams.First().Height;
+            video.Width = ffProbeResult.Streams.First().Width;
+
+            return video;
         }
 
         // Properties.
-        public int Height { get; }
-        public string VideoQualityLabel { get; }
-        public int Width { get; }
+        public TimeSpan Duration { get; private set; }
+        public int Height { get; private set; }
+        public string VideoQualityLabel => $"{Height}p";
+        public int Width { get; private set; }
     }
 }

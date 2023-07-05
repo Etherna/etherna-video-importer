@@ -34,13 +34,16 @@ namespace Etherna.VideoImporter.Core.Utilities
     {
         // Fields.
         private readonly IEncoderService encoderService;
+        private readonly IFFmpegService ffMpegService;
 
         // Constructor.
         public YoutubeDownloader(
             IEncoderService encoderService,
+            IFFmpegService ffMpegService,
             IYoutubeClient youtubeClient)
         {
             this.encoderService = encoderService;
+            this.ffMpegService = ffMpegService;
             YoutubeClient = youtubeClient;
         }
 
@@ -121,11 +124,8 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new ThumbnailSourceFile(
-                thumbnailFilePath,
-                new FileInfo(thumbnailFilePath).Length,
-                thumbnail.Resolution.Height,
-                thumbnail.Resolution.Width);
+            return await ThumbnailSourceFile.BuildNewAsync(
+                thumbnailFilePath);
         }
 
         private async Task<VideoSourceFile> DownloadVideoAsync(
@@ -169,11 +169,9 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new VideoSourceFile(
+            return VideoSourceFile.BuildNew(
                 videoFilePath,
-                videoOnlyStream.VideoResolution.Height,
-                videoOnlyStream.VideoResolution.Width,
-                new FileInfo(videoFilePath).Length);
+                ffMpegService);
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)

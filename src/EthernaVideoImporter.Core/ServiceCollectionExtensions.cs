@@ -2,7 +2,6 @@
 using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
-using IdentityModel.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
@@ -15,13 +14,15 @@ namespace Etherna.VideoImporter.Core
         public static void AddCoreServices(
             this IServiceCollection services,
             Action<EncoderServiceOptions> configureEncoderOptions,
+            Action<FFmpegServiceOptions> configureFFmpegOptions,
             Action<VideoUploaderServiceOptions> configureVideoUploaderOptions,
             string httpClientName,
             bool useBeeNativeNode)
         {
             // Configure options.
             services.Configure(configureEncoderOptions);
-            services.AddSingleton<IValidateOptions<EncoderServiceOptions>, EncoderServiceOptionsValidation>();
+            services.Configure(configureFFmpegOptions);
+            services.AddSingleton<IValidateOptions<FFmpegServiceOptions>, FFmpegServiceOptionsValidation>();
             services.Configure(configureVideoUploaderOptions);
 
             // Add transient services.
@@ -29,6 +30,7 @@ namespace Etherna.VideoImporter.Core
 
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
             services.AddTransient<IEncoderService, EncoderService>();
+            services.AddTransient<IFFmpegService, FFmpegService>();
             if (useBeeNativeNode)
                 services.AddTransient<IGatewayService, BeeGatewayService>();
             else

@@ -18,17 +18,17 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Fields.
         private readonly List<Command> activedCommands = new();
+        private readonly IFFmpegService ffMpegService;
         private readonly EncoderServiceOptions options;
 
         // Constructor.
         public EncoderService(
+            IFFmpegService ffMpegService,
             IOptions<EncoderServiceOptions> options)
         {
             this.options = options.Value;
+            this.ffMpegService = ffMpegService;
         }
-
-        // Properties.
-        public string FFMpegBinaryPath => options.FFMpegBinaryPath;
 
         // Methods.
         public async Task<IEnumerable<VideoSourceFile>> EncodeVideosAsync(
@@ -82,14 +82,13 @@ namespace Etherna.VideoImporter.Core.Services
             foreach (var (outputFilePath, outputHeight, outputWidth) in outputs)
             {
                 var outputFileSize = new FileInfo(outputFilePath).Length;
-                videoEncodedFiles.Add(new VideoSourceFile(outputFilePath, outputHeight, outputWidth, outputFileSize));
+                videoEncodedFiles.Add(VideoSourceFile.BuildNew(outputFilePath, ffMpegService));
 
                 Console.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }
 
             // Remove all video encodings where exists another with greater resolution, and equal or less file size.
-            videoEncodedFiles.RemoveAll(vf1 => videoEncodedFiles.Any(vf2 => vf1.Height < vf2.Height &&
-                                                                            vf1.ByteSize >= vf2.ByteSize));
+            await RemoveUnusefulResolutionsAsync(videoEncodedFiles);
 
             Console.WriteLine($"Keep [{videoEncodedFiles.Select(vf => vf.Height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}] as valid resolutions to upload");
 
@@ -144,7 +143,7 @@ namespace Etherna.VideoImporter.Core.Services
             var outputsList = new List<(string filePath, int height, int width)>();
 
             //input
-            args.Add("-i"); args.Add(sourceVideoFile.FilePath);
+            args.Add("-i"); args.Add(sourceVideoFile.FileUri.ToAbsoluteUri().Item1);
 
             //all output streams
             foreach (var height in SupportedHeightResolutions.Union(new List<int> { sourceVideoFile.Height })
@@ -179,5 +178,20 @@ namespace Etherna.VideoImporter.Core.Services
 
         private void ManageInterrupted(object? sender, ConsoleCancelEventArgs args) =>
             activedCommands.ForEach(c => c.Kill());
+
+        private static async Task RemoveUnusefulResolutionsAsync(List<VideoSourceFile> videoFiles)
+        {
+            var videoFilesWithByteSize = new List<(VideoSourceFile video, long byteSize)>();
+            foreach (var file in videoFiles)
+                videoFilesWithByteSize.Add((file, await file.GetByteSizeAsync()));
+
+            videoFilesWithByteSize.RemoveAll(
+                vf1 => videoFilesWithByteSize.Any(
+                    vf2 => vf1.video.Height < vf2.video.Height &&
+                           vf1.byteSize >= vf2.byteSize));
+
+            videoFiles.Clear();
+            videoFiles.AddRange(videoFilesWithByteSize.Select(p => p.video));
+        }
     }
 }

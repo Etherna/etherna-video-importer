@@ -65,7 +65,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Create new batch.
             //calculate batch depth
-            var totalSize = video.GetTotalByteSize();
+            var totalSize = await video.GetTotalByteSizeAsync();
             var batchDepth = 17;
             while (Math.Pow(2, batchDepth) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
                 batchDepth++;
@@ -125,8 +125,8 @@ namespace Etherna.VideoImporter.Core.Services
                     try
                     {
                         var fileParameterInput = new FileParameterInput(
-                            File.OpenRead(encodedFile.FilePath),
-                            Path.GetFileName(encodedFile.FilePath),
+                            (await encodedFile.ReadAsStreamAsync()).Stream,
+                            encodedFile.TryGetFileName(),
                             "video/mp4");
 
                         encodedFile.SetSwarmHash(await gatewayService.UploadFilesAsync(
@@ -163,8 +163,8 @@ namespace Etherna.VideoImporter.Core.Services
                     try
                     {
                         var fileThumbnailParameterInput = new FileParameterInput(
-                            File.OpenRead(thumbnailFile.FilePath),
-                            Path.GetFileName(thumbnailFile.FilePath),
+                            (await thumbnailFile.ReadAsStreamAsync()).Stream,
+                            thumbnailFile.TryGetFileName(),
                             "image/jpeg");
 
                         thumbnailReference = await gatewayService.UploadFilesAsync(

@@ -3,15 +3,11 @@ using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
 using Etherna.VideoImporter.Models.LocalVideoDto;
-using Etherna.VideoImporter.Models.LocalVideoDtos;
 using Etherna.VideoImporter.Options;
-using Medallion.Shell;
 using Microsoft.Extensions.Options;
-using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -21,14 +17,17 @@ namespace Etherna.VideoImporter.Services
     {
         // Fields.
         private readonly IEncoderService encoderService;
+        private readonly IFFmpegService ffMpegService;
         private readonly JsonListVideoProviderOptions options;
 
         // Constructor.
         public JsonListVideoProvider(
             IEncoderService encoderService,
+            IFFmpegService ffMpegService,
             IOptions<JsonListVideoProviderOptions> options)
         {
             this.encoderService = encoderService;
+            this.ffMpegService = ffMpegService;
             this.options = options.Value;
         }
 
@@ -73,38 +72,23 @@ namespace Etherna.VideoImporter.Services
 
                 try
                 {
-                    // Get thumbnail info.
-                    ThumbnailSourceFile? thumbnail = null;
-                    if (!string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
-                    {
-                        var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
-                            metadataDto.ThumbnailFilePath :
-                            Path.Combine(jsonMetadataDirectoryAbsoluteUri, metadataDto.ThumbnailFilePath);
+                    // Build thumbnail.
+                    var thumbnail = string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ? null :
+                        await ThumbnailSourceFile.BuildNewAsync(new SourceUri(
+                            metadataDto.ThumbnailFilePath,
+                            defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri));
 
-                        using var thumbFileStream = File.OpenRead(absoluteThumbnailFilePath);
-                        using var thumbManagedStream = new SKManagedStream(thumbFileStream);
-                        using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-                        thumbnail = new ThumbnailSourceFile(absoluteThumbnailFilePath, thumbBitmap.ByteCount, thumbBitmap.Height, thumbBitmap.Width);
-                    }
-
-                    // Get video info.
-                    var absoluteVideoFilePath = new SourceUri(metadataDto.VideoFilePath).ToAbsoluteUri(baseDirectory: jsonMetadataDirectoryAbsoluteUri);
-                    var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
-
+                    // Build video.
                     videosMetadataDictionary.Add(
                         metadataDto.Id,
                         new LocalVideoMetadata(
                             metadataDto.Id,
                             metadataDto.Title,
                             metadataDto.Description,
-                            ffProbeResult.Format.Duration,
-                            $"{ffProbeResult.Streams.First().Height}p",
                             thumbnail,
-                            new VideoSourceFile(
-                                absoluteVideoFilePath,
-                                ffProbeResult.Streams.First().Height,
-                                ffProbeResult.Streams.First().Width,
-                                ffProbeResult.Format.SizeLong))); //size here could be wrong in case of url pointing to HLS index file. In any case it's not needed.
+                            VideoSourceFile.BuildNew(
+                                new SourceUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
+                                ffMpegService)));
 
                     Console.WriteLine($"Loaded metadata for {metadataDto.Title}");
                 }
@@ -122,38 +106,5 @@ namespace Etherna.VideoImporter.Services
 
         public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
             Task.CompletedTask;
-
-        // Private helpers.
-        private FFProbeResultDto GetFFProbeVideoInfo(string videoFilePath)
-        {
-            var args = new string[] {
-                $"-v", "error",
-                "-show_entries", "format=duration,size",
-                "-show_entries", "stream=width,height",
-                "-of", "json",
-                "-sexagesimal",
-                videoFilePath};
-
-            var command = Command.Run(options.FFProbeBinaryPath, args);
-            command.Wait();
-            var result = command.Result;
-
-            // Inspect result.
-            if (!result.Success)
-                throw new InvalidOperationException($"ffprobe command failed with exit code {result.ExitCode}: {result.StandardError}");
-
-            var ffProbeResult = JsonSerializer.Deserialize<FFProbeResultDto>(
-                result.StandardOutput.Trim(),
-                new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
-                ?? throw new InvalidDataException($"FFProbe result have an invalid json");
-
-            /*
-             * ffProbe return even an empty element in Streams
-             * Take the right resolution with OrderByDescending
-             */
-            ffProbeResult.Streams = new[] { ffProbeResult.Streams.OrderByDescending(s => s.Height).First() };
-
-            return ffProbeResult;
-        }
     }
 }
