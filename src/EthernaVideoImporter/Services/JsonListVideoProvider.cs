@@ -75,11 +75,15 @@ namespace Etherna.VideoImporter.Services
                     ThumbnailLocalFile? thumbnail = null;
                     if (!string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
                     {
-                        var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
+                        string absoluteThumbnailFilePath;
+                        if (metadataDto.ThumbnailFilePath.GetPathType() == PathType.Url)
+                            absoluteThumbnailFilePath = await DownloadThumbnailAsync(metadataDto.ThumbnailFilePath);
+                        else
+                        {
+                            absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
                             metadataDto.ThumbnailFilePath :
                             Path.Combine(jsonMetadataFileDirectory, metadataDto.ThumbnailFilePath);
-                        if (metadataDto.ThumbnailFilePath.GetPathType() == PathType.Url)
-                            absoluteThumbnailFilePath = await DownloadThumbnailFileAsync(absoluteThumbnailFilePath);
+                        }
 
                         using var thumbFileStream = File.OpenRead(absoluteThumbnailFilePath);
                         using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -124,21 +128,19 @@ namespace Etherna.VideoImporter.Services
             Task.CompletedTask;
 
         // Helpers.
-        private async Task<string> DownloadThumbnailFileAsync(string thumbnailUrl)
+        private async Task<string> DownloadThumbnailAsync(string thumbnailUrl)
         {
-            using (HttpClient client = new HttpClient())
-            {
-                using (HttpResponseMessage response = await client.GetAsync(thumbnailUrl))
-                {
-                    response.EnsureSuccessStatusCode();
+            using var client = new HttpClient();
+            using var response = await client.GetAsync(thumbnailUrl);
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException($"Some error during thumbnail download, status code {response.StatusCode}");
 
-                    using (Stream contentStream = await response.Content.ReadAsStreamAsync(),
-                                  fileStream = new FileStream(Path.Combine(downloadPath, ffmpegFileName), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
-                    {
-                        await contentStream.CopyToAsync(fileStream);
-                    }
-                }
-            }
+            var thumbnailPath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{Path.GetRandomFileName()}{Path.GetExtension(thumbnailUrl)}");
+            using var contentStream = await response.Content.ReadAsStreamAsync();
+            using var fileStream = new FileStream(thumbnailPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            await contentStream.CopyToAsync(fileStream);
+
+            return thumbnailPath;
         }
 
         private FFProbeResultDto GetFFProbeVideoInfo(string videoFilePath)
