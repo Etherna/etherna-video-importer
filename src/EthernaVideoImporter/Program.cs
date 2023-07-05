@@ -44,6 +44,7 @@ namespace Etherna.VideoImporter
               -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
+              -d, --disable-index     Disable listing video on index
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
@@ -109,6 +110,7 @@ namespace Etherna.VideoImporter
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            bool indexManifest = true;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -187,6 +189,11 @@ namespace Etherna.VideoImporter
                     case "-a":
                     case "--auto-purchase":
                         autoPurchaseBatches = true;
+                        break;
+
+                    case "-d":
+                    case "--disable-index":
+                        indexManifest = false;
                         break;
 
                     //video management
@@ -339,6 +346,7 @@ namespace Etherna.VideoImporter
                 uploaderOptions =>
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = autoPurchaseBatches;
+                    uploaderOptions.IndexManifest = indexManifest;
 
                     if (!string.IsNullOrEmpty(ttlPostageStampStr))
                     {
@@ -406,7 +414,8 @@ namespace Etherna.VideoImporter
                 forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                unpinRemovedVideos);
+                unpinRemovedVideos,
+                indexManifest);
         }
     }
 }

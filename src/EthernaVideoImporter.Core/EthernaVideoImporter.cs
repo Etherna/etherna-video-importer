@@ -77,7 +77,8 @@ namespace Etherna.VideoImporter.Core
             bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
-            bool unpinRemovedVideos)
+            bool unpinRemovedVideos,
+            bool indexManifest)
         {
             // Signin user.
             try
@@ -192,9 +193,10 @@ namespace Etherna.VideoImporter.Core
                             updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.
-                            await ethernaIndexClient.VideosClient.VideosPutAsync(
-                                alreadyPresentVideo.IndexId,
-                                updatedPermalinkHash);
+                            if (indexManifest)
+                                await ethernaIndexClient.VideosClient.VideosPutAsync(
+                                    alreadyPresentVideo.IndexId,
+                                    updatedPermalinkHash);
                         }
                     }
 

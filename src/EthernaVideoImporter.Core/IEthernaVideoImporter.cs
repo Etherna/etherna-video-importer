@@ -24,6 +24,7 @@ namespace Etherna.VideoImporter.Core
             bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
-            bool unpinRemovedVideos);
+            bool unpinRemovedVideos,
+            bool indexManifest);
     }
 }
