@@ -4,9 +4,9 @@ using System.IO;
 
 namespace Etherna.VideoImporter.Options
 {
-    internal sealed class LocalVideoProviderOptionsValidation : IValidateOptions<LocalVideoProviderOptions>
+    internal sealed class JsonListVideoProviderOptionsValidation : IValidateOptions<JsonListVideoProviderOptions>
     {
-        public ValidateOptionsResult Validate(string? name, LocalVideoProviderOptions options)
+        public ValidateOptionsResult Validate(string? name, JsonListVideoProviderOptions options)
         {
             if (options.FFProbeBinaryPath is null ||
                 (options.FFProbeBinaryPath != CommonConsts.FFProbeBinaryName &&

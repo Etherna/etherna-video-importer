@@ -34,12 +34,12 @@ namespace Etherna.VideoImporter
     {
         // Consts.
         private static readonly string HelpText = $$"""
-            Usage:  evi COMMAND [OPTIONS] SOURCE_URI
+            Usage:  evi COMMAND SOURCE_URI [OPTIONS]
 
             Commands:
+              json              Import from json video list (requires metadata descriptor, see below)
               youtube-channel   Import from a YouTube channel
               youtube-video     Import from a YouTube video
-              local             Import from local videos (requires metadata descriptor, see below)
 
             General Options:
               -k, --api-key           Api Key (optional)
@@ -62,26 +62,30 @@ namespace Etherna.VideoImporter
               --bee-api-port          Port used by API (default: {{CommonConsts.BeeApiPort}})
               --bee-debug-port        Port used by Debug (default: {{CommonConsts.BeeDebugPort}})
 
-            Local video metadata format:
-            To import from local videos you will need a metadata descriptor file. Metadata is a JSON file with the following structure:
+            Json videos metadata format:
+            To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
 
             [
                 {
                     "Id": "myId1",
-                    "Title": "My video1 title",
-                    "Description": "My video description",
+                    "Title": "First video title",
+                    "Description": "My first video description",
                     "VideoFilePath": "path/to/your/video1.mp4",
                     "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg"
                 },
                 {
                     "Id": "myId2",
-                    "Title": "My video2 title",
-                    ...
+                    "Title": "Second video title",
+                    "Description": "My second video description",
+                    "VideoFilePath": "http://example.com/stream.m3u8",
+                    "ThumbnailFilePath": "path/to/your/optional/thumbnail2.jpg"
                 },
                 ...
             ]
 
-            Paths can be either relative or absolute. ThumbnailFilePath is optional.
+            Id field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique.
+            Video paths can be local or online uris. Thumbnail paths are optional, and can only be local.
+            Local paths can be relative or absolute, online urls can only be absolute.
 
             Run 'evi -h' or 'evi --help' to print help.
             """;
@@ -136,6 +140,10 @@ namespace Etherna.VideoImporter
             //command
             switch (args[0])
             {
+                case "json":
+                    sourceType = SourceType.JsonList;
+                    break;
+
                 case "youtube-channel":
                     sourceType = SourceType.YouTubeChannel;
                     break;
@@ -144,17 +152,16 @@ namespace Etherna.VideoImporter
                     sourceType = SourceType.YouTubeVideo;
                     break;
 
-                case "local":
-                    sourceType = SourceType.LocalVideos;
-                    break;
-
                 default:
                     Console.WriteLine($"Invalid command: {args[0]}");
                     throw new ArgumentException($"Invalid command: {args[0]}");
             }
 
+            //source uri
+            sourceUri = args[1];
+
             //options
-            var optArgs = args[1..^1];
+            var optArgs = args[2..];
             for (int i = 0; i < optArgs.Length; i++)
             {
                 switch (optArgs[i])
@@ -252,9 +259,6 @@ namespace Etherna.VideoImporter
                         throw new ArgumentException(optArgs[i] + " is not a valid option");
                 }
             }
-
-            //source uri
-            sourceUri = args[^1];
 
             // Input validation.
             //offer video
@@ -359,7 +363,7 @@ namespace Etherna.VideoImporter
 
             switch (sourceType)
             {
-                case SourceType.LocalVideos:
+                case SourceType.JsonList:
                     var selectedFFProbeFolderPath = await FFmpegUtility.FFProbeCheckAndGetAsync(customFFMpegFolderPath);
                     if (selectedFFProbeFolderPath is null)
                     {
@@ -367,15 +371,15 @@ namespace Etherna.VideoImporter
                         return;
                     }
                     //options
-                    services.Configure<LocalVideoProviderOptions>(options =>
+                    services.Configure<JsonListVideoProviderOptions>(options =>
                     {
                         options.FFProbeFolderPath = selectedFFProbeFolderPath;
                         options.JsonMetadataFilePath = sourceUri;
                     });
-                    services.AddSingleton<IValidateOptions<LocalVideoProviderOptions>, LocalVideoProviderOptionsValidation>();
+                    services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 
                     //services
-                    services.AddTransient<IVideoProvider, LocalVideoProvider>();
+                    services.AddTransient<IVideoProvider, JsonListVideoProvider>();
                     break;
                 case SourceType.YouTubeChannel:
                     //options
