@@ -76,7 +76,7 @@ namespace Etherna.VideoImporter
                     "Title": "Second video title",
                     "Description": "My second video description",
                     "VideoFilePath": "http://example.com/stream.m3u8",
-                    "ThumbnailFilePath": "path/to/your/optional/thumbnail2.jpg"
+                    "ThumbnailFilePath": "http://example.com/thumbnail2.jpg"
                 },
                 ...
             ]

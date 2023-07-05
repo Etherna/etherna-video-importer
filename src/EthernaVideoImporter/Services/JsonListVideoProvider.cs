@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -77,6 +78,8 @@ namespace Etherna.VideoImporter.Services
                         var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
                             metadataDto.ThumbnailFilePath :
                             Path.Combine(jsonMetadataFileDirectory, metadataDto.ThumbnailFilePath);
+                        if (metadataDto.ThumbnailFilePath.GetPathType() == PathType.Url)
+                            absoluteThumbnailFilePath = await DownloadThumbnailFileAsync(absoluteThumbnailFilePath);
 
                         using var thumbFileStream = File.OpenRead(absoluteThumbnailFilePath);
                         using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -121,6 +124,23 @@ namespace Etherna.VideoImporter.Services
             Task.CompletedTask;
 
         // Helpers.
+        private async Task<string> DownloadThumbnailFileAsync(string thumbnailUrl)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                using (HttpResponseMessage response = await client.GetAsync(thumbnailUrl))
+                {
+                    response.EnsureSuccessStatusCode();
+
+                    using (Stream contentStream = await response.Content.ReadAsStreamAsync(),
+                                  fileStream = new FileStream(Path.Combine(downloadPath, ffmpegFileName), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
+                    {
+                        await contentStream.CopyToAsync(fileStream);
+                    }
+                }
+            }
+        }
+
         private FFProbeResultDto GetFFProbeVideoInfo(string videoFilePath)
         {
             var args = new string[] {
@@ -152,5 +172,6 @@ namespace Etherna.VideoImporter.Services
 
             return ffProbeResult;
         }
+
     }
 }
