@@ -6,14 +6,13 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract class SourceFileBase : FileBase
+    public class SourceFile : FileBase
     {
         // Fields.
         private (byte[], Encoding?)? onlineResourceCache;
 
         // Constructor.
-        protected SourceFileBase(
-            SourceUri fileUri)
+        public SourceFile(SourceUri fileUri)
         {
             FileUri = fileUri;
         }

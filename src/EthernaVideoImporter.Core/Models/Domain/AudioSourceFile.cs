@@ -14,7 +14,7 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class AudioSourceFile : SourceFileBase
+    public class AudioSourceFile : SourceFile
     {
         // Constructors.
         public AudioSourceFile(

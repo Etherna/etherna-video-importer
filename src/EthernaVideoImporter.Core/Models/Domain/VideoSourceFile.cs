@@ -14,7 +14,7 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public partial class VideoSourceFile : SourceFileBase, IVideoFile
+    public partial class VideoSourceFile : SourceFile, IVideoFile
     {
         // Constructors.
         public VideoSourceFile(

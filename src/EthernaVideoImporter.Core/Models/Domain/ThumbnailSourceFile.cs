@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class ThumbnailSourceFile : SourceFileBase, IThumbnailFile
+    public class ThumbnailSourceFile : SourceFile, IThumbnailFile
     {
         // Consts.
         public static readonly int[] ThumbnailResponsiveSizes = { 480, 960, 1280 };
