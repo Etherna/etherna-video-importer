@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -18,17 +19,19 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Fields.
         private readonly IFFmpegService ffMpegService;
-        
+        private readonly IHttpClientFactory httpClientFactory;
         [SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used")]
         private readonly EncoderServiceOptions options;
 
         // Constructor.
         public EncoderService(
             IFFmpegService ffMpegService,
+            IHttpClientFactory httpClientFactory,
             IOptions<EncoderServiceOptions> options)
         {
             this.options = options.Value;
             this.ffMpegService = ffMpegService;
+            this.httpClientFactory = httpClientFactory;
         }
 
         // Methods.
@@ -47,7 +50,7 @@ namespace Etherna.VideoImporter.Core.Services
             foreach (var (outputFilePath, outputHeight, outputWidth) in outputs)
             {
                 var outputFileSize = new FileInfo(outputFilePath).Length;
-                videoEncodedFiles.Add(VideoSourceFile.BuildNew(outputFilePath, ffMpegService));
+                videoEncodedFiles.Add(VideoSourceFile.BuildNew(outputFilePath, ffMpegService, httpClientFactory));
 
                 Console.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }

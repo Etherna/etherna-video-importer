@@ -13,18 +13,27 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         private (byte[], Encoding?)? onlineResourceCache;
 
         // Constructor.
-        public SourceFile(SourceUri fileUri)
+        public SourceFile(
+            SourceUri fileUri,
+            IHttpClientFactory httpClientFactory)
         {
             FileUri = fileUri;
+            HttpClientFactory = httpClientFactory;
         }
 
         // Properties.
         public SourceUri FileUri { get; }
 
+        // Protected properties.
+        protected IHttpClientFactory HttpClientFactory { get; }
+
         // Methods.
         public void ClearOnlineCache() => onlineResourceCache = null;
 
-        public async Task<bool> ExistsAsync(bool useCacheIfOnline = false, SourceUriKind allowedUriKinds = SourceUriKind.All, string? baseDirectory = null)
+        public async Task<bool> ExistsAsync(
+            bool useCacheIfOnline = false,
+            SourceUriKind allowedUriKinds = SourceUriKind.All,
+            string? baseDirectory = null)
         {
             // Use cache if enabled and available.
             if (useCacheIfOnline && onlineResourceCache != null)
@@ -50,7 +59,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         public override Task<long> GetByteSizeAsync() => GetByteSizeAsync(false, SourceUriKind.All, null);
 
-        public async Task<long> GetByteSizeAsync(bool useCacheIfOnline = false, SourceUriKind allowedUriKinds = SourceUriKind.All, string? baseDirectory = null)
+        public async Task<long> GetByteSizeAsync(
+            bool useCacheIfOnline = false,
+            SourceUriKind allowedUriKinds = SourceUriKind.All,
+            string? baseDirectory = null)
         {
             // Use cache if enabled and available.
             if (useCacheIfOnline && onlineResourceCache != null)
@@ -67,7 +79,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     // Try to get resource byte size with an HEAD request.
                     try
                     {
-                        using var httpClient = new HttpClient();
+                        using var httpClient = HttpClientFactory.CreateClient();
                         using var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, absoluteUri);
                         using var response = await httpClient.SendAsync(httpRequestMessage);
 
@@ -128,22 +140,18 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         {
             // Get resource.
             var (absoluteUri, absoluteUriKind) = FileUri.ToAbsoluteUri(allowedUriKinds, baseDirectory);
-            switch (absoluteUriKind)
+            return absoluteUriKind switch
             {
-                case SourceUriKind.LocalAbsolute:
-                    return (File.OpenRead(absoluteUri), null);
-
-                case SourceUriKind.OnlineAbsolute:
-                    var onlineResource = await TryGetOnlineAsStreamAsync(absoluteUri) ??
-                        throw new IOException($"Can't retrieve online resource at {absoluteUri}");
-
-                    return onlineResource;
-
-                default: throw new InvalidOperationException("Invalid absolute uri kind. It should be well defined and absolute");
-            }
+                SourceUriKind.LocalAbsolute => (File.OpenRead(absoluteUri), null),
+                SourceUriKind.OnlineAbsolute => await TryGetOnlineAsStreamAsync(absoluteUri) ?? throw new IOException($"Can't retrieve online resource at {absoluteUri}"),
+                _ => throw new InvalidOperationException("Invalid absolute uri kind. It should be well defined and absolute"),
+            };
         }
 
-        public async Task<string> ReadAsStringAsync(bool useCacheIfOnline = false, SourceUriKind allowedUriKinds = SourceUriKind.All, string? baseDirectory = null)
+        public async Task<string> ReadAsStringAsync(
+            bool useCacheIfOnline = false,
+            SourceUriKind allowedUriKinds = SourceUriKind.All,
+            string? baseDirectory = null)
         {
             var (content, encoding) = await ReadAsByteArrayAsync(useCacheIfOnline, allowedUriKinds, baseDirectory);
             encoding ??= Encoding.UTF8;
@@ -166,31 +174,38 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         }
 
         // Helpers.
-        private static async Task<(byte[], Encoding?)?> TryGetOnlineAsByteArrayAsync(string onlineAbsoluteUri)
+        private async Task<(byte[], Encoding?)?> TryGetOnlineAsByteArrayAsync(
+            string onlineAbsoluteUri)
         {
             var result = await TryGetOnlineAsStreamAsync(onlineAbsoluteUri);
             if (result is null)
                 return null;
 
-            var (content, encoding) = result.Value;
-            using var memoryStream = new MemoryStream();
-            await content.CopyToAsync(memoryStream);
+            var (contentStream, encoding) = result.Value;
+            var byteArrayContent = contentStream.ToArray();
+            await contentStream.DisposeAsync();
 
-            return (memoryStream.ToArray(), encoding);
+            return (byteArrayContent, encoding);
         }
 
-        private static async Task<(Stream, Encoding?)?> TryGetOnlineAsStreamAsync(string onlineAbsoluteUri)
+        private async Task<(MemoryStream, Encoding?)?> TryGetOnlineAsStreamAsync(
+            string onlineAbsoluteUri)
         {
             try
             {
-                using var httpClient = new HttpClient();
+                using var httpClient = HttpClientFactory.CreateClient();
                 using var response = await httpClient.GetAsync(onlineAbsoluteUri);
                 if (!response.IsSuccessStatusCode)
                     return null;
 
                 // Get content with encoding.
-                var contentStream = await response.Content.ReadAsStreamAsync();
+                using var contentStream = await response.Content.ReadAsStreamAsync();
                 Encoding? contentEncoding = null;
+
+                // Copy stream to memory stream.
+                var memoryStream = new MemoryStream();
+                await contentStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
 
                 // Try to extract the encoding from the Content-Type header.
                 if (response.Content.Headers.ContentType?.CharSet != null)
@@ -199,7 +214,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     catch (ArgumentException) { }
                 }
 
-                return (contentStream, contentEncoding);
+                return (memoryStream, contentEncoding);
             }
             catch
             {

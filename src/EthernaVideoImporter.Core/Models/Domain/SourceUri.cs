@@ -44,7 +44,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             var actualAllowedUriKinds = allowedUriKinds & UriKind;
 
             baseDirectory ??= defaultBaseDirectory;
-            if (baseDirectory is not null)
+            if ((actualAllowedUriKinds & SourceUriKind.Relative) != 0 &&
+                baseDirectory is not null)
             {
                 var baseDirectoryUriKind = GetUriKind(baseDirectory, SourceUriKind.Absolute);
                 if (baseDirectoryUriKind == SourceUriKind.None)
@@ -58,11 +59,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             }
 
             // Checks.
-            //if could be an online relative uri, and base directory is null. If positive, in any case uri can't be absolute
-            if ((actualAllowedUriKinds | SourceUriKind.OnlineRelative) != 0 &&
+            //check if could be an online relative uri, and base directory is null. If positive, in any case uri can't be absolute
+            if ((actualAllowedUriKinds & SourceUriKind.OnlineRelative) != 0 &&
                 baseDirectory is null)
             {
-                if ((actualAllowedUriKinds | SourceUriKind.LocalRelative) != 0)
+                if ((actualAllowedUriKinds & SourceUriKind.LocalRelative) != 0)
                     throw new InvalidOperationException("Can't resolve undefined relative uri. Specify if is local, or a base directory");
                 else
                     throw new InvalidOperationException("Can't resolve online relative uri. Specify a base directory");
@@ -84,7 +85,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 SourceUriKind.LocalAbsolute => (OriginalUri, SourceUriKind.LocalAbsolute),
                 SourceUriKind.LocalRelative => (Path.GetFullPath(OriginalUri, baseDirectory ?? Directory.GetCurrentDirectory()), SourceUriKind.LocalAbsolute),
                 SourceUriKind.OnlineAbsolute => (OriginalUri, SourceUriKind.OnlineAbsolute),
-                SourceUriKind.OnlineRelative => (new System.Uri(new System.Uri(baseDirectory!, System.UriKind.Absolute), OriginalUri).ToString(),
+                SourceUriKind.OnlineRelative => (new Uri(new Uri(baseDirectory!, System.UriKind.Absolute), OriginalUri).ToString(),
                                            SourceUriKind.OnlineAbsolute),
                 _ => throw new InvalidOperationException("Invalid uri kind. It should be well defined at this stage")
             };
@@ -108,7 +109,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                         (dirName, SourceUriKind.LocalAbsolute);
 
                 case SourceUriKind.OnlineAbsolute:
-                    var segments = new System.Uri(absoluteUri, System.UriKind.Absolute).Segments;
+                    var segments = new Uri(absoluteUri, System.UriKind.Absolute).Segments;
                     return segments.Length == 1 ? null : //if it's already root, return null
                         (absoluteUri[..^segments.Last().Length], SourceUriKind.OnlineAbsolute);
 
@@ -123,8 +124,20 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         {
             var uriKind = SourceUriKind.None;
 
+            //test online absolute
+            if (Uri.TryCreate(uri, System.UriKind.Absolute, out var onlineAbsUriResult) &&
+                (onlineAbsUriResult.Scheme == Uri.UriSchemeHttp || onlineAbsUriResult.Scheme == Uri.UriSchemeHttps) &&
+                (allowedUriKinds & SourceUriKind.OnlineAbsolute) != 0)
+                uriKind |= SourceUriKind.OnlineAbsolute;
+
+            //test online relative
+            if (Uri.TryCreate(uri, System.UriKind.Relative, out var _) &&
+                (allowedUriKinds & SourceUriKind.OnlineRelative) != 0)
+                uriKind |= SourceUriKind.OnlineRelative;
+
             //test local
-            if (!uri.Intersect(Path.GetInvalidPathChars()).Any())
+            if ((uriKind & SourceUriKind.OnlineAbsolute) == 0 &&
+                !uri.Intersect(Path.GetInvalidPathChars()).Any())
             {
                 var isRooted = Path.IsPathRooted(uri);
 
@@ -136,17 +149,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 if (!isRooted && (allowedUriKinds & SourceUriKind.LocalRelative) != 0)
                     uriKind |= SourceUriKind.LocalRelative;
             }
-
-            //test online absolute
-            if (System.Uri.TryCreate(uri, System.UriKind.Absolute, out var onlineAbsUriResult) &&
-                (onlineAbsUriResult.Scheme == System.Uri.UriSchemeHttp || onlineAbsUriResult.Scheme == System.Uri.UriSchemeHttps) &&
-                (allowedUriKinds & SourceUriKind.OnlineAbsolute) != 0)
-                uriKind |= SourceUriKind.OnlineAbsolute;
-
-            //test online relative
-            if (System.Uri.TryCreate(uri, System.UriKind.Relative, out var _) &&
-                (allowedUriKinds & SourceUriKind.OnlineRelative) != 0)
-                uriKind |= SourceUriKind.OnlineRelative;
 
             return uriKind;
         }

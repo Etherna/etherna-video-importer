@@ -35,15 +35,18 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Fields.
         private readonly IEncoderService encoderService;
         private readonly IFFmpegService ffMpegService;
+        private readonly IHttpClientFactory httpClientFactory;
 
         // Constructor.
         public YoutubeDownloader(
             IEncoderService encoderService,
             IFFmpegService ffMpegService,
+            IHttpClientFactory httpClientFactory,
             IYoutubeClient youtubeClient)
         {
             this.encoderService = encoderService;
             this.ffMpegService = ffMpegService;
+            this.httpClientFactory = httpClientFactory;
             YoutubeClient = youtubeClient;
         }
 
@@ -106,8 +109,8 @@ namespace Etherna.VideoImporter.Core.Utilities
 
                 try
                 {
-                    using var httpClient = new HttpClient();
-                    var stream = await httpClient.GetStreamAsync(thumbnail.Url);
+                    using var httpClient = httpClientFactory.CreateClient();
+                    using var stream = await httpClient.GetStreamAsync(thumbnail.Url);
                     using var fileStream = new FileStream(thumbnailFilePath, FileMode.Create, FileAccess.Write);
                     await stream.CopyToAsync(fileStream);
 
@@ -125,7 +128,8 @@ namespace Etherna.VideoImporter.Core.Utilities
             }
 
             return await ThumbnailSourceFile.BuildNewAsync(
-                thumbnailFilePath);
+                thumbnailFilePath,
+                httpClientFactory);
         }
 
         private async Task<VideoSourceFile> DownloadVideoAsync(
@@ -171,7 +175,8 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             return VideoSourceFile.BuildNew(
                 videoFilePath,
-                ffMpegService);
+                ffMpegService,
+                httpClientFactory);
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)

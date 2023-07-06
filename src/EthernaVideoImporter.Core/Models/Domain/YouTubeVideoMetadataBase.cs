@@ -41,7 +41,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         {
             get
             {
-                var uri = new System.Uri(YoutubeUrl);
+                var uri = new Uri(YoutubeUrl);
                 var query = HttpUtility.ParseQueryString(uri.Query);
 
                 if (query.AllKeys.Contains("v"))

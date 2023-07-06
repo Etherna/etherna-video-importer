@@ -9,8 +9,8 @@ namespace Etherna.VideoImporter.Models.Domain
             string id,
             string title,
             string description,
-            ThumbnailSourceFile? sourceThumbnail,
-            VideoSourceFile sourceVideo)
+            VideoSourceFile sourceVideo,
+            ThumbnailSourceFile? sourceThumbnail)
             : base(title, description, sourceVideo.Duration, $"{sourceVideo.Height}p")
         {
             Id = id;

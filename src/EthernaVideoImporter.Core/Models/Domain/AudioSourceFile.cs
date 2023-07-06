@@ -12,14 +12,17 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System.Net.Http;
+
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public sealed class AudioSourceFile : SourceFile
     {
         // Constructors.
         public AudioSourceFile(
-            SourceUri fileUri)
-            : base(fileUri)
+            SourceUri fileUri,
+            IHttpClientFactory httpClientFactory)
+            : base(fileUri, httpClientFactory)
         { }
     }
 }

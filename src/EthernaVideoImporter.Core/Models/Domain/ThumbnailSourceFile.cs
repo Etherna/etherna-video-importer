@@ -17,6 +17,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
@@ -27,14 +28,18 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public static readonly int[] ThumbnailResponsiveSizes = { 480, 960, 1280 };
 
         // Constructor.
-        private ThumbnailSourceFile(SourceUri fileUri)
-            : base(fileUri)
+        private ThumbnailSourceFile(
+            SourceUri fileUri,
+            IHttpClientFactory httpClientFactory)
+            : base(fileUri, httpClientFactory)
         { }
 
         // Static builders.
-        public static async Task<ThumbnailSourceFile> BuildNewAsync(SourceUri fileUri)
+        public static async Task<ThumbnailSourceFile> BuildNewAsync(
+            SourceUri fileUri,
+            IHttpClientFactory httpClientFactory)
         {
-            var thumbnail = new ThumbnailSourceFile(fileUri);
+            var thumbnail = new ThumbnailSourceFile(fileUri, httpClientFactory);
 
             using var thumbFileStream = (await thumbnail.ReadAsStreamAsync()).Stream;
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -93,7 +98,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     await data.AsStream().CopyToAsync(outputFileStream);
                 }
 
-                thumbnails.Add(await BuildNewAsync(thumbnailResizedPath));
+                thumbnails.Add(await BuildNewAsync(thumbnailResizedPath, HttpClientFactory));
             }
 
             return thumbnails;

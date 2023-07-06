@@ -326,8 +326,8 @@ namespace Etherna.VideoImporter
                         c.Timeout = TimeSpan.FromMinutes(30);
                     });
             }
-            ethernaClientsBuilder.AddEthernaGatewayClient(new System.Uri(CommonConsts.EthernaGatewayUrl))
-                                 .AddEthernaIndexClient(new System.Uri(CommonConsts.EthernaIndexUrl));
+            ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
+                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
 
             // Setup DI.
             services.AddCoreServices(

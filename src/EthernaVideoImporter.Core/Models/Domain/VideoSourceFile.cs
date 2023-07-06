@@ -15,27 +15,31 @@
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Linq;
+using System.Net.Http;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public sealed partial class VideoSourceFile : SourceFile, IVideoFile
     {
         // Constructor.
-        private VideoSourceFile(SourceUri fileUri)
-            : base(fileUri)
+        private VideoSourceFile(
+            SourceUri fileUri,
+            IHttpClientFactory httpClientFactory)
+            : base(fileUri, httpClientFactory)
         { }
 
         // Static builders.
         public static VideoSourceFile BuildNew(
             SourceUri fileUri,
-            IFFmpegService ffMpegService)
+            IFFmpegService ffMpegService,
+            IHttpClientFactory httpClientFactory)
         {
             if (fileUri is null)
                 throw new ArgumentNullException(nameof(fileUri));
             if (ffMpegService is null)
                 throw new ArgumentNullException(nameof(ffMpegService));
 
-            var video = new VideoSourceFile(fileUri);
+            var video = new VideoSourceFile(fileUri, httpClientFactory);
 
             var (absoluteFileUri, _) = fileUri.ToAbsoluteUri();
             var ffProbeResult = ffMpegService.GetVideoInfo(absoluteFileUri);
