@@ -53,7 +53,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 totalByteSize += await file.GetByteSizeAsync();
             foreach (var file in ThumbnailFiles)
                 totalByteSize += await file.GetByteSizeAsync();
-            totalByteSize += JsonSerializer.Serialize(new ManifestDto(this, CommonConsts.SwarmNullReference, "0x0000000000000000000000000000000000000000", true)).Length;
+            totalByteSize += JsonSerializer.Serialize(await ManifestDto.BuildNewAsync(this, CommonConsts.SwarmNullReference, "0x0000000000000000000000000000000000000000", true)).Length;
 
             return totalByteSize;
         }

@@ -38,7 +38,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             var video = new VideoSourceFile(fileUri);
 
             var (absoluteFileUri, _) = fileUri.ToAbsoluteUri();
-            var ffProbeResult = ffMpegService.GetFFProbeVideoInfo(absoluteFileUri);
+            var ffProbeResult = ffMpegService.GetVideoInfo(absoluteFileUri);
 
             video.Duration = ffProbeResult.Format.Duration;
             video.Height = ffProbeResult.Streams.First().Height;

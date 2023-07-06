@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.IO;
 
 namespace Etherna.VideoImporter.Core.Options
 {
@@ -7,10 +6,8 @@ namespace Etherna.VideoImporter.Core.Options
     {
         public ValidateOptionsResult Validate(string? name, FFmpegServiceOptions options)
         {
-            if (!File.Exists(options.FFMpegBinaryPath))
-                return ValidateOptionsResult.Fail($"FFmpeg not found at ({options.FFMpegBinaryPath})");
-            if (!File.Exists(options.FFProbeBinaryPath))
-                return ValidateOptionsResult.Fail($"FFprobe not found at ({options.FFProbeBinaryPath})");
+            if (string.IsNullOrWhiteSpace(options.FFmpegFolderPath))
+                return ValidateOptionsResult.Fail($"FFmpeg folder path can't be null or white spaces");
 
             return ValidateOptionsResult.Success;
         }

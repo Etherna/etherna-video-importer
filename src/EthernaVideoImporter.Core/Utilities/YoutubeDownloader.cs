@@ -148,7 +148,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     var downloadStart = DateTime.UtcNow;
                     await YoutubeClient.Videos.DownloadAsync(
                         new IStreamInfo[] { audioOnlyStream, videoOnlyStream },
-                        new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(encoderService.FFMpegBinaryPath).Build(),
+                        new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(ffMpegService.FFmpegBinaryPath).Build(),
                         new Progress<double>((progressStatus) =>
                             PrintProgressLine(
                                 $"Downloading and mux {videoQualityLabel}",

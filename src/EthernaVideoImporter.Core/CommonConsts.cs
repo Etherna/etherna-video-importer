@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Core
         public const string EthernaServicesClientName = "ethernaServicesClient";
         public const string EthernaSsoUrl = "https://sso.etherna.io/";
         public const string EthernaVideoImporterClientId = "ethernaVideoImporterId";
-        public static string FFMpegBinaryName
+        public static string FFmpegBinaryName
         {
             get
             {
@@ -53,7 +53,7 @@ namespace Etherna.VideoImporter.Core
                 throw new InvalidOperationException("OS not supported");
             }
         }
-        public static string FFProbeBinaryName
+        public static string FFprobeBinaryName
         {
             get
             {

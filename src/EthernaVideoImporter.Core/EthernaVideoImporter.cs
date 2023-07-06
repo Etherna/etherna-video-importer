@@ -188,7 +188,7 @@ namespace Etherna.VideoImporter.Core
                             var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
                             // Upload new manifest.
-                            var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
+                            var metadataVideo = await ManifestDto.BuildNewAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
                             updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.

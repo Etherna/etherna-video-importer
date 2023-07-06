@@ -333,9 +333,12 @@ namespace Etherna.VideoImporter
             services.AddCoreServices(
                 encoderOptions =>
                 {
-                    if (customFFMpegFolderPath is not null)
-                        encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                },
+                ffMpegOptions =>
+                {
+                    if (customFFMpegFolderPath is not null)
+                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {
@@ -358,8 +361,6 @@ namespace Etherna.VideoImporter
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {
-                        if (customFFMpegFolderPath is not null)
-                            options.FFProbeFolderPath = customFFMpegFolderPath;
                         options.JsonMetadataUri = new SourceUri(sourceUri, SourceUriKind.Local | SourceUriKind.OnlineAbsolute);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();

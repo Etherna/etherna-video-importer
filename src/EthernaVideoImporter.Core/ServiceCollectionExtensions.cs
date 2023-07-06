@@ -30,7 +30,6 @@ namespace Etherna.VideoImporter.Core
 
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
             services.AddTransient<IEncoderService, EncoderService>();
-            services.AddTransient<IFFmpegService, FFmpegService>();
             if (useBeeNativeNode)
                 services.AddTransient<IGatewayService, BeeGatewayService>();
             else
@@ -49,6 +48,7 @@ namespace Etherna.VideoImporter.Core
                     CommonConsts.BeeNodeGatewayVersion);
             });
             services.AddSingleton<IBeeNodeClient, BeeNodeClient>();
+            services.AddSingleton<IFFmpegService, FFmpegService>();
         }
     }
 }

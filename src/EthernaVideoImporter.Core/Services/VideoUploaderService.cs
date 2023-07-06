@@ -193,7 +193,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Manifest.
-            var metadataVideo = new ManifestDto(video, batchId, userEthAddress);
+            var metadataVideo = await ManifestDto.BuildNewAsync(video, batchId, userEthAddress);
             {
                 var uploadSucceeded = false;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
