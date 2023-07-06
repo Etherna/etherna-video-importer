@@ -53,6 +53,7 @@ namespace Etherna.VideoImporter
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
+              -c, --preset-codec      Preset of codec used for encoder (ultrafast, superfast, fast, medium, slow, slower) default: {{EncoderServiceOptions.DefaultPresetCodec}}
 
             Bee Node Options:
               --bee-node              Use bee native node
@@ -109,6 +110,7 @@ namespace Etherna.VideoImporter
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            string presetCodec = EncoderServiceOptions.DefaultPresetCodec;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -225,6 +227,13 @@ namespace Etherna.VideoImporter
                         unpinRemovedVideos = true;
                         break;
 
+                    case "-c":
+                    case "--preset-codec":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Preset Codec value is missing");
+                        presetCodec = optArgs[++i];
+                        break;
+
                     //bee node
                     case "--bee-node":
                         useBeeNativeNode = true;
@@ -335,6 +344,7 @@ namespace Etherna.VideoImporter
                     if (customFFMpegFolderPath is not null)
                         encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                    encoderOptions.PresetCodec = presetCodec;
                 },
                 uploaderOptions =>
                 {
