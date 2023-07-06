@@ -1,7 +1,9 @@
 {
   "profiles": {
     "EthernaVideoImporter": {
-      "commandName": "Project"
+      "commandName": "Project",
+      //"commandLineArgs": "import \"C:\\tmp\\LocalVideo\\John Lennon - Imagine (Lyrics)🎶.mp4\" --import-title \"titolo del film\" --import-description \"descriozione dle filmm\""
+      "commandLineArgs": "import \"C:\\tmp\\LocalVideo\\John Lennon - Imagine (Lyrics)🎶.mp4\""
     }
   }
 }

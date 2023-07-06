@@ -25,6 +25,7 @@ using System;
 using System.Globalization;
 using System.Threading.Tasks;
 using YoutubeExplode;
+using YoutubeExplode.Common;
 
 namespace Etherna.VideoImporter
 {
@@ -38,6 +39,12 @@ namespace Etherna.VideoImporter
               json              Import from json video list (requires metadata descriptor, see below)
               youtube-channel   Import from a YouTube channel
               youtube-video     Import from a YouTube video
+              import            Import from a single video (requires title, descriptor and optional uri of thumbnail)
+
+            Command Import Options:
+              --import-title           Title of video
+              --import-description    Description of video
+              --import-thumbnail      Thumbnail of video (optional)
 
             General Options:
               -k, --api-key           Api Key (optional)
@@ -109,6 +116,9 @@ namespace Etherna.VideoImporter
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            string? title = null;
+            string? description = null;
+            string? thumbnail = null;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -150,6 +160,10 @@ namespace Etherna.VideoImporter
                     sourceType = SourceType.YouTubeVideo;
                     break;
 
+                case "import":
+                    sourceType = SourceType.SingleVideo;
+                    break;
+
                 default:
                     Console.WriteLine($"Invalid command: {args[0]}");
                     throw new ArgumentException($"Invalid command: {args[0]}");
@@ -160,7 +174,7 @@ namespace Etherna.VideoImporter
 
             //options
             var optArgs = args[2..];
-            for (int i = 0; i < optArgs.Length; i++)
+            for (int i=0; i < optArgs.Length; i++)
             {
                 switch (optArgs[i])
                 {
@@ -187,6 +201,23 @@ namespace Etherna.VideoImporter
                     case "-a":
                     case "--auto-purchase":
                         autoPurchaseBatches = true;
+                        break;
+
+                    //command import
+                    case "--import-title":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Title value is missing");
+                        title = optArgs[++i];
+                        break;
+                    case "--import-description":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Description value is missing");
+                        description = optArgs[++i];
+                        break;
+                    case "--import-thumbnail":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Thumbnail value is missing");
+                        thumbnail = optArgs[++i];
                         break;
 
                     //video management
@@ -259,6 +290,36 @@ namespace Etherna.VideoImporter
             }
 
             // Input validation.
+            //single video
+            if (sourceType == SourceType.SingleVideo)
+            {
+                var askForThumbnail = false;
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    Console.WriteLine($"Insert the Tile:");
+                    while (string.IsNullOrWhiteSpace(title))
+                        title = Console.ReadLine();
+                    askForThumbnail = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(description))
+                {
+                    Console.WriteLine($"Insert the Description:");
+                    while (string.IsNullOrWhiteSpace(description))
+                        description = Console.ReadLine();
+                    askForThumbnail = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(thumbnail) &&
+                    askForThumbnail)
+                {
+                    Console.WriteLine($"Insert optional Thumbnail: (blank for skip)");
+                    thumbnail = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(thumbnail))
+                        thumbnail = null;
+                }
+            }
+
             //offer video
             if (offerVideos && useBeeNativeNode)
             {
@@ -362,6 +423,19 @@ namespace Etherna.VideoImporter
                         options.JsonMetadataFilePath = sourceUri;
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
+
+                    //services
+                    services.AddTransient<IVideoProvider, JsonListVideoProvider>();
+                    break;
+                case SourceType.SingleVideo:
+                    //options
+                    services.Configure<JsonSingleVideoProviderOptions>(options =>
+                    {
+                        options.Title = title!;
+                        options.Description = description!;
+                        options.Thumbnail = thumbnail;
+                    });
+                    services.AddSingleton<IValidateOptions<JsonSingleVideoProviderOptions>, JsonSingleVideoProviderOptionsValidation>();
 
                     //services
                     services.AddTransient<IVideoProvider, JsonListVideoProvider>();
