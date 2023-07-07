@@ -434,11 +434,12 @@ namespace Etherna.VideoImporter
                         options.Title = title!;
                         options.Description = description!;
                         options.Thumbnail = thumbnail;
+                        options.VideoUri = sourceUri;
                     });
                     services.AddSingleton<IValidateOptions<JsonSingleVideoProviderOptions>, JsonSingleVideoProviderOptionsValidation>();
 
                     //services
-                    services.AddTransient<IVideoProvider, JsonListVideoProvider>();
+                    services.AddTransient<IVideoProvider, JsonSingleVideoProvider>();
                     break;
                 case SourceType.YouTubeChannel:
                     //options

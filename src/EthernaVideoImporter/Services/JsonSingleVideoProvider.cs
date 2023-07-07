@@ -70,19 +70,19 @@ namespace Etherna.VideoImporter.Services
                 }
 
                 // Get video info.
-                var ffProbeResult = GetFFProbeVideoInfo(options.SourceUri);
+                var ffProbeResult = GetFFProbeVideoInfo(options.VideoUri);
 
                 videosMetadataDictionary.Add(
-                    options.SourceUri,
+                    options.VideoUri,
                     new LocalVideoMetadata(
-                        options.SourceUri,
+                        options.VideoUri,
                         options.Title,
                         options.Description,
                         ffProbeResult.Format.Duration,
                         $"{ffProbeResult.Streams.First().Height}p",
                         thumbnail,
                         new VideoLocalFile(
-                            options.SourceUri,
+                            options.VideoUri,
                             ffProbeResult.Streams.First().Height,
                             ffProbeResult.Streams.First().Width,
                             ffProbeResult.Format.SizeLong))); //size here could be wrong in case of url pointing to HLS index file. In any case it's not needed.
@@ -92,7 +92,7 @@ namespace Etherna.VideoImporter.Services
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine($"Error importing video Id:{options.SourceUri}.");
+                Console.WriteLine($"Error importing video Id:{options.VideoUri}.");
                 Console.WriteLine(ex.Message);
                 Console.ResetColor();
             }

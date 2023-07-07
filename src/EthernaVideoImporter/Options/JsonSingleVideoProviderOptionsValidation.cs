@@ -13,6 +13,8 @@ namespace Etherna.VideoImporter.Options
                 return ValidateOptionsResult.Fail("Title is mandatory");
             if (string.IsNullOrWhiteSpace(options.Description))
                 return ValidateOptionsResult.Fail("Description is mandatory");
+            if (string.IsNullOrWhiteSpace(options.VideoUri))
+                return ValidateOptionsResult.Fail("Video uri is mandatory");
 
             return ValidateOptionsResult.Success;
         }
