@@ -15,6 +15,7 @@
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -48,7 +49,9 @@ namespace Etherna.VideoImporter.Core.Utilities
         public IYoutubeClient YoutubeClient { get; }
 
         // Methods.
-        public async Task<Video> GetVideoAsync(YouTubeVideoMetadataBase videoMetadata)
+        public async Task<Video> GetVideoAsync(
+            YouTubeVideoMetadataBase videoMetadata,
+            bool createRandomThumbnailWhenMissing)
         {
             if (videoMetadata is null)
                 throw new ArgumentNullException(nameof(videoMetadata));
@@ -82,7 +85,18 @@ namespace Etherna.VideoImporter.Core.Utilities
 
                 thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
             }
+            else if(createRandomThumbnailWhenMissing)
+            {
+                var thumbnailFilePath = await encoderService.CreateRandomThumbnailAsync(videoLocalFile.FilePath);
 
+                using var thumbFileStream = File.OpenRead(thumbnailFilePath);
+                using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+                using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+                var bestResolutionThumbnail = new ThumbnailLocalFile(thumbnailFilePath, thumbBitmap.ByteCount, thumbBitmap.Height, thumbBitmap.Width);
+
+                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
+            }
+            
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
 

@@ -49,6 +49,7 @@ namespace Etherna.VideoImporter.Devcon
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
+              -c, --create-thumbnail  Create random thumbnail where missing
 
             Bee Node Options:
               --bee-node              Use bee native node
@@ -79,6 +80,7 @@ namespace Etherna.VideoImporter.Devcon
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            bool createThumbnail = false;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -175,6 +177,11 @@ namespace Etherna.VideoImporter.Devcon
                     case "-u":
                     case "--unpin":
                         unpinRemovedVideos = true;
+                        break;
+
+                    case "-c":
+                    case "--create-thumbnail":
+                        createThumbnail = true;
                         break;
 
                     //bee node
@@ -277,6 +284,7 @@ namespace Etherna.VideoImporter.Devcon
             //configure options
             services.Configure<MdVideoProviderOptions>(options =>
             {
+                options.GenerateThumbnailWhenMissing = createThumbnail;
                 options.MdSourceFolderPath = mdSourceFolderPath;
             });
             services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();

@@ -31,6 +31,33 @@ namespace Etherna.VideoImporter.Core.Services
         public string FFMpegBinaryPath => options.FFMpegBinaryPath;
 
         // Methods.
+        public async Task<string> CreateRandomThumbnailAsync(string absoluteVideoFilePath)
+        {
+            Console.WriteLine($"Create random thumbnail");
+
+            // Run FFmpeg command.
+            var outputFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{Guid.NewGuid()}_thumbnail.jpg");
+            var args = new string[] { 
+                "-i", absoluteVideoFilePath,
+                "-vf", "select='eq(pict_type\\,I)',random",
+                "-vframes", "1",
+                outputFilePath
+            };
+            var command = Command.Run(FFMpegBinaryPath, args);
+
+            activedCommands.Add(command);
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
+
+            // Waiting until end and stop console output.
+            var result = await command.Task;
+
+            // Inspect and print result.
+            if (!result.Success)
+                throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
+
+            return outputFilePath;
+        }
+
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
             VideoLocalFile sourceVideoFile)
         {

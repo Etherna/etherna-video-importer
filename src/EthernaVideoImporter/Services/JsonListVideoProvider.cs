@@ -70,8 +70,14 @@ namespace Etherna.VideoImporter.Services
 
                 try
                 {
+                    var absoluteVideoFilePath = metadataDto.VideoFilePath.ToAbsolutePath(jsonMetadataFileDirectory);
+
                     // Get thumbnail info.
                     ThumbnailLocalFile? thumbnail = null;
+                    if (options.GenerateThumbnailWhenMissing &&
+                        string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
+                        metadataDto.ThumbnailFilePath = await encoderService.CreateRandomThumbnailAsync(absoluteVideoFilePath);
+
                     if (!string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
                     {
                         var absoluteThumbnailFilePath = Path.IsPathFullyQualified(metadataDto.ThumbnailFilePath) ?
@@ -85,7 +91,6 @@ namespace Etherna.VideoImporter.Services
                     }
 
                     // Get video info.
-                    var absoluteVideoFilePath = metadataDto.VideoFilePath.ToAbsolutePath(jsonMetadataFileDirectory);
                     var ffProbeResult = GetFFProbeVideoInfo(absoluteVideoFilePath);
 
                     videosMetadataDictionary.Add(

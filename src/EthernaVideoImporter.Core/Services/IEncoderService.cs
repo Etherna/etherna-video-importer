@@ -8,6 +8,9 @@ namespace Etherna.VideoImporter.Core.Services
     {
         string FFMpegBinaryPath { get; }
 
+        Task<string> CreateRandomThumbnailAsync(
+            string absoluteVideoFilePath);
+
         Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
             VideoLocalFile sourceVideoFile);
     }

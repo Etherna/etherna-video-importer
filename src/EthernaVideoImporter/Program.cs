@@ -53,6 +53,7 @@ namespace Etherna.VideoImporter
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
+              -c, --create-thumbnail  Create random thumbnail where missing
 
             Bee Node Options:
               --bee-node              Use bee native node
@@ -109,6 +110,7 @@ namespace Etherna.VideoImporter
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            bool createThumbnail = false;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -223,6 +225,11 @@ namespace Etherna.VideoImporter
                     case "-u":
                     case "--unpin":
                         unpinRemovedVideos = true;
+                        break;
+
+                    case "-c":
+                    case "--create-thumbnail":
+                        createThumbnail = true;
                         break;
 
                     //bee node
@@ -359,6 +366,7 @@ namespace Etherna.VideoImporter
                     {
                         if (customFFMpegFolderPath is not null)
                             options.FFProbeFolderPath = customFFMpegFolderPath;
+                        options.GenerateThumbnailWhenMissing = createThumbnail;
                         options.JsonMetadataFilePath = sourceUri;
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
@@ -371,6 +379,7 @@ namespace Etherna.VideoImporter
                     services.Configure<YouTubeChannelVideoProviderOptions>(options =>
                     {
                         options.ChannelUrl = sourceUri;
+                        options.GenerateThumbnailWhenMissing = createThumbnail;
                     });
                     services.AddSingleton<IValidateOptions<YouTubeChannelVideoProviderOptions>, YouTubeChannelVideoProviderOptionsValidation>();
 
@@ -383,6 +392,7 @@ namespace Etherna.VideoImporter
                     //options
                     services.Configure<YouTubeSingleVideoProviderOptions>(options =>
                     {
+                        options.GenerateThumbnailWhenMissing = createThumbnail;
                         options.VideoUrl = sourceUri;
                     });
                     services.AddSingleton<IValidateOptions<YouTubeSingleVideoProviderOptions>, YouTubeSingleVideoProviderOptionsValidation>();

@@ -25,6 +25,7 @@ namespace Etherna.VideoImporter.Core.Utilities
 
         // Methods.
         Task<Video> GetVideoAsync(
-            YouTubeVideoMetadataBase videoMetadata);
+            YouTubeVideoMetadataBase videoMetadata,
+            bool createRandomThumbnailWhenMissing);
     }
 }
