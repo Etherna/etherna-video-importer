@@ -44,9 +44,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }
 
         // Methods.
-        public long GetTotalByteSizeToUpload() =>
-            EncodedFiles.OfType<LocalFileBase>().Sum(f => f.ByteSize!.Value) + // Take only local file (remote file is already uploaded)
-            ThumbnailFiles.OfType<LocalFileBase>().Sum(t => t.ByteSize!.Value) + // Take only local file (remote file is already uploaded)
-            JsonSerializer.Serialize(new ManifestDto(this, "0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000")).Length;
+        public long GetTotalByteSize() =>
+            EncodedFiles.Sum(f => f.ByteSize) +
+            ThumbnailFiles.Sum(t => t.ByteSize) +
+            JsonSerializer.Serialize(new ManifestDto(this, CommonConsts.SwarmNullReference, "0x0000000000000000000000000000000000000000", true)).Length;
     }
 }

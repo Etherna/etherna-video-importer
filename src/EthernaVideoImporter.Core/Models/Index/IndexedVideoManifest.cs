@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.ServicesClient.GeneratedClients.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
@@ -22,7 +23,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
     public sealed class IndexedVideoManifest
     {
         // Constructors.
-        public IndexedVideoManifest(ServicesClient.Clients.Index.VideoManifestDto lastValidManifest)
+        public IndexedVideoManifest(VideoManifestDto lastValidManifest)
         {
             if (lastValidManifest is null)
                 throw new ArgumentNullException(nameof(lastValidManifest));
@@ -47,8 +48,8 @@ namespace Etherna.VideoImporter.Core.Models.Index
         public string OriginalQuality { get; set; }
         public ManifestPersonalDataDto? PersonalData { get; set; }
         public string? RawPersonalData { get; set; }
-        public IEnumerable<ServicesClient.Clients.Index.SourceDto> Sources { get; set; }
-        public ServicesClient.Clients.Index.ImageDto Thumbnail { get; set; }
+        public IEnumerable<SourceDto> Sources { get; set; }
+        public ImageDto Thumbnail { get; set; }
         public string Title { get; set; }
     }
 }

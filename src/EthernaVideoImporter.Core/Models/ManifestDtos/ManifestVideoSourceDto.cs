@@ -19,13 +19,15 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestVideoSourceDto
     {
-        public ManifestVideoSourceDto(IVideoFile videoFile)
+        public ManifestVideoSourceDto(IVideoFile videoFile, bool allowFakeReference)
         {
             if (videoFile is null)
                 throw new ArgumentNullException(nameof(videoFile));
 
             Quality = videoFile.VideoQualityLabel;
-            Reference = videoFile.SwarmHash ?? throw new InvalidOperationException();
+            Reference = videoFile.SwarmHash ?? (allowFakeReference ?
+                CommonConsts.SwarmNullReference :
+                throw new InvalidOperationException());
             Size = videoFile.ByteSize;
         }
 
