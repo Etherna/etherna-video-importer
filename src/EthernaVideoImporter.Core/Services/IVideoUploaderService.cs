@@ -32,7 +32,8 @@ namespace Etherna.VideoImporter.Core.Services
         public Task UploadVideoAsync(
             Video video,
             bool pinVideo,
-            bool offerVideo);
+            bool offerVideo,
+            string userEthAddress);
 
         /// <summary>
         /// Upload a new video manifest
