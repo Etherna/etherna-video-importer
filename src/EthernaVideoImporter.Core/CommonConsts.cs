@@ -28,6 +28,7 @@ namespace Etherna.VideoImporter.Core
         public const GatewayApiVersion BeeNodeGatewayVersion = GatewayApiVersion.v4_0_0;
         public const DebugApiVersion BeeNodeDebugVersion = DebugApiVersion.v4_0_0;
         public static readonly string DefaultFFmpegFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FFmpeg");
+        public static readonly string DefaultCacheFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Cache");
         public const int DownloadMaxRetry = 3;
         public static readonly TimeSpan DownloadTimespanRetry = TimeSpan.FromMilliseconds(3500);
         public const string EthernaCreditUrl = "https://credit.etherna.io/";

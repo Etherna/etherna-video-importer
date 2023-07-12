@@ -1,4 +1,5 @@
-﻿using Etherna.VideoImporter.Core.Models.Domain;
+﻿using Etherna.VideoImporter.Core.Models.Cache;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
 using Microsoft.Extensions.Options;
@@ -18,12 +19,15 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Fields.
         private readonly List<Command> activedCommands = new();
+        private readonly ICacheService cacheService;
         private readonly EncoderServiceOptions options;
 
         // Constructor.
         public EncoderService(
+            ICacheService cacheService,
             IOptions<EncoderServiceOptions> options)
         {
+            this.cacheService = cacheService;
             this.options = options.Value;
         }
 
@@ -32,19 +36,24 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Methods.
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
+            string hashVideoId,
             VideoLocalFile sourceVideoFile)
         {
             if (sourceVideoFile is null)
                 throw new ArgumentNullException(nameof(sourceVideoFile));
+
+            var cacheTracking = await cacheService.GetTrackingAsync(hashVideoId);
 
             var videoEncodedFiles = new List<VideoLocalFile>();
 
             // Compose FFmpeg command args.
             var args = BuildFFmpegCommandArgs(
                 sourceVideoFile,
-                out IEnumerable<(string filePath, int height, int width)> outputs);
+                cacheTracking,
+                out IEnumerable<(string filePath, int height, int width, bool cached)> outputs);
 
-            Console.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
+            Console.WriteLine($"Cached resolutions [{outputs.Where(o => o.cached).Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
+            Console.WriteLine($"Encoding resolutions [{outputs.Where(o => o.cached).Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
 
             // Run FFmpeg command.
             var command = Command.Run(FFMpegBinaryPath, args);
@@ -79,10 +88,13 @@ namespace Etherna.VideoImporter.Core.Services
             if (!result.Success)
                 throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
 
-            foreach (var (outputFilePath, outputHeight, outputWidth) in outputs)
+            foreach (var (outputFilePath, outputHeight, outputWidth, cached) in outputs.OrderByDescending(o => o.height))
             {
                 var outputFileSize = new FileInfo(outputFilePath).Length;
                 videoEncodedFiles.Add(new VideoLocalFile(outputFilePath, outputHeight, outputWidth, outputFileSize));
+
+                if (!cached)
+                    cacheTracking?.AddEncodedFilePath(videoEncodedFiles);
 
                 Console.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }
@@ -92,6 +104,9 @@ namespace Etherna.VideoImporter.Core.Services
                                                                             vf1.ByteSize >= vf2.ByteSize));
 
             Console.WriteLine($"Keep [{videoEncodedFiles.Select(vf => vf.Height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}] as valid resolutions to upload");
+
+            // Tracking.
+            await cacheService.SaveTrackingAsync(cacheTracking);
 
             return videoEncodedFiles;
         }
@@ -135,13 +150,14 @@ namespace Etherna.VideoImporter.Core.Services
         /// <returns>FFmpeg args list</returns>
         private IEnumerable<string> BuildFFmpegCommandArgs(
             VideoLocalFile sourceVideoFile,
-            out IEnumerable<(string filePath, int height, int width)> outputs)
+            CacheTracking? cacheTracking,
+            out IEnumerable<(string filePath, int height, int width, bool cached)> outputs)
         {
             // Build FFmpeg args.
             var args = new List<string>();
             var fileNameGuid = Guid.NewGuid();
             var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
-            var outputsList = new List<(string filePath, int height, int width)>();
+            var outputsList = new List<(string filePath, int height, int width, bool cached)>();
 
             //input
             args.Add("-i"); args.Add(sourceVideoFile.FilePath);
@@ -166,10 +182,16 @@ namespace Etherna.VideoImporter.Core.Services
                     default: break;
                 }
 
+                var encodedVideoFileName = cacheTracking?.GetEncodedVideoFilePath(height, scaledWidth);
+                if (File.Exists(encodedVideoFileName))
+                {
+                    outputsList.Add((encodedVideoFileName, height, scaledWidth, true));
+                }
+
                 AppendOutputFFmpegCommandArgs(args, height, scaledWidth, outputFilePath);
 
                 // Add output info.
-                outputsList.Add((outputFilePath, height, scaledWidth));
+                outputsList.Add((outputFilePath, height, scaledWidth, false));
             }
 
             // Return values.

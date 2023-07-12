@@ -34,6 +34,15 @@ namespace Etherna.VideoImporter.Core.Models.Cache
         public Dictionary<string, string> VideoUploaded { get; }
 
         // Methods.
+        public void AddEncodedFilePath(IEnumerable<LocalFileBase> localFileBases)
+        {
+            if (localFileBases is null)
+                throw new ArgumentNullException(nameof(localFileBases));
+
+            foreach (var localFileBase in localFileBases)
+                AddEncodedFilePath(localFileBase); 
+        }
+
         public void AddEncodedFilePath(LocalFileBase localFileBase)
         {
             if (localFileBase is null)
@@ -94,7 +103,9 @@ namespace Etherna.VideoImporter.Core.Models.Cache
 
         public string? GetUploadedHash(LocalFileBase localFileBase, string batchId)
         {
+#pragma warning disable IDE0018 // Wrong message
             string? swarmHash;
+#pragma warning restore IDE0018 // Inline variable declaration
             _ = localFileBase switch
             {
                 AudioLocalFile _ => EncodedFiles.TryGetValue($"audio_{batchId}", out swarmHash),

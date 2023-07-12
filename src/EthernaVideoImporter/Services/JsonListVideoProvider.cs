@@ -44,9 +44,7 @@ namespace Etherna.VideoImporter.Services
                 ?? throw new ArgumentException($"Metadata must be of type {nameof(LocalVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(
-                localVideoMetadata.SourceVideo,
-                videoMetadata);
+            var encodedFiles = await encoderService.EncodeVideosAsync(videoMetadata.Id, localVideoMetadata.SourceVideo);
 
             // Transcode thumbnail resolutions.
             var thumbnailFiles = localVideoMetadata.SourceThumbnail is not null ?

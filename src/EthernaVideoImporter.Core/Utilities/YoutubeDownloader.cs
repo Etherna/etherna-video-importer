@@ -60,18 +60,17 @@ namespace Etherna.VideoImporter.Core.Utilities
                 throw new ArgumentNullException(nameof(videoMetadata));
 
             // Get tracking.
-            var hashVideoId = ManifestPersonalDataDto.HashVideoId(videoMetadata.Id);
-            var cacheTracking = await cacheService.GetTrackingAsync(hashVideoId, CommonConsts.TempDirectory);
-            cacheTracking ??= new CacheTracking(hashVideoId);
+            var cacheTracking = await cacheService.GetTrackingAsync(videoMetadata.Id);
+            cacheTracking ??= new CacheTracking(videoMetadata.Id);
 
             // Get best video resolution.
-            var videoLocalFile = await GetBestVideoAsync(videoMetadata, CommonConsts.TempDirectory, cacheTracking);
+            var videoLocalFile = await GetBestVideoAsync(videoMetadata, cacheTracking);
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile, videoMetadata);
+            var encodedFiles = await encoderService.EncodeVideosAsync(videoMetadata.Id, videoLocalFile);
 
             // Get thumbnail.
-            List<ThumbnailLocalFile> thumbnailFiles = await GetThumbnails(videoMetadata, CommonConsts.TempDirectory, cacheTracking);
+            List<ThumbnailLocalFile> thumbnailFiles = await GetThumbnails(videoMetadata, cacheTracking);
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
@@ -168,7 +167,6 @@ namespace Etherna.VideoImporter.Core.Utilities
 
         private async Task<List<ThumbnailLocalFile>> DownscaleThumbnailAsync(
             ThumbnailLocalFile betsResolutionThumbnail,
-            DirectoryInfo tempDirectory,
             CacheTracking cacheTracking)
         {
             List<ThumbnailLocalFile> thumbnails = new();
@@ -190,7 +188,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     using SKImage scaledImage = SKImage.FromBitmap(scaledBitmap);
                     using SKData data = scaledImage.Encode();
 
-                    thumbnailResizedPath = Path.Combine(tempDirectory.FullName, $"Thumbnail_{responsiveWidthSize}_{responsiveHeightSize}.jpg");
+                    thumbnailResizedPath = Path.Combine(CommonConsts.TempDirectory.FullName, $"Thumbnail_{responsiveWidthSize}_{responsiveHeightSize}.jpg");
                     using FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew);
                     await data.AsStream().CopyToAsync(outputFileStream);
 
@@ -206,7 +204,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                         responsiveHeightSize,
                         responsiveWidthSize);
                     cacheTracking.AddEncodedFilePath(thumbnailLocalFile);
-                    await cacheService.SaveTrackingAsync(cacheTracking, tempDirectory);
+                    await cacheService.SaveTrackingAsync(cacheTracking);
                 }
                 else
                     thumbnailLocalFile = new ThumbnailLocalFile(
@@ -223,7 +221,6 @@ namespace Etherna.VideoImporter.Core.Utilities
 
         private async Task<VideoLocalFile> GetBestVideoAsync(
             YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory,
             CacheTracking cacheTracking)
         {
             VideoLocalFile videoLocalFile;
@@ -257,7 +254,7 @@ namespace Etherna.VideoImporter.Core.Utilities
 
                 // Tracking.
                 cacheTracking.SaveOriginalVideo(videoLocalFile);
-                await cacheService.SaveTrackingAsync(cacheTracking, tempDirectory);
+                await cacheService.SaveTrackingAsync(cacheTracking);
             }
 
             return videoLocalFile;
@@ -265,7 +262,6 @@ namespace Etherna.VideoImporter.Core.Utilities
 
         private async Task<List<ThumbnailLocalFile>> GetThumbnails(
             YouTubeVideoMetadataBase videoMetadata,
-            DirectoryInfo tempDirectory,
             CacheTracking cacheTracking)
         {
             List<ThumbnailLocalFile> thumbnailFiles = new();
@@ -291,7 +287,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     cacheTracking.SaveOriginalThumbnail(betsResolutionThumbnail);
                 }
 
-                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, tempDirectory, cacheTracking);
+                thumbnailFiles = await DownscaleThumbnailAsync(betsResolutionThumbnail, cacheTracking);
             }
 
             return thumbnailFiles;

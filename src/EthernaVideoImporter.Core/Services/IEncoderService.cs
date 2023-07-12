@@ -9,7 +9,7 @@ namespace Etherna.VideoImporter.Core.Services
         string FFMpegBinaryPath { get; }
 
         Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
-            VideoLocalFile sourceVideoFile,
-            VideoMetadataBase videoMetadata);
+            string hashVideoId,
+            VideoLocalFile sourceVideoFile);
     }
 }

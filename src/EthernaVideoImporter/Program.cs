@@ -44,6 +44,7 @@ namespace Etherna.VideoImporter
               -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
+              -c, --cache             Use cache
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
@@ -100,6 +101,7 @@ namespace Etherna.VideoImporter
             string? customFFMpegFolderPath = null;
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
+            bool cache = false;
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
@@ -187,6 +189,11 @@ namespace Etherna.VideoImporter
                     case "-a":
                     case "--auto-purchase":
                         autoPurchaseBatches = true;
+                        break;
+
+                    case "-c":
+                    case "--cache":
+                        cache = true;
                         break;
 
                     //video management
@@ -330,6 +337,10 @@ namespace Etherna.VideoImporter
 
             // Setup DI.
             services.AddCoreServices(
+                cacheOptions =>
+                {
+                    cacheOptions.CacheEnable = cache;
+                },
                 encoderOptions =>
                 {
                     if (customFFMpegFolderPath is not null)

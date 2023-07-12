@@ -11,11 +11,11 @@ namespace Etherna.VideoImporter.Core.Services
         bool IsActive { get; }
 
         // Methods.
-        Task AddVideoMetadataAsync<T>(T videoMetadata, CacheTracking? trackingStatus, DirectoryInfo tempDirectoryInfo) where T : VideoMetadataBase;
-        string? GetCachePathDirectory(string videoIdHash, DirectoryInfo tempDirectoryInfo);
-        string? GetCachePathDirectory(CacheTracking trackingStatus, DirectoryInfo tempDirectoryInfo);
-        Task<CacheTracking?> GetTrackingAsync(string videoIdHash, DirectoryInfo tempDirectoryInfo);
-        Task<T?> GetVideoMetadataAsync<T>(CacheTracking? trackingStatus, DirectoryInfo tempDirectoryInfo) where T : VideoMetadataBase;
-        Task SaveTrackingAsync(CacheTracking? trackingStatus, DirectoryInfo tempDirectoryInfo);
+        Task AddVideoMetadataAsync<T>(T videoMetadata, CacheTracking? trackingStatus) where T : VideoMetadataBase;
+        string? GetCachePathDirectory(string videoIdHash);
+        string? GetCachePathDirectory(CacheTracking trackingStatus);
+        Task<CacheTracking?> GetTrackingAsync(string videoIdHash);
+        Task<T?> GetVideoMetadataAsync<T>(CacheTracking? trackingStatus) where T : VideoMetadataBase;
+        Task SaveTrackingAsync(CacheTracking? trackingStatus);
     }
 }

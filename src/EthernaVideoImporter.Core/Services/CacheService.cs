@@ -1,5 +1,7 @@
 ﻿using Etherna.VideoImporter.Core.Models.Cache;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Options;
+using Microsoft.Extensions.Options;
 using System;
 using System.IO;
 using System.Text.Json;
@@ -7,79 +9,68 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    internal sealed class CacheService
+    internal sealed class CacheService : ICacheService
     {
         // Consts.
         private const string MetadataFileName = "metadata.json";
         private const string TrackingFileName = "tracking.json";
 
         // Fields.
-        private readonly bool cacheEnable;
+        private readonly CacheServiceOptions options;
 
         // Constructor.
-        public CacheService(bool cacheEnable)
+        public CacheService(IOptions<CacheServiceOptions> options)
         {
-            this.cacheEnable = cacheEnable;
+            this.options = options.Value;
         }
 
         // Properties.
-        public bool IsActive => cacheEnable;
+        public bool IsActive => options.CacheEnable;
 
         // Methods.
         public async Task AddVideoMetadataAsync<T>(
             T videoMetadata,
-            CacheTracking? cacheTracking,
-            DirectoryInfo tempDirectoryInfo) where T : VideoMetadataBase
+            CacheTracking? cacheTracking) where T : VideoMetadataBase
         {
             if (!IsActive)
                 return;
 
             if (cacheTracking is null)
                 throw new ArgumentNullException(nameof(cacheTracking));
-            if (tempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(tempDirectoryInfo));
 
-            var workerVideoInfo = CreateAndGetWorkingDirectory(cacheTracking.VideoIdHash, tempDirectoryInfo);
+            var workerVideoInfo = CreateAndGetWorkingDirectory(cacheTracking.VideoIdHash);
             var metadataFilePath = GetMetadataFilePath(workerVideoInfo);
 
             await File.WriteAllTextAsync(metadataFilePath, JsonSerializer.Serialize(videoMetadata));
             cacheTracking.VideoMetadataPath = metadataFilePath;
-            await SaveTrackingAsync(cacheTracking, tempDirectoryInfo);
+            await SaveTrackingAsync(cacheTracking);
         }
 
-        public string GetCachePathDirectory(string videoIdHash, DirectoryInfo tempDirectoryInfo)
+        public string GetCachePathDirectory(string videoIdHash)
         {
             if (string.IsNullOrWhiteSpace(videoIdHash))
                 throw new ArgumentNullException(nameof(videoIdHash));
-            if (tempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(tempDirectoryInfo));
 
-            return Path.Combine(tempDirectoryInfo.FullName, videoIdHash);
+            return Path.Combine(options.CacheFolderPath, videoIdHash);
         }
 
-        public string GetCachePathDirectory(CacheTracking cacheTracking, DirectoryInfo tempDirectoryInfo)
+        public string GetCachePathDirectory(CacheTracking cacheTracking)
         {
             if (cacheTracking is null)
                 throw new ArgumentNullException(nameof(cacheTracking));
-            if (tempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(tempDirectoryInfo));
 
-            return GetCachePathDirectory(cacheTracking.VideoIdHash, tempDirectoryInfo);
+            return GetCachePathDirectory(cacheTracking.VideoIdHash);
         }
 
-        public async Task<CacheTracking?> GetTrackingAsync(
-            string videoIdHash,
-            DirectoryInfo tempDirectoryInfo)
+        public async Task<CacheTracking?> GetTrackingAsync(string videoIdHash)
         {
             if (!IsActive)
                 return null;
 
             if (string.IsNullOrWhiteSpace(videoIdHash))
                 throw new ArgumentNullException(nameof(videoIdHash));
-            if (tempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(tempDirectoryInfo));
 
-            var workerVideoInfo = CreateAndGetWorkingDirectory(videoIdHash, tempDirectoryInfo);
+            var workerVideoInfo = CreateAndGetWorkingDirectory(videoIdHash);
             var trackingFilePath = GetTrackingFilePath(workerVideoInfo);
 
             if (!File.Exists(trackingFilePath))
@@ -89,19 +80,15 @@ namespace Etherna.VideoImporter.Core.Services
                 new CacheTracking(videoIdHash);
         }
 
-        public async Task<T?> GetVideoMetadataAsync<T>(
-            CacheTracking? cacheTracking,
-            DirectoryInfo tempDirectoryInfo) where T : VideoMetadataBase
+        public async Task<T?> GetVideoMetadataAsync<T>(CacheTracking? cacheTracking) where T : VideoMetadataBase
         {
             if (!IsActive)
                 return null;
 
             if (cacheTracking is null)
                 throw new ArgumentNullException(nameof(cacheTracking));
-            if (tempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(tempDirectoryInfo));
 
-            var workerVideoInfo = CreateAndGetWorkingDirectory(cacheTracking.VideoIdHash, tempDirectoryInfo);
+            var workerVideoInfo = CreateAndGetWorkingDirectory(cacheTracking.VideoIdHash);
             var metadataFilePath = GetMetadataFilePath(workerVideoInfo);
 
             if (!File.Exists(metadataFilePath))
@@ -110,17 +97,15 @@ namespace Etherna.VideoImporter.Core.Services
             return JsonSerializer.Deserialize<T>(await File.ReadAllTextAsync(metadataFilePath));
         }
 
-        public async Task SaveTrackingAsync(CacheTracking? trackingStatus, DirectoryInfo tempDirectoryInfo)
+        public async Task SaveTrackingAsync(CacheTracking? trackingStatus)
         {
             if (!IsActive)
                 return;
 
             if (trackingStatus is null)
                 throw new ArgumentNullException(nameof(trackingStatus));
-            if (tempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(tempDirectoryInfo));
 
-            var workerVideoInfo = CreateAndGetWorkingDirectory(trackingStatus.VideoIdHash, tempDirectoryInfo);
+            var workerVideoInfo = CreateAndGetWorkingDirectory(trackingStatus.VideoIdHash);
             var trackingFilePath = GetTrackingFilePath(workerVideoInfo);
 
             await File.WriteAllTextAsync(trackingFilePath, JsonSerializer.Serialize(trackingStatus));
@@ -128,11 +113,9 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Helpers.
-        private DirectoryInfo CreateAndGetWorkingDirectory(
-            string videoIdHash,
-            DirectoryInfo tempDirectoryInfo)
+        private DirectoryInfo CreateAndGetWorkingDirectory(string videoIdHash)
         {
-            var workingDirectory = GetCachePathDirectory(videoIdHash, tempDirectoryInfo);
+            var workingDirectory = GetCachePathDirectory(videoIdHash);
             return Directory.CreateDirectory(workingDirectory);
         }
 
