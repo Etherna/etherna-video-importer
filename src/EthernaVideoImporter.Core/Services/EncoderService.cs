@@ -1,10 +1,10 @@
 ﻿using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,17 +13,17 @@ namespace Etherna.VideoImporter.Core.Services
 {
     internal sealed class EncoderService : IEncoderService
     {
+        // Consts.
+        private readonly IEnumerable<int> SupportedHeightResolutions = new[] { 360, 480, 720, 1080, 1440 };
+
         // Fields.
         private readonly List<Command> activedCommands = new();
-        private readonly ICacheService cacheService;
         private readonly EncoderServiceOptions options;
 
         // Constructor.
         public EncoderService(
-            ICacheService cacheService,
             IOptions<EncoderServiceOptions> options)
         {
-            this.cacheService = cacheService;
             this.options = options.Value;
         }
 
@@ -32,103 +32,151 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Methods.
         public async Task<IEnumerable<VideoLocalFile>> EncodeVideosAsync(
-            VideoLocalFile sourceVideoFile,
-            VideoMetadataBase videoMetadata)
+            VideoLocalFile sourceVideoFile)
         {
             if (sourceVideoFile is null)
                 throw new ArgumentNullException(nameof(sourceVideoFile));
 
             var videoEncodedFiles = new List<VideoLocalFile>();
-            var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
 
-            var hashVideoId = ManifestPersonalDataDto.HashVideoId(videoMetadata.Id);
-            var cacheTracking = await cacheService.GetTrackingAsync(hashVideoId, CommonConsts.TempDirectory);
+            // Compose FFmpeg command args.
+            var args = BuildFFmpegCommandArgs(
+                sourceVideoFile,
+                out IEnumerable<(string filePath, int height, int width)> outputs);
 
-            foreach (var heightResolution in options.GetSupportedHeightResolutions().Union(new List<int> { sourceVideoFile.Height }))
-            {
-                if (sourceVideoFile.Height < heightResolution)
-                    continue;
+            Console.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
 
-                Console.WriteLine($"Encoding resolution {heightResolution}...");
+            // Run FFmpeg command.
+            var command = Command.Run(FFMpegBinaryPath, args);
 
-                // Get scaled height
-                var scaledWidth = (int)Math.Round(heightResolution * resolutionRatio, 0);
-                var roundedScaledWidth = (scaledWidth % 4) switch
-                {
-                    0 => scaledWidth,
-                    1 => scaledWidth - 1,
-                    2 => scaledWidth + 2,
-                    3 => scaledWidth + 1,
-                    _ => throw new InvalidOperationException()
-                };
+            activedCommands.Add(command);
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
 
-                var encodedVideoFileName = cacheTracking?.GetEncodedVideoFilePath(heightResolution, roundedScaledWidth);
-                VideoLocalFile encodedLocalFile;
-                if (!File.Exists(encodedVideoFileName))
-                {
-                    encodedVideoFileName = $"{CommonConsts.TempDirectory.FullName}/encoded_{heightResolution}.mp4";
-
-                    var args = new string[] {
-                    "-i", sourceVideoFile.FilePath,
-                    "-c:a", "aac",
-                    "-c:v", "libx264",
-                    "-movflags", "faststart",
-                    "-vf", $"scale={roundedScaledWidth}:{heightResolution}",
-                    "-loglevel", "info",
-                    encodedVideoFileName
-                    };
-
-                    var command = Command.Run(FFMpegBinaryPath, args);
-
-                    activedCommands.Add(command);
-                    Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
-
-                    // Print filtered console output.
+            // Print filtered console output.
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                    Task.Run(() =>
-                    {
-                        /*
-                         * WTF! It works as an async method.
-                         * The enumerable is built on top of a "while(true)" that ends when the process is stopped.
-                         */
-                        foreach (var line in command.GetOutputAndErrorLines())
-                        {
-                            if (line.StartsWith("frame=", StringComparison.InvariantCulture))
-                                Console.Write(line + '\r');
-                        }
-                    });
+            Task.Run(() =>
+            {
+                /*
+                 * WTF! It works as an async method.
+                 * The enumerable is built on top of a "while(true)" that ends when the process is stopped.
+                 */
+                foreach (var line in command.GetOutputAndErrorLines())
+                {
+                    if (line.StartsWith("frame=", StringComparison.InvariantCulture))
+                        Console.Write(line + '\r');
+                }
+            });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-                    // Waiting for end and stop console output.
-                    var result = await command.Task;
+            // Waiting until end and stop console output.
+            var result = await command.Task;
 
-                    // Inspect result.
-                    if (!result.Success)
-                        throw new InvalidOperationException($"command failed with exit code {result.ExitCode}: {result.StandardError}");
+            Console.Write(new string(' ', Console.BufferWidth));
+            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            Console.WriteLine();
 
-                    // Print result of ffMpeg
-                    Console.Write(new string(' ', Console.BufferWidth));
-                    Console.SetCursorPosition(0, Console.CursorTop - 1);
-                    Console.WriteLine();
-                    Console.WriteLine($"Processing resolution {heightResolution} completed...");
+            // Inspect and print result.
+            if (!result.Success)
+                throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
 
-                    encodedLocalFile = new VideoLocalFile(encodedVideoFileName, heightResolution, roundedScaledWidth, new FileInfo(encodedVideoFileName).Length);
+            foreach (var (outputFilePath, outputHeight, outputWidth) in outputs)
+            {
+                var outputFileSize = new FileInfo(outputFilePath).Length;
+                videoEncodedFiles.Add(new VideoLocalFile(outputFilePath, outputHeight, outputWidth, outputFileSize));
 
-                    // Tracking.
-                    cacheTracking?.AddEncodedFilePath(encodedLocalFile);
-                    await cacheService.SaveTrackingAsync(cacheTracking, CommonConsts.TempDirectory);
-                }
-                else
-                {
-                    Console.WriteLine($"Take from cache encoded resolution {heightResolution}...");
-                    encodedLocalFile = new VideoLocalFile(encodedVideoFileName, heightResolution, roundedScaledWidth, new FileInfo(encodedVideoFileName).Length);
-                }
+                Console.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }
+
+            // Remove all video encodings where exists another with greater resolution, and equal or less file size.
+            videoEncodedFiles.RemoveAll(vf1 => videoEncodedFiles.Any(vf2 => vf1.Height < vf2.Height &&
+                                                                            vf1.ByteSize >= vf2.ByteSize));
+
+            Console.WriteLine($"Keep [{videoEncodedFiles.Select(vf => vf.Height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}] as valid resolutions to upload");
 
             return videoEncodedFiles;
         }
 
         // Helpers.
+        private void AppendOutputFFmpegCommandArgs(List<string> args, int height, int width, string outputFilePath)
+        {
+            //audio codec
+            args.Add("-c:a"); args.Add("aac");
+
+            //video codec
+            args.Add("-c:v"); args.Add("libx264");
+
+            //flags
+            args.Add("-movflags"); args.Add("faststart");
+
+            //filters
+            args.Add("-vf");
+            {
+                var filters = new List<string>
+                {
+                    //scale
+                    $"scale=w={width}:h={height}"
+                };
+
+                args.Add($"{filters.Aggregate((r, f) => $"{r},{f}")}");
+            }
+
+            //logs
+            args.Add("-loglevel"); args.Add("info");
+
+            //output
+            args.Add(outputFilePath);
+        }
+
+        /// <summary>
+        /// Build FFmpeg command args to encode current source video
+        /// </summary>
+        /// <param name="sourceVideoFile">Input video file</param>
+        /// <param name="outputs">Output video files info</param>
+        /// <returns>FFmpeg args list</returns>
+        private IEnumerable<string> BuildFFmpegCommandArgs(
+            VideoLocalFile sourceVideoFile,
+            out IEnumerable<(string filePath, int height, int width)> outputs)
+        {
+            // Build FFmpeg args.
+            var args = new List<string>();
+            var fileNameGuid = Guid.NewGuid();
+            var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
+            var outputsList = new List<(string filePath, int height, int width)>();
+
+            //input
+            args.Add("-i"); args.Add(sourceVideoFile.FilePath);
+
+            //all output streams
+            foreach (var height in SupportedHeightResolutions.Union(new List<int> { sourceVideoFile.Height })
+                                                             .OrderDescending())
+            {
+                // Don't upscale, skip in case.
+                if (sourceVideoFile.Height < height)
+                    continue;
+
+                // Build output stream args.
+                var outputFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{fileNameGuid}_{height}.mp4");
+
+                var scaledWidth = (int)Math.Round(height * resolutionRatio, 0);
+                switch (scaledWidth % 4)
+                {
+                    case 1: scaledWidth--; break;
+                    case 2: scaledWidth += 2; break;
+                    case 3: scaledWidth++; break;
+                    default: break;
+                }
+
+                AppendOutputFFmpegCommandArgs(args, height, scaledWidth, outputFilePath);
+
+                // Add output info.
+                outputsList.Add((outputFilePath, height, scaledWidth));
+            }
+
+            // Return values.
+            outputs = outputsList;
+            return args;
+        }
+
         private void ManageInterrupted(object? sender, ConsoleCancelEventArgs args) =>
             activedCommands.ForEach(c => c.Kill());
     }

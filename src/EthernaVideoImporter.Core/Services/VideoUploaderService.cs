@@ -13,8 +13,8 @@
 //   limitations under the License.
 
 using Etherna.BeeNet.InputModels;
-using Etherna.ServicesClient;
-using Etherna.ServicesClient.Clients.Index;
+using Etherna.ServicesClient.GeneratedClients.Index;
+using Etherna.ServicesClient.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
@@ -38,20 +38,17 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
-        private readonly ICacheService cacheService;
-        private readonly IEthernaUserClients ethernaUserClients;
+        private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
         private readonly VideoUploaderServiceOptions options;
 
         // Constructor.
         public VideoUploaderService(
-            ICacheService cacheService,
-            IEthernaUserClients ethernaUserClients,
+            IEthernaUserIndexClient ethernaIndexClient,
             IGatewayService gatewayService,
             IOptions<VideoUploaderServiceOptions> options)
         {
-            this.cacheService = cacheService;
-            this.ethernaUserClients = ethernaUserClients;
+            this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
             this.options = options.Value;
         }
@@ -60,113 +57,97 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task UploadVideoAsync(
             Video video,
             bool pinVideo,
-            bool offerVideo)
+            bool offerVideo,
+            string userEthAddress)
         {
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
 
-            var cacheTracking = await cacheService.GetTrackingAsync(ManifestPersonalDataDto.HashVideoId(video.Metadata.Id), CommonConsts.TempDirectory);
-
-            string batchId;
-            if (!string.IsNullOrWhiteSpace(cacheTracking?.BatchId))
-            {
-                batchId = cacheTracking.BatchId;
-            }
             // Create new batch.
-            else
+            //calculate batch depth
+            var totalSize = video.GetTotalByteSize();
+            var batchDepth = 17;
+            while (Math.Pow(2, batchDepth) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
+                batchDepth++;
+
+            //calculate amount
+            var currentPrice = await gatewayService.GetCurrentChainPriceAsync();
+            var amount = (long)(options.TtlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
+            var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
+
+            Console.WriteLine($"Creating postage batch... Depth: {batchDepth}, Amount: {amount}, BZZ price: {bzzPrice}");
+
+            if (!options.AcceptPurchaseOfAllBatches)
             {
-                // Create new batch.
-                //calculate batch depth
-                var totalSize = video.GetTotalByteSize();
-                var batchDepth = 17;
-                while (Math.Pow(2, batchDepth) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
-                    batchDepth++;
+                bool validSelection = false;
 
-                //calculate amount
-                var currentPrice = await gatewayService.GetCurrentChainPriceAsync();
-                var amount = (long)(options.TtlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
-                var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
-
-                Console.WriteLine($"Creating postage batch... Depth: {batchDepth} Amount: {amount} BZZ price: {bzzPrice}");
-
-                if (!options.AcceptPurchaseOfAllBatches)
+                while (validSelection == false)
                 {
-                    bool validSelection = false;
+                    Console.WriteLine($"Confirm the batch purchase? Y to confirm, A to confirm all, N to deny [Y|a|n]");
 
-                    while (validSelection == false)
+                    switch (Console.ReadKey())
                     {
-                        Console.WriteLine($"Confirm the batch purchase? Y to confirm, A to confirm all, N to deny [Y|a|n]");
-
-                        switch (Console.ReadKey())
-                        {
-                            case ConsoleKeyInfo yk when yk.Key == ConsoleKey.Y:
-                                validSelection = true;
-                                break;
-                            case ConsoleKeyInfo ak when ak.Key == ConsoleKey.A:
-                                options.AcceptPurchaseOfAllBatches = true;
-                                validSelection = true;
-                                break;
-                            case ConsoleKeyInfo nk when nk.Key == ConsoleKey.N:
-                                throw new InvalidOperationException("Batch purchase denied");
-                            default:
-                                Console.WriteLine("Invalid selection");
-                                break;
-                        }
+                        case { Key: ConsoleKey.Y }:
+                        case { Key: ConsoleKey.Enter }:
+                            validSelection = true;
+                            break;
+                        case { Key: ConsoleKey.A }:
+                            options.AcceptPurchaseOfAllBatches = true;
+                            validSelection = true;
+                            break;
+                        case { Key: ConsoleKey.N }:
+                            throw new InvalidOperationException("Batch purchase denied");
+                        default:
+                            Console.WriteLine("Invalid selection");
+                            break;
                     }
                 }
-
-                //create batch
-                batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
             }
+
+            //create batch
+            var batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
+
             Console.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
             foreach (var encodedFile in video.EncodedFiles.OfType<LocalFileBase>())
             {
-                string? swarmHash = cacheTracking?.GetUploadedHash(encodedFile, batchId);
-                if (!string.IsNullOrWhiteSpace(swarmHash))
+                Console.WriteLine(encodedFile switch
                 {
-                    encodedFile.SetSwarmHash(swarmHash);
-                }
-                else
+                    AudioLocalFile _ => "Uploading audio track in progress...",
+                    VideoLocalFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
+                    _ => throw new InvalidOperationException()
+                });
+
+                var uploadSucceeded = false;
+                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
                 {
-                    Console.WriteLine(encodedFile switch
+                    try
                     {
-                        AudioLocalFile _ => "Uploading audio track in progress...",
-                        VideoLocalFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
-                        _ => throw new InvalidOperationException()
-                    });
+                        var fileParameterInput = new FileParameterInput(
+                            File.OpenRead(encodedFile.FilePath),
+                            Path.GetFileName(encodedFile.FilePath),
+                            "video/mp4");
 
-                    var uploadSucceeded = false;
-                    for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
+                        encodedFile.SetSwarmHash(await gatewayService.UploadFilesAsync(
+                            batchId,
+                            files: new List<FileParameterInput> { fileParameterInput },
+                            pinVideo));
+                        uploadSucceeded = true;
+                    }
+                    catch (Exception ex)
                     {
-                        try
+                        Console.WriteLine($"Error: {ex.Message}");
+                        if (i + 1 < UploadMaxRetry)
                         {
-                            var fileParameterInput = new FileParameterInput(
-                                File.OpenRead(encodedFile.FilePath),
-                                Path.GetFileName(encodedFile.FilePath),
-                                "video/mp4");
-
-                            encodedFile.SetSwarmHash(await gatewayService.UploadFilesAsync(
-                                batchId,
-                                files: new List<FileParameterInput> { fileParameterInput
-                        },
-                                                    pinVideo));
-                            uploadSucceeded = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error: {ex.Message}");
-                            if (i + 1 < UploadMaxRetry)
-                            {
-                                Console.WriteLine("Retry...");
-                                await Task.Delay(UploadRetryTimeSpan);
-                            }
+                            Console.WriteLine("Retry...");
+                            await Task.Delay(UploadRetryTimeSpan);
                         }
                     }
-                    if (!uploadSucceeded)
-                        throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
                 }
+                if (!uploadSucceeded)
+                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
+
                 if (offerVideo)
                     await gatewayService.OfferContentAsync(encodedFile.SwarmHash!);
             }
@@ -175,51 +156,44 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine("Uploading thumbnail in progress...");
             foreach (var thumbnailFile in video.ThumbnailFiles.OfType<LocalFileBase>())
             {
-                string? thumbnailReference = cacheTracking?.GetUploadedHash(thumbnailFile, batchId);
-                if (!string.IsNullOrWhiteSpace(thumbnailReference))
+                var uploadSucceeded = false;
+                string thumbnailReference = null!;
+                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
                 {
-                    thumbnailFile.SetSwarmHash(thumbnailReference);
-                }
-                else
-                {
-                    thumbnailReference = null!;
-                    var uploadSucceeded = false;
-                    for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
+                    try
                     {
-                        try
-                        {
-                            var fileThumbnailParameterInput = new FileParameterInput(
-                                File.OpenRead(thumbnailFile.FilePath),
-                                Path.GetFileName(thumbnailFile.FilePath),
-                                "image/jpeg");
+                        var fileThumbnailParameterInput = new FileParameterInput(
+                            File.OpenRead(thumbnailFile.FilePath),
+                            Path.GetFileName(thumbnailFile.FilePath),
+                            "image/jpeg");
 
-                            thumbnailReference = await gatewayService.UploadFilesAsync(
-                                batchId,
-                                new List<FileParameterInput> { fileThumbnailParameterInput },
-                                pinVideo);
-                            uploadSucceeded = true;
-                        }
-                        catch (Exception ex)
+                        thumbnailReference = await gatewayService.UploadFilesAsync(
+                            batchId,
+                            new List<FileParameterInput> { fileThumbnailParameterInput },
+                            pinVideo);
+                        uploadSucceeded = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error: {ex.Message}");
+                        if (i + 1 < UploadMaxRetry)
                         {
-                            Console.WriteLine($"Error: {ex.Message}");
-                            if (i + 1 < UploadMaxRetry)
-                            {
-                                Console.WriteLine("Retry...");
-                                await Task.Delay(UploadRetryTimeSpan);
-                            }
+                            Console.WriteLine("Retry...");
+                            await Task.Delay(UploadRetryTimeSpan);
                         }
                     }
-                    if (!uploadSucceeded)
-                        throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
-
-                    thumbnailFile.SetSwarmHash(thumbnailReference);
                 }
+                if (!uploadSucceeded)
+                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
+
+                thumbnailFile.SetSwarmHash(thumbnailReference);
+
                 if (offerVideo)
                     await gatewayService.OfferContentAsync(thumbnailReference);
             }
 
             // Manifest.
-            var metadataVideo = new ManifestDto(video, batchId, options.UserEthAddr);
+            var metadataVideo = new ManifestDto(video, batchId, userEthAddress);
             {
                 var uploadSucceeded = false;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
@@ -247,13 +221,13 @@ namespace Etherna.VideoImporter.Core.Services
 
             // List on index.
             if (video.EthernaIndexId is null)
-                video.EthernaIndexId = await ethernaUserClients.IndexClient.VideosClient.VideosPostAsync(
+                video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
                     new VideoCreateInput
                     {
                         ManifestHash = video.EthernaPermalinkHash!,
                     });
             else
-                await ethernaUserClients.IndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash!);
+                await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash!);
 
             Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }

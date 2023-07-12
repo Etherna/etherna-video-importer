@@ -12,8 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient;
-using Etherna.ServicesClient.Clients.Index;
+using Etherna.Authentication;
+using Etherna.Authentication.Native;
+using Etherna.ServicesClient.GeneratedClients.Index;
+using Etherna.ServicesClient.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
@@ -21,6 +23,7 @@ using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -31,8 +34,10 @@ namespace Etherna.VideoImporter.Core
     {
         // Fields.
         private readonly ICleanerVideoService cleanerVideoService;
-        private readonly IGatewayService gatewayClient;
-        private readonly IEthernaUserClients ethernaUserClients;
+        private readonly IEthernaUserIndexClient ethernaIndexClient;
+        private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
+        private readonly IEthernaSignInService ethernaSignInService;
+        private readonly IGatewayService gatewayService;
         private readonly IMigrationService migrationService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
@@ -40,8 +45,10 @@ namespace Etherna.VideoImporter.Core
         // Constructor.
         public EthernaVideoImporter(
             ICleanerVideoService cleanerVideoService,
-            IEthernaUserClients ethernaUserClients,
-            IGatewayService gatewayClient,
+            IEthernaUserIndexClient ethernaIndexClient,
+            IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
+            IEthernaSignInService ethernaSignInService,
+            IGatewayService gatewayService,
             IMigrationService migrationService,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
@@ -54,8 +61,10 @@ namespace Etherna.VideoImporter.Core
                 throw new ArgumentNullException(nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
-            this.ethernaUserClients = ethernaUserClients;
-            this.gatewayClient = gatewayClient;
+            this.ethernaIndexClient = ethernaIndexClient;
+            this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
+            this.ethernaSignInService = ethernaSignInService;
+            this.gatewayService = gatewayService;
             this.migrationService = migrationService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
@@ -63,15 +72,36 @@ namespace Etherna.VideoImporter.Core
 
         // Public methods.
         public async Task RunAsync(
-            bool deleteExogenousVideos,
-            bool deleteVideosRemovedFromSource,
+            bool removeUnrecognizedVideos,
+            bool removeMissingVideosFromSource,
             bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
-            string userEthAddress,
             bool unpinRemovedVideos)
         {
-            var importSummaryModelView = new ImportSummaryModelView();
+            // Signin user.
+            try
+            {
+                await ethernaSignInService.SignInAsync();
+            }
+            catch (InvalidOperationException e)
+            {
+                Console.WriteLine($"Error during authentication");
+                Console.WriteLine(e.Message);
+                throw;
+            }
+            catch (Win32Exception e)
+            {
+                Console.WriteLine($"Error opening browser on local system. Try to authenticate with API key.");
+                Console.WriteLine(e.Message);
+                throw;
+            }
+
+            // Get info from authenticated user.
+            var userEthAddress = await ethernaOpenIdConnectClient.GetEtherAddressAsync();
+            var userName = await ethernaOpenIdConnectClient.GetUsernameAsync();
+
+            Console.WriteLine($"User {userName} authenticated");
 
             // Get video info.
             Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
@@ -79,19 +109,20 @@ namespace Etherna.VideoImporter.Core
             var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync();
             var totalSourceVideo = sourceVideosMetadata.Count();
 
-            Console.WriteLine($"Found {sourceVideosMetadata.Count()} valid videos from source");
+            Console.WriteLine($"Found {totalSourceVideo} valid videos from source");
 
             // Get information from etherna index.
             Console.WriteLine("Get user's videos on etherna index");
 
             var userVideosOnIndex = await GetUserVideosOnEthernaAsync(userEthAddress);
-            var ethernaIndexParameters = await ethernaUserClients.IndexClient.SystemClient.ParametersAsync();
+            var ethernaIndexParameters = await ethernaIndexClient.SystemClient.ParametersAsync();
 
             Console.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on etherna index");
 
             // Import each video.
             Console.WriteLine("Start importing videos");
 
+            var importSummaryModelView = new ImportSummaryModelView();
             foreach (var (sourceMetadata, i) in sourceVideosMetadata.Select((m, i) => (m, i)))
             {
                 string updatedIndexId;
@@ -161,7 +192,7 @@ namespace Etherna.VideoImporter.Core
                             updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.
-                            await ethernaUserClients.IndexClient.VideosClient.VideosPutAsync(
+                            await ethernaIndexClient.VideosClient.VideosPutAsync(
                                 alreadyPresentVideo.IndexId,
                                 updatedPermalinkHash);
                         }
@@ -201,7 +232,7 @@ namespace Etherna.VideoImporter.Core
                         }
 
                         // Upload video and all related data.
-                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos);
+                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos, userEthAddress);
 
                         updatedIndexId = video.EthernaIndexId!;
                         updatedPermalinkHash = video.EthernaPermalinkHash!;
@@ -281,16 +312,16 @@ namespace Etherna.VideoImporter.Core
             // Clean up user channel on etherna index.
             IEnumerable<string>? gatewayPinnedHashes = null;
             if (unpinRemovedVideos)
-                gatewayPinnedHashes = await gatewayClient.GetPinnedResourcesAsync();
+                gatewayPinnedHashes = await gatewayService.GetPinnedResourcesAsync();
 
-            if (deleteVideosRemovedFromSource)
+            if (removeMissingVideosFromSource)
                 importSummaryModelView.TotDeletedRemovedFromSource = await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
                     sourceVideosMetadata,
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
 
-            if (deleteExogenousVideos)
+            if (removeUnrecognizedVideos)
                 importSummaryModelView.TotDeletedExogenous = await cleanerVideoService.DeleteExogenousVideosAsync(
                     userVideosOnIndex,
                     gatewayPinnedHashes,
@@ -319,7 +350,7 @@ namespace Etherna.VideoImporter.Core
             VideoDtoPaginatedEnumerableDto? page = null;
             do
             {
-                page = await ethernaUserClients.IndexClient.UsersClient.Videos2Async(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
+                page = await ethernaIndexClient.UsersClient.Videos2Async(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
                 videos.AddRange(page.Elements);
             } while (page.Elements.Any());
 
