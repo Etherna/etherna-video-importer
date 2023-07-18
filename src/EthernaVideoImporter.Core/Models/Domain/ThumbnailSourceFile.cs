@@ -98,7 +98,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     await data.AsStream().CopyToAsync(outputFileStream);
                 }
 
-                thumbnails.Add(await BuildNewAsync(thumbnailResizedPath, HttpClientFactory));
+                thumbnails.Add(await BuildNewAsync(
+                    new SourceUri(thumbnailResizedPath, SourceUriKind.Local),
+                    HttpClientFactory));
             }
 
             return thumbnails;

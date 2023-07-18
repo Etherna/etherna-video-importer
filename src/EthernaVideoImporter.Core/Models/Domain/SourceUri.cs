@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
@@ -82,11 +83,27 @@ namespace Etherna.VideoImporter.Core.Models.Domain
              */
             return actualAllowedUriKinds switch
             {
-                SourceUriKind.LocalAbsolute => (OriginalUri, SourceUriKind.LocalAbsolute),
-                SourceUriKind.LocalRelative => (Path.GetFullPath(OriginalUri, baseDirectory ?? Directory.GetCurrentDirectory()), SourceUriKind.LocalAbsolute),
-                SourceUriKind.OnlineAbsolute => (OriginalUri, SourceUriKind.OnlineAbsolute),
-                SourceUriKind.OnlineRelative => (new Uri(new Uri(baseDirectory!, System.UriKind.Absolute), OriginalUri).ToString(),
-                                           SourceUriKind.OnlineAbsolute),
+                SourceUriKind.LocalAbsolute =>
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+                    !Path.IsPathFullyQualified(OriginalUri) && //Ex: "/test"
+                    baseDirectory is not null && Path.IsPathFullyQualified(baseDirectory) ?
+                        (Path.GetFullPath(OriginalUri, baseDirectory), SourceUriKind.LocalAbsolute) : //take unit from base directory
+                        (Path.GetFullPath(OriginalUri), SourceUriKind.LocalAbsolute),
+
+                SourceUriKind.LocalRelative =>
+                    (Path.GetFullPath(
+                        OriginalUri,
+                        baseDirectory is not null ?
+                            Path.GetFullPath(baseDirectory) : //GetFullPath is required when on windows baseDirectory is a root path without unit name. Ex: "/test"
+                            Directory.GetCurrentDirectory()),
+                     SourceUriKind.LocalAbsolute),
+
+                SourceUriKind.OnlineAbsolute => (new Uri(OriginalUri, System.UriKind.Absolute).ToString(), SourceUriKind.OnlineAbsolute),
+
+                SourceUriKind.OnlineRelative => (new Uri(
+                    new Uri(baseDirectory!, System.UriKind.Absolute),
+                    string.Join('/', OriginalUri.Split('/', '\\').Select(Uri.EscapeDataString))).ToString(), SourceUriKind.OnlineAbsolute),
+
                 _ => throw new InvalidOperationException("Can't find a valid uri kind")
             };
         }
@@ -99,7 +116,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         /// <returns>Parent directory absolute uri and its kind</returns>
         public (string, SourceUriKind)? TryGetParentDirectoryAsAbsoluteUri(SourceUriKind allowedUriKinds = SourceUriKind.All, string? baseDirectory = null)
         {
-            baseDirectory ??= defaultBaseDirectory;
             var (absoluteUri, absoluteUriKind) = ToAbsoluteUri(allowedUriKinds, baseDirectory);
 
             switch (absoluteUriKind)
@@ -117,9 +133,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 default: throw new InvalidOperationException("Invalid absolute uri kind. It should be well defined and absolute");
             }
         }
-
-        // Public static methods.
-        public static SourceUri FromString(string uri) => new(uri);
 
         /// <summary>
         /// Try to identify the uri kind, doesn't validate local paths. Online absolute paths can't be local
@@ -155,8 +168,5 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
             return uriKind;
         }
-
-        // Operators.
-        public static implicit operator SourceUri(string uri) => FromString(uri);
     }
 }

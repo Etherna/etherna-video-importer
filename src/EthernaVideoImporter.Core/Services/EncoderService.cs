@@ -50,7 +50,10 @@ namespace Etherna.VideoImporter.Core.Services
             foreach (var (outputFilePath, outputHeight, outputWidth) in outputs)
             {
                 var outputFileSize = new FileInfo(outputFilePath).Length;
-                videoEncodedFiles.Add(VideoSourceFile.BuildNew(outputFilePath, ffMpegService, httpClientFactory));
+                videoEncodedFiles.Add(VideoSourceFile.BuildNew(
+                    new SourceUri(outputFilePath, SourceUriKind.Local),
+                    ffMpegService,
+                    httpClientFactory));
 
                 Console.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }

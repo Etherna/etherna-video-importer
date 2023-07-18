@@ -128,7 +128,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             }
 
             return await ThumbnailSourceFile.BuildNewAsync(
-                thumbnailFilePath,
+                new SourceUri(thumbnailFilePath, SourceUriKind.Local),
                 httpClientFactory);
         }
 
@@ -174,7 +174,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             }
 
             return VideoSourceFile.BuildNew(
-                videoFilePath,
+                new SourceUri(videoFilePath, SourceUriKind.Local),
                 ffMpegService,
                 httpClientFactory);
         }
