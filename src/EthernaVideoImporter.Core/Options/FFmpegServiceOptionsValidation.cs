@@ -6,8 +6,8 @@ namespace Etherna.VideoImporter.Core.Options
     {
         public ValidateOptionsResult Validate(string? name, FFmpegServiceOptions options)
         {
-            if (string.IsNullOrWhiteSpace(options.FFmpegFolderPath))
-                return ValidateOptionsResult.Fail($"FFmpeg folder path can't be null or white spaces");
+            if (options.FFmpegFolderPath is null)
+                return ValidateOptionsResult.Fail($"FFmpeg folder path can't be null");
 
             return ValidateOptionsResult.Success;
         }

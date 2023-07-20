@@ -18,20 +18,20 @@ namespace Etherna.VideoImporter.Core.Utilities
         }
 
         // Helpers.
-        public static async Task<string?> CheckAndGetAsync(string? customFFMpegFolderPath, string binaryName, string defaultFFMpegFolderPath)
+        public static async Task<string?> CheckAndGetAsync(string? customFFmpegFolderPath, string binaryName, string defaultFFmpegFolderPath)
         {
             // Custom FFmpeg folder.
-            if (!string.IsNullOrWhiteSpace(customFFMpegFolderPath))
+            if (!string.IsNullOrWhiteSpace(customFFmpegFolderPath))
             {
-                if (!Directory.Exists(customFFMpegFolderPath))
+                if (!Directory.Exists(customFFmpegFolderPath))
                     return null; // Not found.
 
                 try
                 {
-                    var command = Command.Run($"{customFFMpegFolderPath}/{binaryName}", "-version");
+                    var command = Command.Run($"{customFFmpegFolderPath}/{binaryName}", "-version");
                     var result = await command.Task;
                     if (result.Success)
-                        return customFFMpegFolderPath;
+                        return customFFmpegFolderPath;
                 }
                 catch (System.ComponentModel.Win32Exception) { }
             }
@@ -39,10 +39,10 @@ namespace Etherna.VideoImporter.Core.Utilities
             // Default FFmpeg folder.
             try
             {
-                var command = Command.Run($"{defaultFFMpegFolderPath}/{binaryName}", "-version");
+                var command = Command.Run($"{defaultFFmpegFolderPath}/{binaryName}", "-version");
                 var result = await command.Task;
                 if (result.Success)
-                    return defaultFFMpegFolderPath;
+                    return defaultFFmpegFolderPath;
             }
             catch (System.ComponentModel.Win32Exception) { }
 
