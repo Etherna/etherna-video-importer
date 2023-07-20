@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
@@ -44,9 +45,21 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }
 
         // Methods.
-        public long GetTotalByteSize() =>
-            EncodedFiles.Sum(f => f.ByteSize) +
-            ThumbnailFiles.Sum(t => t.ByteSize) +
-            JsonSerializer.Serialize(new ManifestDto(this, CommonConsts.SwarmNullReference, "0x0000000000000000000000000000000000000000", true)).Length;
+        public async Task<long> GetTotalByteSizeAsync()
+        {
+            long totalByteSize = 0;
+
+            foreach (var file in EncodedFiles)
+                totalByteSize += await file.GetByteSizeAsync();
+            foreach (var file in ThumbnailFiles)
+                totalByteSize += await file.GetByteSizeAsync();
+            totalByteSize += JsonSerializer.Serialize(await ManifestDto.BuildNewAsync(
+                this,
+                CommonConsts.SwarmNullReference,
+                CommonConsts.EthereumNullAddress,
+                allowFakeReferences: true)).Length;
+
+            return totalByteSize;
+        }
     }
 }

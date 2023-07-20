@@ -14,26 +14,39 @@
 
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
+using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
     public sealed class ManifestVideoSourceDto
     {
-        public ManifestVideoSourceDto(IVideoFile videoFile, bool allowFakeReference)
+        // Constructors.
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        private ManifestVideoSourceDto() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+        // Builders.
+        public static async Task<ManifestVideoSourceDto> BuildNewAsync(
+            IVideoFile videoFile,
+            bool allowFakeReference)
         {
             if (videoFile is null)
                 throw new ArgumentNullException(nameof(videoFile));
 
-            Quality = videoFile.VideoQualityLabel;
-            Reference = videoFile.SwarmHash ?? (allowFakeReference ?
-                CommonConsts.SwarmNullReference :
-                throw new InvalidOperationException());
-            Size = videoFile.ByteSize;
+            return new ManifestVideoSourceDto
+            {
+                Quality = videoFile.VideoQualityLabel,
+                Reference = videoFile.SwarmHash ?? (allowFakeReference ?
+                    CommonConsts.SwarmNullReference :
+                    throw new InvalidOperationException()),
+                Size = await videoFile.GetByteSizeAsync()
+            };
         }
 
+        // Properties.
         public int Bitrate => 420; //fake place holder, will be removed on manifest 2.0
-        public string Quality { get; }
-        public string Reference { get; }
-        public long Size { get; }
+        public string Quality { get; private set; }
+        public string Reference { get; private set; }
+        public long Size { get; private set; }
     }
 }

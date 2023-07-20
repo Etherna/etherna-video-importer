@@ -12,18 +12,16 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System.Threading.Tasks;
+
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public abstract class FileBase : IFile
     {
-        // Constructors.
-        protected FileBase(long byteSize)
-        {
-            ByteSize = byteSize;
-        }
-
         // Properties.
-        public long ByteSize { get; }
         public string? SwarmHash { get; protected set; }
+
+        // Methods.
+        public abstract Task<long> GetByteSizeAsync();
     }
 }
