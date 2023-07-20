@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 
-namespace Etherna.VideoImporter.Models.LocalVideoDtos
+namespace Etherna.VideoImporter.Core.Models.FFmpegDto
 {
-    internal sealed class FFProbeResultDto
+    public sealed class FFProbeResultDto
     {
         // Classes.
         public sealed class FormatResult
@@ -11,7 +12,7 @@ namespace Etherna.VideoImporter.Models.LocalVideoDtos
             // Properties.
             public TimeSpan Duration { get; set; }
             public string Size { get; set; } = default!;
-            public long SizeLong => Convert.ToInt64(Size);
+            public long SizeLong => Convert.ToInt64(Size, CultureInfo.InvariantCulture);
         }
 
         public sealed class StreamResult
