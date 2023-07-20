@@ -9,12 +9,12 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Methods.
         public static async Task<string?> FFmpegCheckAndGetAsync(string? customFFMpegFolderPath)
         {
-            return await CheckAndGetAsync(customFFMpegFolderPath, CommonConsts.FFMpegBinaryName, CommonConsts.DefaultFFmpegFolder);
+            return await CheckAndGetAsync(customFFMpegFolderPath, CommonConsts.FFmpegBinaryName, CommonConsts.DefaultFFmpegFolder);
         }
 
         public static async Task<string?> FFProbeCheckAndGetAsync(string? customFFMpegFolderPath)
         {
-            return await CheckAndGetAsync(customFFMpegFolderPath, CommonConsts.FFProbeBinaryName, CommonConsts.DefaultFFmpegFolder);
+            return await CheckAndGetAsync(customFFMpegFolderPath, CommonConsts.FFprobeBinaryName, CommonConsts.DefaultFFmpegFolder);
         }
 
         // Helpers.
