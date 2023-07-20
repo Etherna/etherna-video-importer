@@ -23,6 +23,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EthernaVideoImporter.Core",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EthernaVideoImporter.Devcon", "src\EthernaVideoImporter.Devcon\EthernaVideoImporter.Devcon.csproj", "{9CBEB485-1E55-4457-B127-7E0A75602939}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{E8E17BD2-C38A-46B5-BA9D-B5A9561BAFC8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EthernaVideoImporter.Core.Tests", "test\EthernaVideoImporter.Core.Tests\EthernaVideoImporter.Core.Tests.csproj", "{CBC4D9D1-6291-433F-80D7-4607D1CABC48}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +45,10 @@ Global
 		{9CBEB485-1E55-4457-B127-7E0A75602939}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9CBEB485-1E55-4457-B127-7E0A75602939}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9CBEB485-1E55-4457-B127-7E0A75602939}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBC4D9D1-6291-433F-80D7-4607D1CABC48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBC4D9D1-6291-433F-80D7-4607D1CABC48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBC4D9D1-6291-433F-80D7-4607D1CABC48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBC4D9D1-6291-433F-80D7-4607D1CABC48}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -50,6 +58,7 @@ Global
 		{1E5D1B5B-4926-4F7F-97A9-19DAE5065550} = {6647EBF4-A8E7-4987-9A43-CF6F9DA1A3AF}
 		{CD81CBF2-FBFE-4BB2-A777-5F5B9EFAB80E} = {0A3B4988-7F19-430D-BF6C-31AFD0234C44}
 		{9CBEB485-1E55-4457-B127-7E0A75602939} = {0A3B4988-7F19-430D-BF6C-31AFD0234C44}
+		{CBC4D9D1-6291-433F-80D7-4607D1CABC48} = {E8E17BD2-C38A-46B5-BA9D-B5A9561BAFC8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {09CED59B-3404-49D6-ADE2-70D93A110B72}

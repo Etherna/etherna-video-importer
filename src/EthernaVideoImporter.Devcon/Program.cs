@@ -294,8 +294,12 @@ namespace Etherna.VideoImporter.Devcon
             services.AddCoreServices(
                 encoderOptions =>
                 {
-                    encoderOptions.FFMpegFolderPath = selectedFFMpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                },
+                ffMpegOptions =>
+                {
+                    if (customFFMpegFolderPath is not null)
+                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {

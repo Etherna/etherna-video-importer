@@ -1,12 +1,9 @@
-﻿using Etherna.VideoImporter.Core;
-using System.IO;
+﻿using Etherna.VideoImporter.Core.Models.Domain;
 
 namespace Etherna.VideoImporter.Options
 {
     internal sealed class JsonListVideoProviderOptions
     {
-        public string FFProbeFolderPath { get; set; } = default!;
-        public string FFProbeBinaryPath => Path.Combine(FFProbeFolderPath, CommonConsts.FFProbeBinaryName);
-        public string JsonMetadataFilePath { get; set; } = default!;
+        public SourceUri JsonMetadataUri { get; set; } = default!;
     }
 }
