@@ -69,8 +69,6 @@ To import from a video list you need a metadata descriptor file. Metadata is a J
 ]
 
 Id field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique.
-Video paths can be local or online uris. Thumbnail paths are optional, and can only be local.
-Local paths can be relative or absolute, online urls can only be absolute.
 
 Run 'evi -h' or 'evi --help' to print help.
 ```
