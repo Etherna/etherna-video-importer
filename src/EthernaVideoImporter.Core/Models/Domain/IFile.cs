@@ -1,8 +1,13 @@
-﻿namespace Etherna.VideoImporter.Core.Models.Domain
+﻿using System.Threading.Tasks;
+
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public interface IFile
     {
-        long ByteSize { get; }
+        // Properties.
         string? SwarmHash { get; }
+
+        // Methods.
+        Task<long> GetByteSizeAsync();
     }
 }
