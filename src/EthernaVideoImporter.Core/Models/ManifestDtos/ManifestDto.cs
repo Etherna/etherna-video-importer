@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
@@ -29,7 +30,12 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         private string? _personalData;
 
         // Constructors.
-        public ManifestDto(
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        private ManifestDto() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+        // Builders.
+        public static async Task<ManifestDto> BuildNewAsync(
             Video video,
             string batchId,
             string ownerAddress,
@@ -38,32 +44,39 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             if (video is null)
                 throw new ArgumentNullException(nameof(video));
 
-            Title = video.Metadata.Title;
-            Description = video.Metadata.Description;
-            OriginalQuality = video.Metadata.OriginVideoQualityLabel;
-            OwnerAddress = ownerAddress;
-            Duration = (long)video.Metadata.Duration.TotalSeconds;
-            Sources = video.EncodedFiles.OfType<IVideoFile>().Select(vf => new ManifestVideoSourceDto(vf, allowFakeReferences));
-            Thumbnail = video.ThumbnailFiles.Any() ?
-                new ManifestThumbnailDto(video.ThumbnailFiles) :
-                null;
-            CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            UpdatedAt = null;
-            BatchId = batchId;
-            PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id));
+            var sources = new List<ManifestVideoSourceDto>();
+            foreach (var videoFile in video.EncodedFiles.OfType<IVideoFile>())
+                sources.Add(await ManifestVideoSourceDto.BuildNewAsync(videoFile, allowFakeReferences));
+
+            return new ManifestDto()
+            {
+                Title = video.Metadata.Title,
+                Description = video.Metadata.Description,
+                OriginalQuality = video.Metadata.OriginVideoQualityLabel,
+                OwnerAddress = ownerAddress,
+                Duration = (long)video.Metadata.Duration.TotalSeconds,
+                Sources = sources,
+                Thumbnail = video.ThumbnailFiles.Any() ?
+                    new ManifestThumbnailDto(video.ThumbnailFiles) :
+                    null,
+                CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                UpdatedAt = null,
+                BatchId = batchId,
+                PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id))
+            };
         }
 
         // Properties.
-        public string Title { get; }
-        public string Description { get; }
-        public string OriginalQuality { get; }
-        public string OwnerAddress { get; }
-        public long Duration { get; }
-        public ManifestThumbnailDto? Thumbnail { get; }
-        public IEnumerable<ManifestVideoSourceDto> Sources { get; }
-        public long CreatedAt { get; }
-        public long? UpdatedAt { get; }
-        public string BatchId { get; }
+        public string Title { get; private set; }
+        public string Description { get; private set; }
+        public string OriginalQuality { get; private set; }
+        public string OwnerAddress { get; private set; }
+        public long Duration { get; private set; }
+        public ManifestThumbnailDto? Thumbnail { get; private set; }
+        public IEnumerable<ManifestVideoSourceDto> Sources { get; private set; }
+        public long CreatedAt { get; private set; }
+        public long? UpdatedAt { get; private set; }
+        public string BatchId { get; private set; }
         public string? PersonalData
         {
             get => _personalData;
