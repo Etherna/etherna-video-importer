@@ -347,8 +347,7 @@ namespace Etherna.VideoImporter
                 },
                 ffMpegOptions =>
                 {
-                    if (customFFMpegFolderPath is not null)
-                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
+                    ffMpegOptions.FFmpegFolderPath = selectedFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {
