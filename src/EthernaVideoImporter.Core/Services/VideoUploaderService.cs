@@ -65,7 +65,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Create new batch.
             //calculate batch depth
-            var totalSize = video.GetTotalByteSize();
+            var totalSize = await video.GetTotalByteSizeAsync();
             var batchDepth = 17;
             while (Math.Pow(2, batchDepth) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
                 batchDepth++;
@@ -110,12 +110,12 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
-            foreach (var encodedFile in video.EncodedFiles.OfType<LocalFileBase>())
+            foreach (var encodedFile in video.EncodedFiles.OfType<SourceFile>())
             {
                 Console.WriteLine(encodedFile switch
                 {
-                    AudioLocalFile _ => "Uploading audio track in progress...",
-                    VideoLocalFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
+                    AudioSourceFile _ => "Uploading audio track in progress...",
+                    VideoSourceFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
                     _ => throw new InvalidOperationException()
                 });
 
@@ -125,8 +125,8 @@ namespace Etherna.VideoImporter.Core.Services
                     try
                     {
                         var fileParameterInput = new FileParameterInput(
-                            File.OpenRead(encodedFile.FilePath),
-                            Path.GetFileName(encodedFile.FilePath),
+                            (await encodedFile.ReadAsStreamAsync()).Stream,
+                            encodedFile.TryGetFileName(),
                             "video/mp4");
 
                         encodedFile.SetSwarmHash(await gatewayService.UploadFilesAsync(
@@ -154,7 +154,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Upload thumbnail.
             Console.WriteLine("Uploading thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<LocalFileBase>())
+            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<SourceFile>())
             {
                 var uploadSucceeded = false;
                 string thumbnailReference = null!;
@@ -163,8 +163,8 @@ namespace Etherna.VideoImporter.Core.Services
                     try
                     {
                         var fileThumbnailParameterInput = new FileParameterInput(
-                            File.OpenRead(thumbnailFile.FilePath),
-                            Path.GetFileName(thumbnailFile.FilePath),
+                            (await thumbnailFile.ReadAsStreamAsync()).Stream,
+                            thumbnailFile.TryGetFileName(),
                             "image/jpeg");
 
                         thumbnailReference = await gatewayService.UploadFilesAsync(
@@ -193,7 +193,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Manifest.
-            var metadataVideo = new ManifestDto(video, batchId, userEthAddress);
+            var metadataVideo = await ManifestDto.BuildNewAsync(video, batchId, userEthAddress);
             {
                 var uploadSucceeded = false;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
