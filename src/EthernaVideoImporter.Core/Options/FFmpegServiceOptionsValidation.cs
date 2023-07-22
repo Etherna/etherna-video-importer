@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Options
 {
@@ -8,6 +9,8 @@ namespace Etherna.VideoImporter.Core.Options
         {
             if (string.IsNullOrWhiteSpace(options.FFmpegFolderPath))
                 return ValidateOptionsResult.Fail($"FFmpeg folder path can't be null or white spaces");
+            if (!FFmpegServiceOptions.PresetCodecs.Any(pc => pc == options.PresetCodec))
+                return ValidateOptionsResult.Fail($"{options.PresetCodec} it'sn an allowed value.");
 
             return ValidateOptionsResult.Success;
         }
