@@ -93,7 +93,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             }
             else if(createRandomThumbnailWhenMissing)
             {
-                var thumbnailFilePath = await encoderService.CreateRandomThumbnailAsync(videoLocalFile.FileUri);
+                var thumbnailFilePath = await encoderService.CreateRandomThumbnailAsync(videoLocalFile);
 
                 thumbnailFiles = await thumbnailFilePath.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
             }

@@ -12,10 +12,11 @@ namespace Etherna.VideoImporter.Core.Services
         string FFprobeBinaryPath { get; }
 
         // Methods.
+        Task<string> CreateRandomThumbnailAsync(
+            VideoSourceFile videoSourceFile);
         Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
             VideoSourceFile sourceVideoFile,
             IEnumerable<int> outputHeights);
-
         FFProbeResultDto GetVideoInfo(string videoFileAbsoluteUri);
     }
 }

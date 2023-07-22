@@ -83,10 +83,15 @@ namespace Etherna.VideoImporter.Services
                         httpClientFactory);
 
                     // Build thumbnail.
-                    var thumbnail = string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ? null :
-                        await ThumbnailSourceFile.BuildNewAsync(
-                            new SourceUri(metadataDto.ThumbnailFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
-                            httpClientFactory);
+                    ThumbnailSourceFile? thumbnail = null;
+                    if (string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) &&
+                        options.GenerateThumbnailWhenMissing)
+                        thumbnail = await encoderService.CreateRandomThumbnailAsync(video);
+                    else if (!string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
+                        thumbnail = string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ? null :
+                            await ThumbnailSourceFile.BuildNewAsync(
+                                new SourceUri(metadataDto.ThumbnailFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
+                                httpClientFactory);
 
                     // Add video metadata.
                     videosMetadataDictionary.Add(
