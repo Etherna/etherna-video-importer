@@ -100,7 +100,7 @@ namespace Etherna.VideoImporter
             string sourceUri;
 
             string? apiKey = null;
-            string? customFFMpegFolderPath = null;
+            string customFFMpegFolderPath = CommonConsts.DefaultFFmpegFolder;
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
 
@@ -299,15 +299,6 @@ namespace Etherna.VideoImporter
             if (newVersionAvaiable && !ignoreUpdate)
                 return;
 
-            // Check for ffmpeg
-            var selectedFFMpegFolderPath = await FFmpegUtility.FFmpegCheckAndGetAsync(customFFMpegFolderPath);
-            if (selectedFFMpegFolderPath is null)
-            {
-                Console.WriteLine("FFmpeg not found");
-                return;
-            }
-            Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFMpegFolderPath) ? "Global installation" : selectedFFMpegFolderPath)}");
-
             // Register etherna service clients.
             var services = new ServiceCollection();
             IEthernaUserClientsBuilder ethernaClientsBuilder;
@@ -348,7 +339,7 @@ namespace Etherna.VideoImporter
                 },
                 ffMpegOptions =>
                 {
-                    ffMpegOptions.FFmpegFolderPath = selectedFFMpegFolderPath;
+                    ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {
@@ -368,12 +359,6 @@ namespace Etherna.VideoImporter
             switch (sourceType)
             {
                 case SourceType.JsonList:
-                    var selectedFFProbeFolderPath = await FFmpegUtility.FFProbeCheckAndGetAsync(customFFMpegFolderPath);
-                    if (selectedFFProbeFolderPath is null)
-                    {
-                        Console.WriteLine("FFProbe not found");
-                        return;
-                    }
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {

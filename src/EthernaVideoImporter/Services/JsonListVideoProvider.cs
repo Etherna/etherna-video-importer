@@ -77,7 +77,7 @@ namespace Etherna.VideoImporter.Services
                 try
                 {
                     // Build video.
-                    var video = VideoSourceFile.BuildNew(
+                    var video = await VideoSourceFile.BuildNewAsync(
                         new SourceUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
                         ffMpegService,
                         httpClientFactory);

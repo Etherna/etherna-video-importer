@@ -18,6 +18,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly List<Command> activedCommands = new();
         private readonly FFmpegServiceOptions options;
+        private string? ffMpegFolderPath;
 
         // Constructor.
         public FFmpegService(
@@ -25,10 +26,6 @@ namespace Etherna.VideoImporter.Core.Services
         {
             this.options = options.Value;
         }
-
-        // Properties.
-        public string FFmpegBinaryPath => Path.Combine(options.FFmpegFolderPath, CommonConsts.FFmpegBinaryName);
-        public string FFprobeBinaryPath => Path.Combine(options.FFmpegFolderPath, CommonConsts.FFprobeBinaryName);
 
         // Methods.
         public async Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
@@ -44,7 +41,7 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
 
             // Run FFmpeg command.
-            var command = Command.Run(FFmpegBinaryPath, args);
+            var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
 
             activedCommands.Add(command);
             Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
@@ -78,7 +75,25 @@ namespace Etherna.VideoImporter.Core.Services
             return outputs;
         }
 
-        public FFProbeResultDto GetVideoInfo(string videoFileAbsoluteUri)
+        public async Task<string> GetFFmpegBinaryPathAsync()
+        {
+            ffMpegFolderPath ??= await CommonCheckAndGetAsync(options.FFmpegFolderPath, CommonConsts.FFmpegBinaryName);
+            if (ffMpegFolderPath is null)
+                throw new NotImplementedException($"{CommonConsts.FFmpegBinaryName} not found");
+
+            return Path.Combine(ffMpegFolderPath, CommonConsts.FFmpegBinaryName);
+        }
+
+        public async Task<string> GetFFprobeBinaryPathAsync()
+        {
+            ffMpegFolderPath ??= await CommonCheckAndGetAsync(options.FFmpegFolderPath, CommonConsts.FFprobeBinaryName);
+            if (ffMpegFolderPath is null)
+                throw new NotImplementedException($"{CommonConsts.FFprobeBinaryName} not found");
+
+            return Path.Combine(ffMpegFolderPath, CommonConsts.FFprobeBinaryName);
+        }
+
+        public async Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri)
         {
             var args = new string[] {
                 $"-v", "error",
@@ -88,7 +103,7 @@ namespace Etherna.VideoImporter.Core.Services
                 "-sexagesimal",
                 videoFileAbsoluteUri};
 
-            var command = Command.Run(FFprobeBinaryPath, args);
+            var command = Command.Run(await GetFFprobeBinaryPathAsync(), args);
             command.Wait();
             var result = command.Result;
 
@@ -189,6 +204,38 @@ namespace Etherna.VideoImporter.Core.Services
             // Return values.
             outputs = outputsList;
             return args;
+        }
+
+        /// <summary>
+        /// Check for exist file from custom folder or global path
+        /// </summary>
+        /// <param name="customFFmpegFolderPath">Custom folder or empty for global path</param>
+        /// <param name="binaryName">Binary file to check</param>
+        /// <returns>Null if not exist</returns>
+        private async Task<string?> CommonCheckAndGetAsync(string customFFmpegFolderPath, string binaryName)
+        {
+            // Custom FFmpeg folder.
+            if (!string.IsNullOrWhiteSpace(customFFmpegFolderPath))
+            {
+                var fullPath = $"{customFFmpegFolderPath}/{binaryName}";
+                if (!File.Exists(fullPath))
+                    return null; // Not found.
+
+                return fullPath;
+            }
+
+            // Global FFmpeg.
+            try
+            {
+                var command = Command.Run(binaryName, "-version");
+                var result = await command.Task;
+                if (result.Success)
+                    return binaryName;
+            }
+            catch (System.ComponentModel.Win32Exception) { }
+
+            // Not found.
+            return null;
         }
 
         private void ManageInterrupted(object? sender, ConsoleCancelEventArgs args) =>
