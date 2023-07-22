@@ -14,6 +14,7 @@
 
 using Etherna.ServicesClient.Users.Native;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -341,10 +342,13 @@ namespace Etherna.VideoImporter
             services.AddCoreServices(
                 encoderOptions =>
                 {
-                    if (customFFMpegFolderPath is not null)
-                        encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
                     encoderOptions.PresetCodec = presetCodec;
+                },
+                ffMpegOptions =>
+                {
+                    if (customFFMpegFolderPath is not null)
+                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {
@@ -367,9 +371,7 @@ namespace Etherna.VideoImporter
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {
-                        if (customFFMpegFolderPath is not null)
-                            options.FFProbeFolderPath = customFFMpegFolderPath;
-                        options.JsonMetadataFilePath = sourceUri;
+                        options.JsonMetadataUri = new SourceUri(sourceUri, SourceUriKind.Local | SourceUriKind.OnlineAbsolute);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 
