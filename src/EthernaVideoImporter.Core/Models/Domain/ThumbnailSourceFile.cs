@@ -17,29 +17,39 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class ThumbnailLocalFile : LocalFileBase, IThumbnailFile
+    public sealed class ThumbnailSourceFile : SourceFile, IThumbnailFile
     {
         // Consts.
         public static readonly int[] ThumbnailResponsiveSizes = { 480, 960, 1280 };
 
         // Constructor.
-        public ThumbnailLocalFile(
-            string filePath,
-            long byteSize,
-            int height,
-            int width)
-            : base(filePath, byteSize)
+        private ThumbnailSourceFile(
+            SourceUri fileUri,
+            IHttpClientFactory httpClientFactory)
+            : base(fileUri, httpClientFactory)
+        { }
+
+        // Static builders.
+        public static async Task<ThumbnailSourceFile> BuildNewAsync(
+            SourceUri fileUri,
+            IHttpClientFactory httpClientFactory)
         {
-            using var thumbFileStream = File.OpenRead(filePath);
+            var thumbnail = new ThumbnailSourceFile(fileUri, httpClientFactory);
+
+            using var thumbFileStream = (await thumbnail.ReadAsStreamAsync()).Stream;
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-            Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
-            Height = height;
-            Width = width;
+
+            thumbnail.Blurhash = Blurhasher.Encode(thumbBitmap, 4, 4);
+            thumbnail.Height = thumbBitmap.Height;
+            thumbnail.Width = thumbBitmap.Width;
+
+            return thumbnail;
         }
 
         // Properties.
@@ -50,28 +60,28 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         public float AspectRatio => (float)Width / Height;
 
-        public string Blurhash { get; }
+        public string Blurhash { get; private set; } = default!;
 
         /// <summary>
         /// Canvas height (in pixels).
         /// </summary>
-        public int Height { get; }
+        public int Height { get; private set; } = default!;
 
         /// <summary>
         /// Canvas width (in pixels).
         /// </summary>
-        public int Width { get; }
+        public int Width { get; private set; } = default!;
 
         // Methods.
-        public async Task<IEnumerable<ThumbnailLocalFile>> GetScaledThumbnailsAsync(
+        public async Task<IEnumerable<ThumbnailSourceFile>> GetScaledThumbnailsAsync(
             DirectoryInfo importerTempDirectoryInfo)
         {
             if (importerTempDirectoryInfo is null)
                 throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
 
-            List<ThumbnailLocalFile> thumbnails = new();
+            List<ThumbnailSourceFile> thumbnails = new();
 
-            using var thumbFileStream = File.OpenRead(FilePath);
+            using var thumbFileStream = (await ReadAsStreamAsync()).Stream;
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
 
@@ -88,11 +98,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     await data.AsStream().CopyToAsync(outputFileStream);
                 }
 
-                thumbnails.Add(new ThumbnailLocalFile(
-                    thumbnailResizedPath,
-                    new FileInfo(thumbnailResizedPath).Length,
-                    responsiveHeightSize,
-                    responsiveWidthSize));
+                thumbnails.Add(await BuildNewAsync(
+                    new SourceUri(thumbnailResizedPath, SourceUriKind.Local),
+                    HttpClientFactory));
             }
 
             return thumbnails;

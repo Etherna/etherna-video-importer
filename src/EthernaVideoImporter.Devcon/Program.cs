@@ -34,7 +34,7 @@ namespace Etherna.VideoImporter.Devcon
     {
         // Consts.
         private static readonly string HelpText = $$"""
-            Usage:  evid [OPTIONS] MD_FOLDER
+            Usage:  evid MD_FOLDER [OPTIONS]
 
             General Options:
               -k, --api-key           Api Key (optional)
@@ -68,7 +68,7 @@ namespace Etherna.VideoImporter.Devcon
             string mdSourceFolderPath;
 
             string? apiKey = null;
-            string? customFFMpegFolderPath = null;
+            string? customFFMpegFolderPath = CommonConsts.DefaultFFmpegFolder;
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
 
@@ -103,8 +103,16 @@ namespace Etherna.VideoImporter.Devcon
                 }
             }
 
+            //md source folder
+            mdSourceFolderPath = args[0];
+            if (!Directory.Exists(mdSourceFolderPath))
+            {
+                Console.WriteLine($"Not found MD directory path {mdSourceFolderPath}");
+                throw new ArgumentException("Not found MD directory path");
+            }
+
             //options
-            var optArgs = args[..^1];
+            var optArgs = args[1..];
             for (int i = 0; i < optArgs.Length; i++)
             {
                 switch (optArgs[i])
@@ -203,14 +211,6 @@ namespace Etherna.VideoImporter.Devcon
                 }
             }
 
-            //md source folder
-            mdSourceFolderPath = args[^1];
-            if (!Directory.Exists(mdSourceFolderPath))
-            {
-                Console.WriteLine($"Not found MD directory path {mdSourceFolderPath}");
-                throw new ArgumentException("Not found MD directory path");
-            }
-
             // Input validation.
             //offer video
             if (offerVideos && useBeeNativeNode)
@@ -241,11 +241,6 @@ namespace Etherna.VideoImporter.Devcon
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreUpdate)
                 return;
-
-            // Check for FFmpeg.
-            var selectedFFmpegFolderPath = await FFmpegUtility.FFmpegCheckAndGetAsync(customFFMpegFolderPath);
-            selectedFFmpegFolderPath = selectedFFmpegFolderPath ?? await FFmpegUtility.DownloadFFmpegAsync(true, false);
-            Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFmpegFolderPath) ? "Global installation" : selectedFFmpegFolderPath)}");
 
             // Register etherna service clients.
             var services = new ServiceCollection();
@@ -291,8 +286,11 @@ namespace Etherna.VideoImporter.Devcon
             services.AddCoreServices(
                 encoderOptions =>
                 {
-                    encoderOptions.FFMpegFolderPath = selectedFFmpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                },
+                ffMpegOptions =>
+                {
+                    ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {

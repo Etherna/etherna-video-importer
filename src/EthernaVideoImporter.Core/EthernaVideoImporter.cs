@@ -109,7 +109,7 @@ namespace Etherna.VideoImporter.Core
             var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync();
             var totalSourceVideo = sourceVideosMetadata.Count();
 
-            Console.WriteLine($"Found {sourceVideosMetadata.Count()} valid videos from source");
+            Console.WriteLine($"Found {totalSourceVideo} valid videos from source");
 
             // Get information from etherna index.
             Console.WriteLine("Get user's videos on etherna index");
@@ -188,7 +188,7 @@ namespace Etherna.VideoImporter.Core
                             var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
                             // Upload new manifest.
-                            var metadataVideo = new ManifestDto(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
+                            var metadataVideo = await ManifestDto.BuildNewAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
                             updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.

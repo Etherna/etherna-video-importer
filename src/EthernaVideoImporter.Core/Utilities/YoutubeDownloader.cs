@@ -34,13 +34,19 @@ namespace Etherna.VideoImporter.Core.Utilities
     {
         // Fields.
         private readonly IEncoderService encoderService;
+        private readonly IFFmpegService ffMpegService;
+        private readonly IHttpClientFactory httpClientFactory;
 
         // Constructor.
         public YoutubeDownloader(
             IEncoderService encoderService,
+            IFFmpegService ffMpegService,
+            IHttpClientFactory httpClientFactory,
             IYoutubeClient youtubeClient)
         {
             this.encoderService = encoderService;
+            this.ffMpegService = ffMpegService;
+            this.httpClientFactory = httpClientFactory;
             YoutubeClient = youtubeClient;
         }
 
@@ -73,7 +79,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
 
             // Get thumbnail.
-            IEnumerable<ThumbnailLocalFile> thumbnailFiles = Array.Empty<ThumbnailLocalFile>();
+            IEnumerable<ThumbnailSourceFile> thumbnailFiles = Array.Empty<ThumbnailSourceFile>();
             if (videoMetadata.Thumbnail is not null)
             {
                 var bestResolutionThumbnail = await DownloadThumbnailAsync(
@@ -87,7 +93,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         }
 
         // Helpers.
-        private async Task<ThumbnailLocalFile> DownloadThumbnailAsync(
+        private async Task<ThumbnailSourceFile> DownloadThumbnailAsync(
             Thumbnail thumbnail,
             string videoTitle)
         {
@@ -103,8 +109,8 @@ namespace Etherna.VideoImporter.Core.Utilities
 
                 try
                 {
-                    using var httpClient = new HttpClient();
-                    var stream = await httpClient.GetStreamAsync(thumbnail.Url);
+                    using var httpClient = httpClientFactory.CreateClient();
+                    using var stream = await httpClient.GetStreamAsync(thumbnail.Url);
                     using var fileStream = new FileStream(thumbnailFilePath, FileMode.Create, FileAccess.Write);
                     await stream.CopyToAsync(fileStream);
 
@@ -121,14 +127,12 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new ThumbnailLocalFile(
-                thumbnailFilePath,
-                new FileInfo(thumbnailFilePath).Length,
-                thumbnail.Resolution.Height,
-                thumbnail.Resolution.Width);
+            return await ThumbnailSourceFile.BuildNewAsync(
+                new SourceUri(thumbnailFilePath, SourceUriKind.Local),
+                httpClientFactory);
         }
 
-        private async Task<VideoLocalFile> DownloadVideoAsync(
+        private async Task<VideoSourceFile> DownloadVideoAsync(
             IAudioStreamInfo audioOnlyStream,
             IVideoStreamInfo videoOnlyStream,
             string videoTitle)
@@ -148,7 +152,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     var downloadStart = DateTime.UtcNow;
                     await YoutubeClient.Videos.DownloadAsync(
                         new IStreamInfo[] { audioOnlyStream, videoOnlyStream },
-                        new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(encoderService.FFMpegBinaryPath).Build(),
+                        new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(await ffMpegService.GetFFmpegBinaryPathAsync()).Build(),
                         new Progress<double>((progressStatus) =>
                             PrintProgressLine(
                                 $"Downloading and mux {videoQualityLabel}",
@@ -169,11 +173,10 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return new VideoLocalFile(
-                videoFilePath,
-                videoOnlyStream.VideoResolution.Height,
-                videoOnlyStream.VideoResolution.Width,
-                new FileInfo(videoFilePath).Length);
+            return await VideoSourceFile.BuildNewAsync(
+                new SourceUri(videoFilePath, SourceUriKind.Local),
+                ffMpegService,
+                httpClientFactory);
         }
 
         private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
