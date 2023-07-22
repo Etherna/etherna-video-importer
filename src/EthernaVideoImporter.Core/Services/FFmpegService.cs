@@ -119,6 +119,9 @@ namespace Etherna.VideoImporter.Core.Services
             //video codec
             args.Add("-c:v"); args.Add("libx264");
 
+            //preset
+            args.Add("-preset"); args.Add(options.PresetCodec);
+
             //flags
             args.Add("-movflags"); args.Add("faststart");
 
