@@ -217,11 +217,10 @@ namespace Etherna.VideoImporter.Core.Services
             // Custom FFmpeg folder.
             if (!string.IsNullOrWhiteSpace(customFFmpegFolderPath))
             {
-                var fullPath = $"{customFFmpegFolderPath}/{binaryName}";
-                if (!File.Exists(fullPath))
+                if (!File.Exists($"{customFFmpegFolderPath}/{binaryName}"))
                     return null; // Not found.
 
-                return fullPath;
+                return customFFmpegFolderPath;
             }
 
             // Global FFmpeg.
@@ -230,7 +229,7 @@ namespace Etherna.VideoImporter.Core.Services
                 var command = Command.Run(binaryName, "-version");
                 var result = await command.Task;
                 if (result.Success)
-                    return binaryName;
+                    return "";
             }
             catch (System.ComponentModel.Win32Exception) { }
 
