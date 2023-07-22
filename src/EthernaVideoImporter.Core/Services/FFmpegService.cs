@@ -33,144 +33,6 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Methods.
-        public static async Task<string> DownloadFFmpegAsync(bool ffmpeg, bool ffprobe)
-        {
-            using HttpClient httpClient = new();
-            httpClient.DefaultRequestHeaders.Add("User-Agent", "EthernaImportClient");
-            var gitUrl = "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases";
-            var response = await httpClient.GetAsync(gitUrl);
-            var gitReleaseVersionsDto = await response.Content.ReadFromJsonAsync<List<GitReleaseVersionDto>>();
-
-            if (gitReleaseVersionsDto is null || !gitReleaseVersionsDto.Any())
-                throw new InvalidOperationException($"Cannot find any version of FFmpeg in {gitUrl}");
-
-            var gitReleaseVersionDto = gitReleaseVersionsDto
-                    .Where(grv => grv.Tag_name == "latest")
-                    .First();
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return await DownloadWindowsFFmpegAsync(ffmpeg, ffprobe, gitReleaseVersionDto);
-            else
-                return await DownloadLinuxFFmpegAsync(ffmpeg, ffprobe, gitReleaseVersionDto);
-        }
-        public static async Task<string> DownloadLinuxFFmpegAsync(bool ffmpeg, bool ffprobe, GitReleaseVersionDto gitReleaseVersionDto)
-        {
-            if (gitReleaseVersionDto is null)
-                throw new ArgumentNullException(nameof(gitReleaseVersionDto));
-
-            string? assetUrl = null;
-            foreach (var asset in gitReleaseVersionDto.Assets)
-            {
-                if (!asset.Name.Contains("-linux64", StringComparison.OrdinalIgnoreCase) ||
-                    !asset.Name.Contains("-gpl", StringComparison.OrdinalIgnoreCase) ||
-                    asset.Name.Contains("-shared", StringComparison.OrdinalIgnoreCase) ||
-                    !asset.Name.EndsWith(".tar.xz", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                assetUrl = asset.Browser_download_url;
-                break;
-            }
-            if (assetUrl is null)
-                throw new InvalidOperationException("FFmpeg not found on github");
-
-            string ffmpegFileName = Path.GetFileName(assetUrl);
-            string unzipedFolder = ffmpegFileName.Replace(".tar.xz", "", StringComparison.OrdinalIgnoreCase);
-
-            // Download.
-            Console.WriteLine($"Starting download of FFmpeg from {assetUrl}");
-            using var client = new HttpClient();
-            using var response = await client.GetAsync(assetUrl);
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException($"Some error during file download, status code {response.StatusCode}");
-
-            using var contentStream = await response.Content.ReadAsStreamAsync();
-            using var fileStream = new FileStream(Path.Combine(CommonConsts.DefaultFFmpegFolder, ffmpegFileName), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-            await contentStream.CopyToAsync(fileStream);
-
-            // Unzip file.
-            Console.WriteLine($"Unzip {ffmpegFileName}");
-            var command = Command.Run(
-                "tar",
-                "-xf", Path.Combine(CommonConsts.DefaultFFmpegFolder, ffmpegFileName),
-                "-C", CommonConsts.DefaultFFmpegFolder);
-            var result = await command.Task;
-            if (!result.Success)
-                throw new InvalidOperationException($"error in tar {result.StandardOutput} \n {result.StandardError}");
-
-            // Copy file in default folder.
-            if (ffmpeg)
-                File.Copy($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}/bin/ffmpeg", $"{CommonConsts.DefaultFFmpegFolder}/ffmpeg", true);
-
-            if (ffprobe)
-                File.Copy($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}/bin/ffprobe", $"{CommonConsts.DefaultFFmpegFolder}/ffprobe", true);
-
-            // Clean data.
-            Directory.Delete($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}", true);
-            File.Delete($"{CommonConsts.DefaultFFmpegFolder}/{ffmpegFileName}");
-
-            Console.WriteLine($"FFmpeg {(ffprobe ? "and FFprobe " : "")}ready to use.");
-            return CommonConsts.DefaultFFmpegFolder;
-        }
-
-        public static async Task<string> DownloadWindowsFFmpegAsync(bool ffmpeg, bool ffprobe, GitReleaseVersionDto gitReleaseVersionDto)
-        {
-            if (gitReleaseVersionDto is null)
-                throw new ArgumentNullException(nameof(gitReleaseVersionDto));
-
-            string? assetUrl = null;
-            foreach (var asset in gitReleaseVersionDto.Assets)
-            {
-                if (!asset.Name.Contains("-win64", StringComparison.OrdinalIgnoreCase) ||
-                    !asset.Name.Contains("-gpl", StringComparison.OrdinalIgnoreCase) ||
-                    asset.Name.Contains("-shared", StringComparison.OrdinalIgnoreCase) ||
-                    !asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                assetUrl = asset.Browser_download_url;
-                break;
-            }
-            if (assetUrl is null)
-                throw new InvalidOperationException("FFmpeg not found on github");
-
-            string ffmpegFileName = Path.GetFileName(assetUrl);
-            string unzipedFolder = Path.GetFileNameWithoutExtension(assetUrl);
-
-            // Download.
-            Console.WriteLine($"Starting download of FFmpeg from {assetUrl}");
-            using var client = new HttpClient();
-            using var response = await client.GetAsync(assetUrl);
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException($"Some error during file download, status code {response.StatusCode}");
-
-            using var contentStream = await response.Content.ReadAsStreamAsync();
-            using var fileStream = new FileStream(Path.Combine(CommonConsts.DefaultFFmpegFolder, ffmpegFileName), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-            await contentStream.CopyToAsync(fileStream);
-            await fileStream.DisposeAsync();
-            await contentStream.DisposeAsync();
-
-            // Unzip file.
-            Console.WriteLine($"Unzip {ffmpegFileName}");
-            if (Directory.Exists($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}"))
-                Directory.Delete($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}", true);
-
-            Directory.CreateDirectory($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}");
-            ZipFile.ExtractToDirectory($"{CommonConsts.DefaultFFmpegFolder}/{ffmpegFileName}", $"{CommonConsts.DefaultFFmpegFolder}");
-
-            // Copy file in default folder.
-            if (ffmpeg)
-                File.Copy($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}/bin/ffmpeg.exe", $"{CommonConsts.DefaultFFmpegFolder}/ffmpeg.exe", true);
-
-            if (ffprobe)
-                File.Copy($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}/bin/ffprobe.exe", $"{CommonConsts.DefaultFFmpegFolder}/ffprobe.exe", true);
-
-            // Clean data.
-            Directory.Delete($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}", true);
-            File.Delete($"{CommonConsts.DefaultFFmpegFolder}/{ffmpegFileName}");
-
-            Console.WriteLine($"FFmpeg {(ffprobe ? "and FFprobe " : "")}ready to use.");
-            return CommonConsts.DefaultFFmpegFolder;
-        }
-
         public async Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
             VideoSourceFile sourceVideoFile,
             IEnumerable<int> outputHeights)
@@ -221,8 +83,7 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task<string> GetFFmpegBinaryPathAsync()
         {
             ffMpegFolderPath ??= await CommonCheckAndGetAsync(options.FFmpegFolderPath, CommonConsts.FFmpegBinaryName);
-            if (ffMpegFolderPath is null)
-                ffMpegFolderPath = $"{await DownloadFFmpegAsync(true, false)}/{CommonConsts.FFmpegBinaryName}";
+            ffMpegFolderPath ??= await DownloadFFmpegAsync(true, true);
 
             return Path.Combine(ffMpegFolderPath, CommonConsts.FFmpegBinaryName);
         }
@@ -230,8 +91,7 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task<string> GetFFprobeBinaryPathAsync()
         {
             ffMpegFolderPath ??= await CommonCheckAndGetAsync(options.FFmpegFolderPath, CommonConsts.FFprobeBinaryName);
-            if (ffMpegFolderPath is null)
-                ffMpegFolderPath = $"{await DownloadFFmpegAsync(true, false)}/{CommonConsts.FFprobeBinaryName}";
+            ffMpegFolderPath ??= await DownloadFFmpegAsync(false, true);
 
             return Path.Combine(ffMpegFolderPath, CommonConsts.FFprobeBinaryName);
         }
@@ -379,6 +239,155 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Not found.
             return null;
+        }
+
+        private static async Task<string> DownloadFFmpegAsync(bool ffmpeg, bool ffprobe)
+        {
+            var alertMessage = $"{(ffmpeg ? "FFmpeg " : "")} {(ffmpeg && ffprobe ? " and  " : "")} {(ffprobe ? "FFprobe " : "")} not found.";
+            Console.WriteLine(alertMessage);
+            Console.WriteLine($"To continue, you need to download. Press 'Y' to proceed with the download, or any other key to exit.");
+            var userConfirm = Console.ReadKey();
+            if (userConfirm.Key != ConsoleKey.Y)
+                throw new InvalidOperationException(alertMessage);
+
+            using HttpClient httpClient = new();
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "EthernaImportClient");
+            var gitUrl = "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases";
+            var response = await httpClient.GetAsync(gitUrl);
+            var gitReleaseVersionsDto = await response.Content.ReadFromJsonAsync<List<GitReleaseVersionDto>>();
+
+            if (gitReleaseVersionsDto is null || !gitReleaseVersionsDto.Any())
+                throw new InvalidOperationException($"Cannot find any version of FFmpeg in {gitUrl}");
+
+            var gitReleaseVersionDto = gitReleaseVersionsDto
+                    .Where(grv => grv.Tag_name == "latest")
+                    .First();
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return await DownloadWindowsFFmpegAsync(ffmpeg, ffprobe, gitReleaseVersionDto);
+            else
+                return await DownloadLinuxFFmpegAsync(ffmpeg, ffprobe, gitReleaseVersionDto);
+        }
+
+        public static async Task<string> DownloadLinuxFFmpegAsync(bool ffmpeg, bool ffprobe, GitReleaseVersionDto gitReleaseVersionDto)
+        {
+            if (gitReleaseVersionDto is null)
+                throw new ArgumentNullException(nameof(gitReleaseVersionDto));
+
+            string? assetUrl = null;
+            foreach (var asset in gitReleaseVersionDto.Assets)
+            {
+                if (!asset.Name.Contains("-linux64", StringComparison.OrdinalIgnoreCase) ||
+                    !asset.Name.Contains("-gpl", StringComparison.OrdinalIgnoreCase) ||
+                    asset.Name.Contains("-shared", StringComparison.OrdinalIgnoreCase) ||
+                    !asset.Name.EndsWith(".tar.xz", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                assetUrl = asset.Browser_download_url;
+                break;
+            }
+            if (assetUrl is null)
+                throw new InvalidOperationException("FFmpeg not found on github");
+
+            string ffmpegFileName = Path.GetFileName(assetUrl);
+            string unzipedFolder = ffmpegFileName.Replace(".tar.xz", "", StringComparison.OrdinalIgnoreCase);
+
+            // Download.
+            Console.WriteLine($"Starting download of FFmpeg from {assetUrl}");
+            using var client = new HttpClient();
+            using var response = await client.GetAsync(assetUrl);
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException($"Some error during file download, status code {response.StatusCode}");
+
+            using var contentStream = await response.Content.ReadAsStreamAsync();
+            using var fileStream = new FileStream(Path.Combine(CommonConsts.DefaultFFmpegFolder, ffmpegFileName), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            await contentStream.CopyToAsync(fileStream);
+
+            // Unzip file.
+            Console.WriteLine($"Unzip {ffmpegFileName}");
+            var command = Command.Run(
+                "tar",
+                "-xf", Path.Combine(CommonConsts.DefaultFFmpegFolder, ffmpegFileName),
+                "-C", CommonConsts.DefaultFFmpegFolder);
+            var result = await command.Task;
+            if (!result.Success)
+                throw new InvalidOperationException($"error in tar {result.StandardOutput} \n {result.StandardError}");
+
+            // Copy file in default folder.
+            if (ffmpeg)
+                File.Copy($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}/bin/ffmpeg", $"{CommonConsts.DefaultFFmpegFolder}/ffmpeg", true);
+
+            if (ffprobe)
+                File.Copy($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}/bin/ffprobe", $"{CommonConsts.DefaultFFmpegFolder}/ffprobe", true);
+
+            // Clean data.
+            Directory.Delete($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}", true);
+            File.Delete($"{CommonConsts.DefaultFFmpegFolder}/{ffmpegFileName}");
+
+            Console.WriteLine($"FFmpeg {(ffprobe ? "and FFprobe " : "")}ready to use.");
+            return CommonConsts.DefaultFFmpegFolder;
+        }
+
+        private static async Task<string> DownloadWindowsFFmpegAsync(
+            bool ffmpeg,
+            bool ffprobe,
+            GitReleaseVersionDto gitReleaseVersionDto)
+        {
+            if (gitReleaseVersionDto is null)
+                throw new ArgumentNullException(nameof(gitReleaseVersionDto));
+
+            string? assetUrl = null;
+            foreach (var asset in gitReleaseVersionDto.Assets)
+            {
+                if (!asset.Name.Contains("-win64", StringComparison.OrdinalIgnoreCase) ||
+                    !asset.Name.Contains("-gpl", StringComparison.OrdinalIgnoreCase) ||
+                    asset.Name.Contains("-shared", StringComparison.OrdinalIgnoreCase) ||
+                    !asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                assetUrl = asset.Browser_download_url;
+                break;
+            }
+            if (assetUrl is null)
+                throw new InvalidOperationException("FFmpeg not found on github");
+
+            string ffmpegFileName = Path.GetFileName(assetUrl);
+            string unzipedFolder = Path.GetFileNameWithoutExtension(assetUrl);
+
+            // Download.
+            Console.WriteLine($"Starting download of FFmpeg from {assetUrl}");
+            using var client = new HttpClient();
+            using var response = await client.GetAsync(assetUrl);
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException($"Some error during file download, status code {response.StatusCode}");
+
+            using var contentStream = await response.Content.ReadAsStreamAsync();
+            using var fileStream = new FileStream(Path.Combine(CommonConsts.DefaultFFmpegFolder, ffmpegFileName), FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            await contentStream.CopyToAsync(fileStream);
+            await fileStream.DisposeAsync();
+            await contentStream.DisposeAsync();
+
+            // Unzip file.
+            Console.WriteLine($"Unzip {ffmpegFileName}");
+            if (Directory.Exists($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}"))
+                Directory.Delete($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}", true);
+
+            Directory.CreateDirectory($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}");
+            ZipFile.ExtractToDirectory($"{CommonConsts.DefaultFFmpegFolder}/{ffmpegFileName}", $"{CommonConsts.DefaultFFmpegFolder}");
+
+            // Copy file in default folder.
+            if (ffmpeg)
+                File.Copy($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}/bin/ffmpeg.exe", $"{CommonConsts.DefaultFFmpegFolder}/ffmpeg.exe", true);
+
+            if (ffprobe)
+                File.Copy($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}/bin/ffprobe.exe", $"{CommonConsts.DefaultFFmpegFolder}/ffprobe.exe", true);
+
+            // Clean data.
+            Directory.Delete($"{CommonConsts.DefaultFFmpegFolder}/{unzipedFolder}", true);
+            File.Delete($"{CommonConsts.DefaultFFmpegFolder}/{ffmpegFileName}");
+
+            Console.WriteLine($"FFmpeg {(ffprobe ? "and FFprobe " : "")}ready to use.");
+            return CommonConsts.DefaultFFmpegFolder;
         }
 
         private void ManageInterrupted(object? sender, ConsoleCancelEventArgs args) =>
