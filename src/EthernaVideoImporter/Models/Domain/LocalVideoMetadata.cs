@@ -1,5 +1,4 @@
 ﻿using Etherna.VideoImporter.Core.Models.Domain;
-using System;
 
 namespace Etherna.VideoImporter.Models.Domain
 {
@@ -10,11 +9,9 @@ namespace Etherna.VideoImporter.Models.Domain
             string id,
             string title,
             string description,
-            TimeSpan duration,
-            string originVideoQualityLabel,
-            ThumbnailLocalFile? sourceThumbnail,
-            VideoLocalFile sourceVideo)
-            : base(title, description, duration, originVideoQualityLabel)
+            VideoSourceFile sourceVideo,
+            ThumbnailSourceFile? sourceThumbnail)
+            : base(title, description, sourceVideo.Duration, sourceVideo.VideoQualityLabel)
         {
             Id = id;
             SourceThumbnail = sourceThumbnail;
@@ -23,7 +20,7 @@ namespace Etherna.VideoImporter.Models.Domain
 
         // Properties.
         public override string Id { get; }
-        public ThumbnailLocalFile? SourceThumbnail { get; }
-        public VideoLocalFile SourceVideo { get; }
+        public ThumbnailSourceFile? SourceThumbnail { get; }
+        public VideoSourceFile SourceVideo { get; }
     }
 }

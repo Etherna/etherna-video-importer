@@ -14,6 +14,7 @@
 
 using Etherna.ServicesClient.Users.Native;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -53,7 +54,7 @@ namespace Etherna.VideoImporter
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
-              -c, --create-thumbnail  Create random thumbnail where missing
+              -c, --create-thumbnail  Create random thumbnail when missing
 
             Bee Node Options:
               --bee-node              Use bee native node
@@ -339,9 +340,12 @@ namespace Etherna.VideoImporter
             services.AddCoreServices(
                 encoderOptions =>
                 {
-                    if (customFFMpegFolderPath is not null)
-                        encoderOptions.FFMpegFolderPath = customFFMpegFolderPath;
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                },
+                ffMpegOptions =>
+                {
+                    if (customFFMpegFolderPath is not null)
+                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {
@@ -364,10 +368,8 @@ namespace Etherna.VideoImporter
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {
-                        if (customFFMpegFolderPath is not null)
-                            options.FFProbeFolderPath = customFFMpegFolderPath;
                         options.GenerateThumbnailWhenMissing = createThumbnail;
-                        options.JsonMetadataFilePath = sourceUri;
+                        options.JsonMetadataUri = new SourceUri(sourceUri, SourceUriKind.Local | SourceUriKind.OnlineAbsolute);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 
