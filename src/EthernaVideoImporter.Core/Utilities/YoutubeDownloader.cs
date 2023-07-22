@@ -93,14 +93,9 @@ namespace Etherna.VideoImporter.Core.Utilities
             }
             else if(createRandomThumbnailWhenMissing)
             {
-                var thumbnailFilePath = await encoderService.CreateRandomThumbnailAsync(videoLocalFile.FilePath);
+                var thumbnailFilePath = await encoderService.CreateRandomThumbnailAsync(videoLocalFile.FileUri);
 
-                using var thumbFileStream = File.OpenRead(thumbnailFilePath);
-                using var thumbManagedStream = new SKManagedStream(thumbFileStream);
-                using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-                var bestResolutionThumbnail = new ThumbnailLocalFile(thumbnailFilePath, thumbBitmap.ByteCount, thumbBitmap.Height, thumbBitmap.Width);
-
-                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
+                thumbnailFiles = await thumbnailFilePath.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
             }
             
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);

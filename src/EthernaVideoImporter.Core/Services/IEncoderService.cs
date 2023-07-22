@@ -6,8 +6,8 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IEncoderService
     {
-        Task<string> CreateRandomThumbnailAsync(
-            string absoluteVideoFilePath);
+        Task<ThumbnailSourceFile> CreateRandomThumbnailAsync(
+            SourceUri absoluteVideoFilePath);
         Task<IEnumerable<VideoSourceFile>> EncodeVideosAsync(
             VideoSourceFile sourceVideoFile);
     }

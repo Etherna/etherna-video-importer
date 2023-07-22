@@ -35,6 +35,13 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Methods.
+        public async Task<ThumbnailSourceFile> CreateRandomThumbnailAsync(SourceUri absoluteVideoFilePath)
+        {
+            Console.WriteLine($"Create random thumbnail");
+
+            return await ThumbnailSourceFile.BuildNewAsync(absoluteVideoFilePath, httpClientFactory);
+        }
+
         public async Task<IEnumerable<VideoSourceFile>> EncodeVideosAsync(
             VideoSourceFile sourceVideoFile)
         {
