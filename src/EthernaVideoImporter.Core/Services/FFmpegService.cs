@@ -217,10 +217,8 @@ namespace Etherna.VideoImporter.Core.Services
             // Custom FFmpeg folder.
             if (!string.IsNullOrWhiteSpace(customFFmpegFolderPath))
             {
-                if (!File.Exists($"{customFFmpegFolderPath}/{binaryName}"))
-                    return null; // Not found.
-
-                return customFFmpegFolderPath;
+                if (File.Exists($"{customFFmpegFolderPath}/{binaryName}"))
+                    return customFFmpegFolderPath;
             }
 
             // Global FFmpeg.
