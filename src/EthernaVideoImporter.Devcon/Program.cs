@@ -67,7 +67,7 @@ namespace Etherna.VideoImporter.Devcon
             string mdSourceFolderPath;
 
             string? apiKey = null;
-            string? customFFMpegFolderPath = null;
+            string? customFFMpegFolderPath = CommonConsts.DefaultFFmpegFolder;
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
 
@@ -241,15 +241,6 @@ namespace Etherna.VideoImporter.Devcon
             if (newVersionAvaiable && !ignoreUpdate)
                 return;
 
-            // Check for ffmpeg
-            var selectedFFMpegFolderPath = await FFmpegUtility.FFmpegCheckAndGetAsync(customFFMpegFolderPath);
-            if (selectedFFMpegFolderPath is null)
-            {
-                Console.WriteLine("FFmpeg not found");
-                return;
-            }
-            Console.WriteLine($"FFmpeg path: {(string.IsNullOrWhiteSpace(selectedFFMpegFolderPath) ? "Global installation" : selectedFFMpegFolderPath)}");
-
             // Register etherna service clients.
             var services = new ServiceCollection();
             IEthernaUserClientsBuilder ethernaClientsBuilder;
@@ -298,7 +289,7 @@ namespace Etherna.VideoImporter.Devcon
                 },
                 ffMpegOptions =>
                 {
-                    ffMpegOptions.FFmpegFolderPath = selectedFFMpegFolderPath;
+                    ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {

@@ -16,6 +16,7 @@ using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
@@ -29,7 +30,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         { }
 
         // Static builders.
-        public static VideoSourceFile BuildNew(
+        public static async Task<VideoSourceFile> BuildNewAsync(
             SourceUri fileUri,
             IFFmpegService ffMpegService,
             IHttpClientFactory httpClientFactory)
@@ -42,7 +43,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             var video = new VideoSourceFile(fileUri, httpClientFactory);
 
             var (absoluteFileUri, _) = fileUri.ToAbsoluteUri();
-            var ffProbeResult = ffMpegService.GetVideoInfo(absoluteFileUri);
+            var ffProbeResult = await ffMpegService.GetVideoInfoAsync(absoluteFileUri);
 
             video.Duration = ffProbeResult.Format.Duration;
             video.Height = ffProbeResult.Streams.First().Height;

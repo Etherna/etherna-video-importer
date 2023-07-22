@@ -7,15 +7,12 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IFFmpegService
     {
-        // Properties.
-        string FFmpegBinaryPath { get; }
-        string FFprobeBinaryPath { get; }
-
         // Methods.
         Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
             VideoSourceFile sourceVideoFile,
             IEnumerable<int> outputHeights);
-
-        FFProbeResultDto GetVideoInfo(string videoFileAbsoluteUri);
+        Task<string> GetFFmpegBinaryPathAsync();
+        Task<string> GetFFprobeBinaryPathAsync();
+        Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri);
     }
 }
