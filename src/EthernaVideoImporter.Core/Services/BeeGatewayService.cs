@@ -44,7 +44,7 @@ namespace Etherna.VideoImporter.Core.Services
         public override async Task<bool> IsBatchUsableAsync(string batchId) =>
             (await beeGatewayClient.GetPostageBatchAsync(batchId)).Usable;
 
-        public override Task OfferContentAsync(string hash) =>
-            ethernaUserGatewayClient.ResourcesClient.OffersPostAsync(hash);
+        public override async Task OfferContentAsync(string hash) =>
+            await ethernaUserGatewayClient.ResourcesClient.OffersPostAsync(hash);
     }
 }
