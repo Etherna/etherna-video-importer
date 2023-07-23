@@ -1,4 +1,5 @@
 ﻿using Etherna.BeeNet.Clients.GatewayApi;
+using Etherna.ServicesClient.Users;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -7,10 +8,17 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public class BeeGatewayService : GatewayServiceBase
     {
+        // Fields.
+        private readonly IEthernaUserGatewayClient ethernaUserGatewayClient;
+
         // Constructor.
-        public BeeGatewayService(IBeeGatewayClient beeGatewayClient)
+        public BeeGatewayService(
+            IBeeGatewayClient beeGatewayClient,
+            IEthernaUserGatewayClient ethernaUserGatewayClient)
             : base(beeGatewayClient)
-        { }
+        {
+            this.ethernaUserGatewayClient = ethernaUserGatewayClient;
+        }
 
         // Methods.
         public override async Task<string> CreatePostageBatchAsync(long amount, int batchDepth)
@@ -36,7 +44,7 @@ namespace Etherna.VideoImporter.Core.Services
         public override async Task<bool> IsBatchUsableAsync(string batchId) =>
             (await beeGatewayClient.GetPostageBatchAsync(batchId)).Usable;
 
-        public override Task OfferContentAsync(string hash) =>
-            throw new InvalidOperationException();
+        public override async Task OfferContentAsync(string hash) =>
+            await ethernaUserGatewayClient.ResourcesClient.OffersPostAsync(hash);
     }
 }
