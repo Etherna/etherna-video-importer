@@ -40,7 +40,11 @@ namespace Etherna.VideoImporter.Core.Services
             string batchId,
             IEnumerable<FileParameterInput> files,
             bool swarmPin) =>
-            beeGatewayClient.UploadFileAsync(batchId, files, swarmPin: swarmPin);
+            beeGatewayClient.UploadFileAsync(
+                batchId,
+                files,
+                swarmDeferredUpload: true,
+                swarmPin: swarmPin);
 
         // Protected methods.
         protected async Task WaitForBatchUsableAsync(string batchId)
