@@ -92,7 +92,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     string content = File.ReadAllText(mdFilePath);
                     videoDataInfoDto = DeserializeYamlContent(content);
 
-                    Console.Write($"\tparsed md file...");
+                    Console.Write("\tparsed md file...");
                 }
                 catch (Exception ex) when (ex is InvalidDataException or YamlException)
                 {
@@ -113,21 +113,28 @@ namespace Etherna.VideoImporter.Devcon.Services
                         .OrderByDescending(s => s.VideoResolution.Area)
                         .First();
 
-                    Console.WriteLine($" and downloaded YouTube metadata.");
+                    Console.WriteLine(" and downloaded YouTube metadata.");
 
                     videosMetadata.Add((videoDataInfoDto, youtubeVideo, youtubeBestStreamInfo, mdFileRelativePath));
                 }
                 catch (HttpRequestException ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error retrieving video from YouTube. Try again later");
+                    Console.WriteLine("Error retrieving video from YouTube. Try again later");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
                 catch (VideoUnplayableException ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Unplayable video from YouTube");
+                    Console.WriteLine("Unplayable video from YouTube");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
+                catch (YoutubeExplodeException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine("Can't read information from YouTube");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
