@@ -92,6 +92,13 @@ namespace Etherna.VideoImporter.Services
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
+                catch (YoutubeExplodeException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Can't read information from YouTube: {video.Title}");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
             }
 
             return videosMetadata;
