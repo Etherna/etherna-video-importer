@@ -2,6 +2,6 @@
 {
     public class FFmpegServiceOptions
     {
-        public string FFmpegFolderPath { get; set; } = CommonConsts.DefaultFFmpegFolder;
+        public string? CustomFFmpegFolderPath { get; set; }
     }
 }

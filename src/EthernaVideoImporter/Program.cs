@@ -42,7 +42,7 @@ namespace Etherna.VideoImporter
 
             General Options:
               -k, --api-key           Api Key (optional)
-              -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
+              -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
 
@@ -335,8 +335,7 @@ namespace Etherna.VideoImporter
                 },
                 ffMpegOptions =>
                 {
-                    if (customFFMpegFolderPath is not null)
-                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
+                    ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {

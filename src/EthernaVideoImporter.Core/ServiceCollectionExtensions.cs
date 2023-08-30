@@ -22,7 +22,6 @@ namespace Etherna.VideoImporter.Core
             // Configure options.
             services.Configure(configureEncoderOptions);
             services.Configure(configureFFmpegOptions);
-            services.AddSingleton<IValidateOptions<FFmpegServiceOptions>, FFmpegServiceOptionsValidation>();
             services.Configure(configureVideoUploaderOptions);
 
             // Add transient services.

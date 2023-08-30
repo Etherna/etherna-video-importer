@@ -18,6 +18,8 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly List<Command> activedCommands = new();
         private readonly FFmpegServiceOptions options;
+        private string? ffMpegBinaryPath;
+        private string? ffProbeBinaryPath;
 
         // Constructor.
         public FFmpegService(
@@ -25,10 +27,6 @@ namespace Etherna.VideoImporter.Core.Services
         {
             this.options = options.Value;
         }
-
-        // Properties.
-        public string FFmpegBinaryPath => Path.Combine(options.FFmpegFolderPath, CommonConsts.FFmpegBinaryName);
-        public string FFprobeBinaryPath => Path.Combine(options.FFmpegFolderPath, CommonConsts.FFprobeBinaryName);
 
         // Methods.
         public async Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
@@ -44,7 +42,7 @@ namespace Etherna.VideoImporter.Core.Services
             Console.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
 
             // Run FFmpeg command.
-            var command = Command.Run(FFmpegBinaryPath, args);
+            var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
 
             activedCommands.Add(command);
             Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
@@ -78,7 +76,25 @@ namespace Etherna.VideoImporter.Core.Services
             return outputs;
         }
 
-        public FFProbeResultDto GetVideoInfo(string videoFileAbsoluteUri)
+        public async Task<string> GetFFmpegBinaryPathAsync() =>
+            ffMpegBinaryPath ??=
+                await TryFindBinaryPathAsync(
+                     options.CustomFFmpegFolderPath,
+                     CommonConsts.DefaultFFmpegFolder,
+                     CommonConsts.FFmpegBinaryName,
+                     "-version") ??
+                throw new InvalidOperationException($"{CommonConsts.FFmpegBinaryName} not found");
+
+        public async Task<string> GetFFprobeBinaryPathAsync() =>
+            ffProbeBinaryPath ??=
+                await TryFindBinaryPathAsync(
+                    options.CustomFFmpegFolderPath,
+                    CommonConsts.DefaultFFmpegFolder,
+                    CommonConsts.FFprobeBinaryName,
+                    "-version") ??
+                throw new InvalidOperationException($"{CommonConsts.FFprobeBinaryName} not found");
+
+        public async Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri)
         {
             var args = new string[] {
                 $"-v", "error",
@@ -88,7 +104,7 @@ namespace Etherna.VideoImporter.Core.Services
                 "-sexagesimal",
                 videoFileAbsoluteUri};
 
-            var command = Command.Run(FFprobeBinaryPath, args);
+            var command = Command.Run(await GetFFprobeBinaryPathAsync(), args);
             command.Wait();
             var result = command.Result;
 
@@ -189,6 +205,43 @@ namespace Etherna.VideoImporter.Core.Services
             // Return values.
             outputs = outputsList;
             return args;
+        }
+
+        /// <summary>
+        /// Check for existing binary file from custom folder, fallback folder or global path
+        /// </summary>
+        /// <param name="customFolderPath">Optional custom folder path</param>
+        /// <param name="fallbackFolderPath">A default fallback folder path</param>
+        /// <param name="binaryName">Binary file to check</param>
+        /// <param name="binaryTestArgs">Optional binary args to test with global invoke</param>
+        /// <returns>The binary path, null if doesn't exist</returns>
+        private static async Task<string?> TryFindBinaryPathAsync(string? customFolderPath, string fallbackFolderPath, string binaryName, params object[] binaryTestArgs)
+        {
+            // If present, take custom folder and ignore others.
+            if (customFolderPath is not null)
+            {
+                var customBinaryPath = Path.Combine(customFolderPath, binaryName);
+                return File.Exists(customBinaryPath) ?
+                    customBinaryPath : null;
+            }
+            
+            // Else, test fallback folder.
+            var fallbackBinaryPath = Path.Combine(fallbackFolderPath, binaryName);
+            if (File.Exists(fallbackBinaryPath))
+                return fallbackBinaryPath;
+
+            // Test for global binary.
+            try
+            {
+                var command = Command.Run(binaryName, binaryTestArgs);
+                var result = await command.Task;
+                if (result.Success)
+                    return binaryName;
+            }
+            catch (System.ComponentModel.Win32Exception) { }
+
+            // Not found.
+            return null;
         }
 
         private void ManageInterrupted(object? sender, ConsoleCancelEventArgs args) =>

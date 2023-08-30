@@ -1,4 +1,4 @@
-﻿namespace Etherna.VideoImporter.Core.Options
+namespace Etherna.VideoImporter.Core.Options
 {
     public sealed class EncoderServiceOptions
     {
