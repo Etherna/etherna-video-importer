@@ -85,6 +85,13 @@ namespace Etherna.VideoImporter.Services
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
+                catch (TimeoutException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Time out retrieving video: {video.Title}. Try again later");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
                 catch (VideoUnplayableException ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;

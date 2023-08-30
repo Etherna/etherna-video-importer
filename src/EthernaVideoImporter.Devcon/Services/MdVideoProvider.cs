@@ -107,8 +107,10 @@ namespace Etherna.VideoImporter.Devcon.Services
                 // Get from youtube.
                 try
                 {
-                    var youtubeVideo = await youtubeDownloader.YoutubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
-                    var youtubeBestStreamInfo = (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
+                    var youtubeVideo =
+                        await youtubeDownloader.YoutubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
+                    var youtubeBestStreamInfo =
+                        (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
                         .GetVideoOnlyStreams()
                         .OrderByDescending(s => s.VideoResolution.Area)
                         .First();
@@ -121,6 +123,13 @@ namespace Etherna.VideoImporter.Devcon.Services
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
                     Console.WriteLine("Error retrieving video from YouTube. Try again later");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
+                catch (TimeoutException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine("Time out retrieving video from YouTube. Try again later");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
