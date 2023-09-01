@@ -68,15 +68,15 @@ namespace Etherna.VideoImporter.Services
             var jsonVideosMetadataDto = JsonSerializer.Deserialize<List<JsonVideoMetadataDto>>(jsonData) 
                 ?? throw new InvalidDataException("Invalid Json metadata");
 
-            var allIdsHashSet = new HashSet<string>();
+            var allIdsSet = new HashSet<string>();
             var videosMetadataList = new List<VideoMetadataBase>();
             foreach (var metadataDto in jsonVideosMetadataDto)
             {
                 // Check Ids uniqueness.
-                if (!allIdsHashSet.Add(metadataDto.Id))
+                if (!allIdsSet.Add(metadataDto.Id))
                     throw new InvalidOperationException($"Duplicate video Id found: {metadataDto.Id}");
                 foreach (var oldId in metadataDto.OldIds ?? Array.Empty<string>())
-                    if (!allIdsHashSet.Add(oldId))
+                    if (!allIdsSet.Add(oldId))
                         throw new InvalidOperationException($"Duplicate video Id found: {metadataDto.Id} has an already used old id {oldId}");
 
                 try
