@@ -1,11 +1,11 @@
 ﻿//   Copyright 2022-present Etherna Sagl
-//
+// 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,7 +42,7 @@ namespace Etherna.VideoImporter
 
             General Options:
               -k, --api-key           Api Key (optional)
-              -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
+              -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
 
@@ -70,7 +70,11 @@ namespace Etherna.VideoImporter
                     "Title": "First video title",
                     "Description": "My first video description",
                     "VideoFilePath": "path/to/your/video1.mp4",
-                    "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg"
+                    "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg",
+                    "OldIds": [
+                        "optionalOldId1",
+                        "optionalOldId2"
+                    ]
                 },
                 {
                     "Id": "myId2",
@@ -83,8 +87,6 @@ namespace Etherna.VideoImporter
             ]
 
             Id field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique.
-            Video paths can be local or online uris. Thumbnail paths are optional, and can only be local.
-            Local paths can be relative or absolute, online urls can only be absolute.
 
             Run 'evi -h' or 'evi --help' to print help.
             """;
@@ -337,8 +339,7 @@ namespace Etherna.VideoImporter
                 },
                 ffMpegOptions =>
                 {
-                    if (customFFMpegFolderPath is not null)
-                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
+                    ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {

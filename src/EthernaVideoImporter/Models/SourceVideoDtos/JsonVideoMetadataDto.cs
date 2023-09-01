@@ -12,16 +12,18 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using System.Threading.Tasks;
+using System.Collections.Generic;
 
-namespace Etherna.VideoImporter.Core.Models.Domain
+namespace Etherna.VideoImporter.Models.SourceVideoDtos
 {
-    public interface IFile
+    internal sealed class JsonVideoMetadataDto
     {
         // Properties.
-        string? SwarmHash { get; }
-
-        // Methods.
-        Task<long> GetByteSizeAsync();
+        public string Id { get; set; } = default!;
+        public string Title { get; set; } = default!;
+        public string Description { get; set; } = default!;
+        public string VideoFilePath { get; set; } = default!;
+        public string? ThumbnailFilePath { get; set; }
+        public IEnumerable<string>? OldIds { get; set; }
     }
 }

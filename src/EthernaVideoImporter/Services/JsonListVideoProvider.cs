@@ -1,8 +1,22 @@
-﻿using Etherna.VideoImporter.Core;
+﻿//   Copyright 2022-present Etherna Sagl
+// 
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+// 
+//       http://www.apache.org/licenses/LICENSE-2.0
+// 
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
-using Etherna.VideoImporter.Models.LocalVideoDto;
+using Etherna.VideoImporter.Models.SourceVideoDtos;
 using Etherna.VideoImporter.Options;
 using Microsoft.Extensions.Options;
 using System;
@@ -42,16 +56,16 @@ namespace Etherna.VideoImporter.Services
         public async Task<Video> GetVideoAsync(
             VideoMetadataBase videoMetadata)
         {
-            var localVideoMetadata = videoMetadata as LocalVideoMetadata 
-                ?? throw new ArgumentException($"Metadata must be of type {nameof(LocalVideoMetadata)}", nameof(videoMetadata));
+            var sourceVideoMetadata = videoMetadata as SourceVideoMetadata 
+                ?? throw new ArgumentException($"Metadata must be of type {nameof(SourceVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
             var encodedFiles = await encoderService.EncodeVideosAsync(
-                localVideoMetadata.SourceVideo);
+                sourceVideoMetadata.SourceVideo);
 
             // Transcode thumbnail resolutions.
-            var thumbnailFiles = localVideoMetadata.SourceThumbnail is not null ?
-                await localVideoMetadata.SourceThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory) :
+            var thumbnailFiles = sourceVideoMetadata.SourceThumbnail is not null ?
+                await sourceVideoMetadata.SourceThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory) :
                 Array.Empty<ThumbnailSourceFile>();
 
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
@@ -65,19 +79,24 @@ namespace Etherna.VideoImporter.Services
                 throw new InvalidOperationException("Must exist a parent directory")).Item1;
 
             // Parse json video list.
-            var localVideosMetadataDto = JsonSerializer.Deserialize<List<LocalVideoMetadataDto>>(jsonData) 
+            var jsonVideosMetadataDto = JsonSerializer.Deserialize<List<JsonVideoMetadataDto>>(jsonData) 
                 ?? throw new InvalidDataException("Invalid Json metadata");
 
-            var videosMetadataDictionary = new Dictionary<string, VideoMetadataBase>();
-            foreach (var metadataDto in localVideosMetadataDto)
+            var allIdsSet = new HashSet<string>();
+            var videosMetadataList = new List<VideoMetadataBase>();
+            foreach (var metadataDto in jsonVideosMetadataDto)
             {
-                if (videosMetadataDictionary.ContainsKey(metadataDto.Id))
+                // Check Ids uniqueness.
+                if (!allIdsSet.Add(metadataDto.Id))
                     throw new InvalidOperationException($"Duplicate video Id found: {metadataDto.Id}");
+                foreach (var oldId in metadataDto.OldIds ?? Array.Empty<string>())
+                    if (!allIdsSet.Add(oldId))
+                        throw new InvalidOperationException($"Duplicate video Id found: {metadataDto.Id} has an already used old id {oldId}");
 
                 try
                 {
                     // Build video.
-                    var video = VideoSourceFile.BuildNew(
+                    var video = await VideoSourceFile.BuildNewAsync(
                         new SourceUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
                         ffMpegService,
                         httpClientFactory);
@@ -89,12 +108,12 @@ namespace Etherna.VideoImporter.Services
                             httpClientFactory);
 
                     // Add video metadata.
-                    videosMetadataDictionary.Add(
-                        metadataDto.Id,
-                        new LocalVideoMetadata(
+                    videosMetadataList.Add(
+                        new SourceVideoMetadata(
                             metadataDto.Id,
                             metadataDto.Title,
                             metadataDto.Description,
+                            metadataDto.OldIds,
                             video,
                             thumbnail));
 
@@ -109,7 +128,7 @@ namespace Etherna.VideoImporter.Services
                 }
             }
 
-            return videosMetadataDictionary.Values;
+            return videosMetadataList;
         }
 
         public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
