@@ -14,6 +14,7 @@
 
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
+using System.Collections.Generic;
 using YoutubeExplode.Common;
 
 namespace Etherna.VideoImporter.Devcon.Models.Domain
@@ -33,15 +34,23 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
             string? ethernaPermalinkUrl)
             : base(title, description, duration, originVideoQualityLabel, thumbnail, youtubeUrl)
         {
+            if (string.IsNullOrWhiteSpace(mdFileRelativePath))
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(mdFileRelativePath));
+            
             EthernaIndexUrl = ethernaIndexUrl;
             EthernaPermalinkUrl = ethernaPermalinkUrl;
             MdFileRelativePath = mdFileRelativePath;
+            
+            // Generate Id and old Ids.
+            Id = mdFileRelativePath.Replace('\\', '/'); //use unix-like path
+            OldIds = new[] { mdFileRelativePath.Replace('/', '\\') }; //migrate from windows-like path
         }
 
         // Properties.
-        public override string Id => MdFileRelativePath;
+        public override string Id { get; }
         public string? EthernaIndexUrl { get; }
         public string? EthernaPermalinkUrl { get; }
         public string MdFileRelativePath { get; }
+        public override IEnumerable<string> OldIds { get; }
     }
 }

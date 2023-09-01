@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
@@ -18,5 +19,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Properties.
         public override string Id { get; }
+        public override IEnumerable<string> OldIds => Array.Empty<string>();
     }
 }
