@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
@@ -46,6 +47,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public abstract string Id { get; }
         public string Description { get; }
         public TimeSpan Duration { get; }
+        public abstract IEnumerable<string> OldIds { get; }
         public string OriginVideoQualityLabel { get; }
         public string Title { get; }
     }

@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using YoutubeExplode.Common;
@@ -36,6 +37,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         }
 
         // Properties.
+        public override IEnumerable<string> OldIds => Array.Empty<string>();
         public Thumbnail? Thumbnail { get; }
         public string YoutubeId
         {

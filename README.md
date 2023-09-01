@@ -56,7 +56,11 @@ To import from a video list you need a metadata descriptor file. Metadata is a J
         "Title": "First video title",
         "Description": "My first video description",
         "VideoFilePath": "path/to/your/video1.mp4",
-        "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg"
+        "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg",
+        "OldIds": [
+            "optionalOldId1",
+            "optionalOldId2"
+        ]
     },
     {
         "Id": "myId2",
