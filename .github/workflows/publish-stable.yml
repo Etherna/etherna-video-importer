@@ -12,12 +12,10 @@ jobs:
     strategy:
       matrix:
         kind: [
-          'linux-x86',
           'linux-x64',
           'linux-arm',
           'linux-arm64',
           
-          'linux-selfcont-x86',
           'linux-selfcont-x64',
           'linux-selfcont-arm',
           'linux-selfcont-arm64',
@@ -38,10 +36,6 @@ jobs:
           'windows-selfcont-arm',
           'windows-selfcont-arm64']
         include:
-          - kind: linux-x86
-            os: ubuntu-latest
-            target: linux-x86
-            frameworktype: --no-self-contained
           - kind: linux-x64
             os: ubuntu-latest
             target: linux-x64
@@ -55,10 +49,6 @@ jobs:
             target: linux-arm64
             frameworktype: --no-self-contained
             
-          - kind: linux-selfcont-x86
-            os: ubuntu-latest
-            target: linux-x86
-            frameworktype: --self-contained
           - kind: linux-selfcont-x64
             os: ubuntu-latest
             target: linux-x64
