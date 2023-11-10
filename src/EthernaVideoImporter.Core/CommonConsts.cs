@@ -25,8 +25,8 @@ namespace Etherna.VideoImporter.Core
         public const int BeeApiPort = 1633;
         public const int BeeDebugPort = 1635;
         public const string BeeNodeUrl = "http://localhost/";
-        public const GatewayApiVersion BeeNodeGatewayVersion = GatewayApiVersion.v4_0_0;
-        public const DebugApiVersion BeeNodeDebugVersion = DebugApiVersion.v4_0_0;
+        public const GatewayApiVersion BeeNodeGatewayVersion = GatewayApiVersion.v5_0_0;
+        public const DebugApiVersion BeeNodeDebugVersion = DebugApiVersion.v5_0_0;
         public static readonly string DefaultFFmpegFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FFmpeg");
         public const int DownloadMaxRetry = 3;
         public static readonly TimeSpan DownloadTimespanRetry = TimeSpan.FromMilliseconds(3500);
