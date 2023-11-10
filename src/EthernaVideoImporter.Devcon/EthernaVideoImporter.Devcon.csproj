@@ -5,7 +5,7 @@
     <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>Etherna.VideoImporter.Devcon</RootNamespace>
 
-    <Authors>Etherna Sagl</Authors>
+    <Authors>Etherna SA</Authors>
     <Description>A .Net console for upload video on Etherna</Description>
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -39,7 +39,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="YamlDotNet" Version="13.3.1" />
+    <PackageReference Include="YamlDotNet" Version="13.7.1" />
   </ItemGroup>
 
   <ItemGroup>
