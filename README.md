@@ -35,7 +35,7 @@ General Options:
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
   -o, --offer             Offer video downloads to everyone
-  -p, --pin               Pin videos
+  --no-pin                Don't pin videos (pinning by default)
   --force                 Force upload video if they already have been uploaded
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
@@ -90,7 +90,7 @@ General Options:
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
   -o, --offer             Offer video downloads to everyone
-  -p, --pin               Pin videos
+  --no-pin                Don't pin videos (pinning by default)
   --force                 Force upload video if they already have been uploaded
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
