@@ -44,7 +44,7 @@ namespace Etherna.VideoImporter.Devcon
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
               -o, --offer             Offer video downloads to everyone
-              -p, --pin               Pin videos
+              --no-pin                Don't pin videos (pinning by default)
               --force                 Force upload video if they already have been uploaded
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
@@ -73,7 +73,7 @@ namespace Etherna.VideoImporter.Devcon
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
-            bool pinVideos = false;
+            bool pinVideos = true;
             bool forceVideoUpload = false;
             bool removeMissingVideosFromSource = false;
             bool removeUnrecognizedVideos = false;
@@ -154,9 +154,12 @@ namespace Etherna.VideoImporter.Devcon
                         offerVideos = true;
                         break;
 
-                    case "-p":
-                    case "--pin":
-                        pinVideos = true;
+                    // case "-p":
+                    // case "--pin":
+                    //     pinVideos = true;
+                    //     break;
+                    case "--no-pin":
+                        pinVideos = false;
                         break;
 
                     case "--force":
