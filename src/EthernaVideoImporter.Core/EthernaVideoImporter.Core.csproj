@@ -4,7 +4,7 @@
     <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>Etherna.VideoImporter.Core</RootNamespace>
 
-    <Authors>Etherna Sagl</Authors>
+    <Authors>Etherna SA</Authors>
     <Description>A .Net console for upload video on Etherna</Description>
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
