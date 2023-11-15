@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Users.Native;
+using Etherna.Sdk.Users.Native;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;

@@ -23,10 +23,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net" Version="0.2.0-alpha.210" />
+    <PackageReference Include="Bee.Net" Version="0.2.0-alpha.216" />
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
     <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.3.9" />
-    <PackageReference Include="EthernaServicesClient.Users.Native" Version="0.3.2" />
+    <PackageReference Include="EthernaSdk.Users.Native" Version="0.3.3" />
     <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
