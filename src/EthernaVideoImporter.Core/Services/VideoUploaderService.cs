@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using Etherna.BeeNet.InputModels;
+using Etherna.Sdk.GeneratedClients.Index;
 using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
