@@ -10,7 +10,7 @@ Currently exists two versions:
 * `EthernaVideoImporter` for a generic use
 * `EthernaVideoImporter.Devcon` to import specifically Devcon Archive's videos
 
-Etherna Video Importer requires at least [.NET 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) and [ASP.NET Core 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
+Etherna Video Importer requires at least [.NET 8 Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) and [ASP.NET Core 8 Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
 
 ### Setup FFmpeg and FFprobe
 To run the importer you need to download [FFmpeg and FFprobe](https://ffmpeg.org/download.html) locally, and copy them into the default folder "\FFmpeg", or specify its location with arguments.
