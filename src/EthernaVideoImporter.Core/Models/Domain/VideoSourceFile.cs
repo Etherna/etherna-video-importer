@@ -35,10 +35,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             IFFmpegService ffMpegService,
             IHttpClientFactory httpClientFactory)
         {
-            if (fileUri is null)
-                throw new ArgumentNullException(nameof(fileUri));
-            if (ffMpegService is null)
-                throw new ArgumentNullException(nameof(ffMpegService));
+            ArgumentNullException.ThrowIfNull(fileUri, nameof(fileUri));
+            ArgumentNullException.ThrowIfNull(ffMpegService, nameof(ffMpegService));
 
             var video = new VideoSourceFile(fileUri, httpClientFactory);
 

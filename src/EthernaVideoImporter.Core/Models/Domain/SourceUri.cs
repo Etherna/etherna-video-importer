@@ -155,8 +155,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         /// <returns>Identified uri kind</returns>
         public static SourceUriKind GetUriKind(string uri)
         {
-            if (uri is null)
-                throw new ArgumentNullException(nameof(uri));
+            ArgumentNullException.ThrowIfNull(uri, nameof(uri));
 
             var uriKind = SourceUriKind.None;
 

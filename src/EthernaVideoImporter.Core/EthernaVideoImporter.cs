@@ -53,12 +53,9 @@ namespace Etherna.VideoImporter.Core
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
-            if (cleanerVideoService is null)
-                throw new ArgumentNullException(nameof(cleanerVideoService));
-            if (videoProvider is null)
-                throw new ArgumentNullException(nameof(videoProvider));
-            if (videoUploaderService is null)
-                throw new ArgumentNullException(nameof(videoUploaderService));
+            ArgumentNullException.ThrowIfNull(cleanerVideoService, nameof(cleanerVideoService));
+            ArgumentNullException.ThrowIfNull(videoProvider, nameof(videoProvider));
+            ArgumentNullException.ThrowIfNull(videoUploaderService, nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
             this.ethernaIndexClient = ethernaIndexClient;
@@ -356,7 +353,7 @@ namespace Etherna.VideoImporter.Core
             {
                 page = await ethernaIndexClient.UsersClient.Videos2Async(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
                 videos.AddRange(page.Elements);
-            } while (page.Elements.Any());
+            } while (page.Elements.Count != 0);
 
             return videos.Select(v => new IndexedVideo(v));
         }

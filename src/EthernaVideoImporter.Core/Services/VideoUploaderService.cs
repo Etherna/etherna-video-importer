@@ -40,6 +40,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
+        private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly VideoUploaderServiceOptions options;
 
         // Constructor.
@@ -60,8 +61,7 @@ namespace Etherna.VideoImporter.Core.Services
             bool offerVideo,
             string userEthAddress)
         {
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
+            ArgumentNullException.ThrowIfNull(video, nameof(video));
 
             // Create new batch.
             //calculate batch depth
@@ -237,8 +237,7 @@ namespace Etherna.VideoImporter.Core.Services
             bool pinManifest,
             bool offerManifest)
         {
-            if (videoManifest is null)
-                throw new ArgumentNullException(nameof(videoManifest));
+            ArgumentNullException.ThrowIfNull(videoManifest, nameof(videoManifest));
 
             // Upload manifest.
             var uploadSucceeded = false;
@@ -247,10 +246,7 @@ namespace Etherna.VideoImporter.Core.Services
             {
                 try
                 {
-                    var serializedManifest = JsonSerializer.Serialize(videoManifest, new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    });
+                    var serializedManifest = JsonSerializer.Serialize(videoManifest, jsonSerializerOptions);
                     using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
 
                     manifestReference = await gatewayService.UploadFilesAsync(

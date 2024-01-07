@@ -32,6 +32,7 @@ namespace Etherna.VideoImporter
     internal static class Program
     {
         // Consts.
+        private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
         private static readonly string HelpText = $$"""
             Usage:  evi COMMAND SOURCE_URI [OPTIONS]
 
@@ -241,7 +242,7 @@ namespace Etherna.VideoImporter
                             throw new ArgumentException("Bee node value is missing");
                         beeNodeUrl = optArgs[++i];
                         useBeeNativeNode = true;
-                        if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
+                        if (!beeNodeUrl.EndsWith('/'))
                             beeNodeUrl += "/";
                         break;
 
@@ -312,7 +313,7 @@ namespace Etherna.VideoImporter
                     CommonConsts.EthernaVideoImporterClientId,
                     null,
                     11420,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {
@@ -324,7 +325,7 @@ namespace Etherna.VideoImporter
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
                     CommonConsts.EthernaSsoUrl,
                     apiKey,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {

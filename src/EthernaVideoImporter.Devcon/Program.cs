@@ -32,6 +32,7 @@ namespace Etherna.VideoImporter.Devcon
     internal static class Program
     {
         // Consts.
+        private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
         private static readonly string HelpText = $$"""
             Usage:  evid MD_FOLDER [OPTIONS]
 
@@ -190,7 +191,7 @@ namespace Etherna.VideoImporter.Devcon
                             throw new ArgumentException("Bee node value is missing");
                         beeNodeUrl = optArgs[++i];
                         useBeeNativeNode = true;
-                        if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
+                        if (!beeNodeUrl.EndsWith('/'))
                             beeNodeUrl += "/";
                         break;
 
@@ -254,7 +255,7 @@ namespace Etherna.VideoImporter.Devcon
                     CommonConsts.EthernaVideoImporterClientId,
                     null,
                     11420,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {
@@ -266,7 +267,7 @@ namespace Etherna.VideoImporter.Devcon
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
                     CommonConsts.EthernaSsoUrl,
                     apiKey,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {

@@ -30,8 +30,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             IVideoFile videoFile,
             bool allowFakeReference)
         {
-            if (videoFile is null)
-                throw new ArgumentNullException(nameof(videoFile));
+            ArgumentNullException.ThrowIfNull(videoFile, nameof(videoFile));
 
             return new ManifestVideoSourceDto
             {

@@ -56,8 +56,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Methods.
         public async Task<Video> GetVideoAsync(YouTubeVideoMetadataBase videoMetadata)
         {
-            if (videoMetadata is null)
-                throw new ArgumentNullException(nameof(videoMetadata));
+            ArgumentNullException.ThrowIfNull(videoMetadata, nameof(videoMetadata));
 
             // Get manifest data.
             var youtubeStreamsManifest = await YoutubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
@@ -97,8 +96,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             Thumbnail thumbnail,
             string videoTitle)
         {
-            if (thumbnail is null)
-                throw new ArgumentNullException(nameof(thumbnail));
+            ArgumentNullException.ThrowIfNull(thumbnail, nameof(thumbnail));
 
             string thumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
 

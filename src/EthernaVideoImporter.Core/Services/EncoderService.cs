@@ -52,8 +52,7 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task<IEnumerable<VideoSourceFile>> EncodeVideosAsync(
             VideoSourceFile sourceVideoFile)
         {
-            if (sourceVideoFile is null)
-                throw new ArgumentNullException(nameof(sourceVideoFile));
+            ArgumentNullException.ThrowIfNull(sourceVideoFile, nameof(sourceVideoFile));
 
             var videoEncodedFiles = new List<VideoSourceFile>();
             var outputs = await ffMpegService.EncodeVideosAsync(

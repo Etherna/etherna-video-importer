@@ -46,8 +46,7 @@ namespace Etherna.VideoImporter.Core.Services
         {
             if (gatewayPinnedHashes is null && unpinRemovedVideos)
                 throw new ArgumentNullException(nameof(gatewayPinnedHashes), "gatewayPinnedHashes can't be null if needs to unpin removed video");
-            if (indexedVideos is null)
-                throw new ArgumentNullException(nameof(indexedVideos));
+            ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
 
             Console.WriteLine($"Start removing videos not generated with this tool");
 
@@ -81,8 +80,7 @@ namespace Etherna.VideoImporter.Core.Services
         {
             if (gatewayPinnedHashes is null && unpinRemovedVideos)
                 throw new ArgumentNullException(nameof(gatewayPinnedHashes), "gatewayPinnedHashes can't be null if needs to unpin removed video");
-            if (indexedVideos is null)
-                throw new ArgumentNullException(nameof(indexedVideos));
+            ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
 
             Console.WriteLine($"Start removing videos deleted from source");
 
