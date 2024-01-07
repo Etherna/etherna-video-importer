@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Aot;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
@@ -53,11 +54,13 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 totalByteSize += await file.GetByteSizeAsync();
             foreach (var file in ThumbnailFiles)
                 totalByteSize += await file.GetByteSizeAsync();
-            totalByteSize += JsonSerializer.Serialize(await ManifestDto.BuildNewAsync(
-                this,
-                CommonConsts.SwarmNullReference,
-                CommonConsts.EthereumNullAddress,
-                allowFakeReferences: true)).Length;
+            totalByteSize += JsonSerializer.Serialize(
+                await ManifestDto.BuildNewAsync(
+                    this,
+                    CommonConsts.SwarmNullReference,
+                    CommonConsts.EthereumNullAddress,
+                    allowFakeReferences: true),
+                SourceGenerationContext.Default.ManifestDto).Length;
 
             return totalByteSize;
         }

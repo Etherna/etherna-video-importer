@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Aot;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using System.Collections.Generic;
@@ -61,7 +62,9 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 UpdatedAt = null,
                 BatchId = batchId,
-                PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id))
+                PersonalData = JsonSerializer.Serialize(
+                    ManifestPersonalDataDto.BuildNew(video.Metadata.Id),
+                    SourceGenerationContext.Default.ManifestPersonalDataDto)
             };
         }
 

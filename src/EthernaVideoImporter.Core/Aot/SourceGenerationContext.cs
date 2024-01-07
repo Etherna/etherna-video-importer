@@ -12,15 +12,21 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Models.SourceVideoDtos;
+using Etherna.VideoImporter.Core.Models.FFmpegDto;
+using Etherna.VideoImporter.Core.Models.GitHubDto;
+using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Etherna.VideoImporter.Aot
+namespace Etherna.VideoImporter.Core.Aot
 {
-    [JsonSerializable(typeof(List<JsonVideoMetadataDto>))]
-    internal sealed partial class JsonSerializerContext : System.Text.Json.Serialization.JsonSerializerContext
+    [JsonSerializable(typeof(FFProbeResultDto))]
+    [JsonSerializable(typeof(List<GitReleaseVersionDto>))]
+    [JsonSerializable(typeof(ManifestDto))]
+    [JsonSerializable(typeof(ManifestPersonalDataDto))]
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    internal sealed partial class SourceGenerationContext : JsonSerializerContext
     {
-        
+
     }
 }

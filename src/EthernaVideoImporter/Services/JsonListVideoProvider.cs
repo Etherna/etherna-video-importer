@@ -79,7 +79,7 @@ namespace Etherna.VideoImporter.Services
                 throw new InvalidOperationException("Must exist a parent directory")).Item1;
 
             // Parse json video list.
-            var jsonVideosMetadataDto = JsonSerializer.Deserialize(jsonData, JsonSerializerContext.Default.ListJsonVideoMetadataDto) 
+            var jsonVideosMetadataDto = JsonSerializer.Deserialize(jsonData, SourceGenerationContext.Default.ListJsonVideoMetadataDto) 
                 ?? throw new InvalidDataException("Invalid Json metadata");
 
             var allIdsSet = new HashSet<string>();

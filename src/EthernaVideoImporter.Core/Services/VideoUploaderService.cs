@@ -15,6 +15,7 @@
 using Etherna.BeeNet.InputModels;
 using Etherna.Sdk.GeneratedClients.Index;
 using Etherna.Sdk.Users;
+using Etherna.VideoImporter.Core.Aot;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
@@ -40,7 +41,6 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
-        private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly VideoUploaderServiceOptions options;
 
         // Constructor.
@@ -246,7 +246,9 @@ namespace Etherna.VideoImporter.Core.Services
             {
                 try
                 {
-                    var serializedManifest = JsonSerializer.Serialize(videoManifest, jsonSerializerOptions);
+                    var serializedManifest = JsonSerializer.Serialize(
+                        videoManifest,
+                        SourceGenerationContext.Default.ManifestDto);
                     using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
 
                     manifestReference = await gatewayService.UploadFilesAsync(

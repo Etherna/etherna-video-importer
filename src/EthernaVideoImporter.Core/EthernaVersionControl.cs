@@ -12,14 +12,13 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Aot;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Threading.Tasks;
-using Etherna.VideoImporter.Core.Models.GitHubDto;
 
 namespace Etherna.VideoImporter.Core
 {
@@ -59,7 +58,7 @@ namespace Etherna.VideoImporter.Core
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "EthernaImportClient");
                 var gitUrl = "https://api.github.com/repos/Etherna/etherna-video-importer/releases";
                 var response = await httpClient.GetAsync(gitUrl);
-                var gitReleaseVersionsDto = await response.Content.ReadFromJsonAsync<List<GitReleaseVersionDto>>();
+                var gitReleaseVersionsDto = await response.Content.ReadFromJsonAsync(SourceGenerationContext.Default.ListGitReleaseVersionDto);
 
                 if (gitReleaseVersionsDto is null || gitReleaseVersionsDto.Count == 0)
                     return false;

@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Aot;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.FFmpegDto;
 using Etherna.VideoImporter.Core.Options;
@@ -31,7 +32,6 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Fields.
         private readonly List<Command> activedCommands = new();
-        private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly FFmpegServiceOptions options;
         private string? ffMpegBinaryPath;
         private string? ffProbeBinaryPath;
@@ -127,9 +127,9 @@ namespace Etherna.VideoImporter.Core.Services
             if (!result.Success)
                 throw new InvalidOperationException($"ffprobe command failed with exit code {result.ExitCode}: {result.StandardError}");
 
-            var ffProbeResult = JsonSerializer.Deserialize<FFProbeResultDto>(
+            var ffProbeResult = JsonSerializer.Deserialize(
                                     result.StandardOutput.Trim(),
-                                    jsonSerializerOptions)
+                                    SourceGenerationContext.Default.FFProbeResultDto)
                                 ?? throw new InvalidDataException($"FFProbe result have an invalid json");
 
             /*
