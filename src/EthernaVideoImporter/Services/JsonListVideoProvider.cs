@@ -12,11 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Aot;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
-using Etherna.VideoImporter.Models.SourceVideoDtos;
 using Etherna.VideoImporter.Options;
 using Microsoft.Extensions.Options;
 using System;
@@ -79,7 +79,7 @@ namespace Etherna.VideoImporter.Services
                 throw new InvalidOperationException("Must exist a parent directory")).Item1;
 
             // Parse json video list.
-            var jsonVideosMetadataDto = JsonSerializer.Deserialize<List<JsonVideoMetadataDto>>(jsonData) 
+            var jsonVideosMetadataDto = JsonSerializer.Deserialize(jsonData, JsonSerializerContext.Default.ListJsonVideoMetadataDto) 
                 ?? throw new InvalidDataException("Invalid Json metadata");
 
             var allIdsSet = new HashSet<string>();

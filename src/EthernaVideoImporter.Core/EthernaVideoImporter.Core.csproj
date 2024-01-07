@@ -11,6 +11,7 @@
     <Nullable>enable</Nullable>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <IsTrimmable>true</IsTrimmable>
 
     <RepositoryUrl>https://github.com/Etherna/etherna-video-importer</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

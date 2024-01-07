@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Etherna.VideoImporter.Devcon</RootNamespace>
+    <PublishAot>true</PublishAot>
 
     <Authors>Etherna SA</Authors>
     <Description>A .Net console for upload video on Etherna</Description>
