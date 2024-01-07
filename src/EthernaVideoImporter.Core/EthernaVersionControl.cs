@@ -61,7 +61,7 @@ namespace Etherna.VideoImporter.Core
                 var response = await httpClient.GetAsync(gitUrl);
                 var gitReleaseVersionsDto = await response.Content.ReadFromJsonAsync<List<GitReleaseVersionDto>>();
 
-                if (gitReleaseVersionsDto is null || !gitReleaseVersionsDto.Any())
+                if (gitReleaseVersionsDto is null || gitReleaseVersionsDto.Count == 0)
                     return false;
 
                 var lastVersion = gitReleaseVersionsDto

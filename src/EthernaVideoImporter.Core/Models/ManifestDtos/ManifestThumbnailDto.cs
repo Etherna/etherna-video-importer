@@ -26,8 +26,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         [SuppressMessage("Performance", "CA1851:Possible multiple enumerations of 'IEnumerable' collection", Justification = "Is acceptable here")]
         public ManifestThumbnailDto(IEnumerable<IThumbnailFile> thumbnailFiles)
         {
-            if (thumbnailFiles is null)
-                throw new ArgumentNullException(nameof(thumbnailFiles));
+            ArgumentNullException.ThrowIfNull(thumbnailFiles, nameof(thumbnailFiles));
             if (!thumbnailFiles.Any())
                 throw new ArgumentOutOfRangeException(nameof(thumbnailFiles), "Thumbnail list can't be empty");
 

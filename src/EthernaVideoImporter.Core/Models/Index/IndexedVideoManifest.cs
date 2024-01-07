@@ -25,8 +25,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
         // Constructors.
         public IndexedVideoManifest(VideoManifestDto lastValidManifest)
         {
-            if (lastValidManifest is null)
-                throw new ArgumentNullException(nameof(lastValidManifest));
+            ArgumentNullException.ThrowIfNull(lastValidManifest, nameof(lastValidManifest));
 
             BatchId = lastValidManifest.BatchId ?? "";
             Description = lastValidManifest.Description ?? "";

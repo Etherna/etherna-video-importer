@@ -24,8 +24,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
         // Constructors.
         public IndexedVideo(VideoDto video)
         {
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
+            ArgumentNullException.ThrowIfNull(video, nameof(video));
 
             IndexId = video.Id;
             CreationDateTime = video.CreationDateTime;

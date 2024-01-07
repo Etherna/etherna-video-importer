@@ -31,6 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Fields.
         private readonly List<Command> activedCommands = new();
+        private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly FFmpegServiceOptions options;
         private string? ffMpegBinaryPath;
         private string? ffProbeBinaryPath;
@@ -127,9 +128,9 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new InvalidOperationException($"ffprobe command failed with exit code {result.ExitCode}: {result.StandardError}");
 
             var ffProbeResult = JsonSerializer.Deserialize<FFProbeResultDto>(
-                result.StandardOutput.Trim(),
-                new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
-                ?? throw new InvalidDataException($"FFProbe result have an invalid json");
+                                    result.StandardOutput.Trim(),
+                                    jsonSerializerOptions)
+                                ?? throw new InvalidDataException($"FFProbe result have an invalid json");
 
             /*
              * ffProbe return even an empty element in Streams
@@ -177,7 +178,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="sourceVideoFile">Input video file</param>
         /// <param name="outputs">Output video files info</param>
         /// <returns>FFmpeg args list</returns>
-        private IEnumerable<string> BuildFFmpegCommandArgs(
+        private List<string> BuildFFmpegCommandArgs(
             VideoSourceFile sourceVideoFile,
             IEnumerable<int> outputHeights,
             out IEnumerable<(string filePath, int height, int width)> outputs)
@@ -207,7 +208,6 @@ namespace Etherna.VideoImporter.Core.Services
                     case 1: scaledWidth--; break;
                     case 2: scaledWidth += 2; break;
                     case 3: scaledWidth++; break;
-                    default: break;
                 }
 
                 AppendOutputFFmpegCommandArgs(args, height, scaledWidth, outputFilePath);

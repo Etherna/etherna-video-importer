@@ -41,8 +41,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             string ownerAddress,
             bool allowFakeReferences = false)
         {
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
+            ArgumentNullException.ThrowIfNull(video, nameof(video));
 
             var sources = new List<ManifestVideoSourceDto>();
             foreach (var videoFile in video.EncodedFiles.OfType<IVideoFile>())

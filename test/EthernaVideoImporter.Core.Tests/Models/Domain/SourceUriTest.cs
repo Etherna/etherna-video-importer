@@ -615,9 +615,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         [Theory]
         [InlineData(null)]
         [InlineData("   ")]
-        public void EmptyUriThrowsException(string uri)
+        public void EmptyUriThrowsException(string? uri)
         {
-            Assert.Throws<ArgumentException>(() => new SourceUri(uri));
+            Assert.Throws<ArgumentException>(() => new SourceUri(uri!));
         }
 
         [Theory]
