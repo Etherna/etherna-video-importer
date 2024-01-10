@@ -12,27 +12,34 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using System.Collections.Generic;
 
-namespace Etherna.VideoImporter.Core.Models.Domain
+namespace Etherna.VideoImporter.Models.Domain
 {
-    internal sealed class SwarmVideoMetadata : VideoMetadataBase
+    internal sealed class SourceVideoMetadata : VideoMetadataBase
     {
         // Constructors.
-        internal SwarmVideoMetadata(
+        internal SourceVideoMetadata(
             string id,
             string title,
             string description,
-            TimeSpan duration,
-            string originVideoQualityLabel)
-            : base(title, description, duration, originVideoQualityLabel)
+            IEnumerable<string>? oldIds,
+            VideoSourceFile sourceVideo,
+            ThumbnailSourceFile? sourceThumbnail)
+            : base(title, description, sourceVideo.Duration, sourceVideo.VideoQualityLabel)
         {
             Id = id;
+            OldIds = oldIds ?? Array.Empty<string>();
+            SourceThumbnail = sourceThumbnail;
+            SourceVideo = sourceVideo;
         }
 
         // Properties.
         public override string Id { get; }
-        public override IEnumerable<string> OldIds => Array.Empty<string>();
+        public override IEnumerable<string> OldIds { get; }
+        public ThumbnailSourceFile? SourceThumbnail { get; }
+        public VideoSourceFile SourceVideo { get; }
     }
 }

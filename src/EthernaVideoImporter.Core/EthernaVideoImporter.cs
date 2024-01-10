@@ -1,11 +1,11 @@
-﻿//   Copyright 2022-present Etherna Sagl
-//
+﻿//   Copyright 2022-present Etherna SA
+// 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,8 +14,8 @@
 
 using Etherna.Authentication;
 using Etherna.Authentication.Native;
-using Etherna.ServicesClient.GeneratedClients.Index;
-using Etherna.ServicesClient.Users;
+using Etherna.Sdk.GeneratedClients.Index;
+using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
@@ -53,12 +53,9 @@ namespace Etherna.VideoImporter.Core
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
-            if (cleanerVideoService is null)
-                throw new ArgumentNullException(nameof(cleanerVideoService));
-            if (videoProvider is null)
-                throw new ArgumentNullException(nameof(videoProvider));
-            if (videoUploaderService is null)
-                throw new ArgumentNullException(nameof(videoUploaderService));
+            ArgumentNullException.ThrowIfNull(cleanerVideoService, nameof(cleanerVideoService));
+            ArgumentNullException.ThrowIfNull(videoProvider, nameof(videoProvider));
+            ArgumentNullException.ThrowIfNull(videoUploaderService, nameof(videoUploaderService));
 
             this.cleanerVideoService = cleanerVideoService;
             this.ethernaIndexClient = ethernaIndexClient;
@@ -136,8 +133,12 @@ namespace Etherna.VideoImporter.Core
                     Console.WriteLine($"Title: {sourceMetadata.Title}");
 
                     // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.
+                    var allVideoIdHashes = sourceMetadata.OldIds.Append(sourceMetadata.Id)
+                        .Select(id => ManifestPersonalDataDto.HashVideoId(id))
+                        .ToList();
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
-                        v => v.LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id));
+                        v => v.LastValidManifest?.PersonalData?.VideoIdHash is not null &&
+                            allVideoIdHashes.Contains(v.LastValidManifest.PersonalData.VideoIdHash));
 
                     // Check if need a migration operation.
                     var minRequiredMigrationOp = migrationService.DecideOperation(alreadyPresentVideo?.LastValidManifest?.PersonalData);
@@ -352,7 +353,7 @@ namespace Etherna.VideoImporter.Core
             {
                 page = await ethernaIndexClient.UsersClient.Videos2Async(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
                 videos.AddRange(page.Elements);
-            } while (page.Elements.Any());
+            } while (page.Elements.Count != 0);
 
             return videos.Select(v => new IndexedVideo(v));
         }
