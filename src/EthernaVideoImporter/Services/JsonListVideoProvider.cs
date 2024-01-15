@@ -102,10 +102,11 @@ namespace Etherna.VideoImporter.Services
                         httpClientFactory);
 
                     // Build thumbnail.
-                    var thumbnail = string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ? null :
-                        await ThumbnailSourceFile.BuildNewAsync(
+                    var thumbnail = await ThumbnailSourceFile.BuildNewAsync(
+                        string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ?
+                            new SourceUri(await ffMpegService.ExtractThumbnailAsync(video), SourceUriKind.LocalAbsolute) :
                             new SourceUri(metadataDto.ThumbnailFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
-                            httpClientFactory);
+                        httpClientFactory);
 
                     // Add video metadata.
                     videosMetadataList.Add(

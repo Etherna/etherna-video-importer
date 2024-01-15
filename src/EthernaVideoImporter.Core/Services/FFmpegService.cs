@@ -60,7 +60,7 @@ namespace Etherna.VideoImporter.Core.Services
             var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
 
             activedCommands.Add(command);
-            Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
+            Console.CancelKeyPress += ManageInterrupted;
 
             // Print filtered console output.
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -89,6 +89,33 @@ namespace Etherna.VideoImporter.Core.Services
             if (!result.Success)
                 throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
             return outputs;
+        }
+        
+        public async Task<string> ExtractThumbnailAsync(VideoSourceFile videoSourceFile)
+        {
+            Console.WriteLine($"Extract random thumbnail");
+
+            // Run FFmpeg command.
+            var outputThumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{Guid.NewGuid()}_thumbnail.jpg");
+            var args = new[] {
+                "-i", videoSourceFile.FileUri.OriginalUri,
+                "-vf", "select='eq(pict_type\\,I)',random",
+                "-vframes", "1",
+                outputThumbnailFilePath
+            };
+            var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
+
+            activedCommands.Add(command);
+            Console.CancelKeyPress += ManageInterrupted;
+
+            // Waiting until end and stop console output.
+            var result = await command.Task;
+
+            // Inspect and print result.
+            if (!result.Success)
+                throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
+
+            return outputThumbnailFilePath;
         }
 
         public async Task<string> GetFFmpegBinaryPathAsync() =>

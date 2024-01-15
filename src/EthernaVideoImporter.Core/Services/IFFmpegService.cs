@@ -25,6 +25,8 @@ namespace Etherna.VideoImporter.Core.Services
         Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
             VideoSourceFile sourceVideoFile,
             IEnumerable<int> outputHeights);
+        Task<string> ExtractThumbnailAsync(
+            VideoSourceFile videoSourceFile);
         Task<string> GetFFmpegBinaryPathAsync();
         Task<string> GetFFprobeBinaryPathAsync();
         Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri);

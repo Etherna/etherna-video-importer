@@ -78,16 +78,14 @@ namespace Etherna.VideoImporter.Core.Utilities
             var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
 
             // Get thumbnail.
-            IEnumerable<ThumbnailSourceFile> thumbnailFiles = Array.Empty<ThumbnailSourceFile>();
-            if (videoMetadata.Thumbnail is not null)
-            {
-                var bestResolutionThumbnail = await DownloadThumbnailAsync(
-                    videoMetadata.Thumbnail,
-                    videoMetadata.Title);
+            var bestResolutionThumbnail = videoMetadata.Thumbnail is null ?
+                await ThumbnailSourceFile.BuildNewAsync(
+                    new SourceUri(await ffMpegService.ExtractThumbnailAsync(videoLocalFile), SourceUriKind.LocalAbsolute),
+                    httpClientFactory) :
+                await DownloadThumbnailAsync(videoMetadata.Thumbnail, videoMetadata.Title);
 
-                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
-            }
-
+            var thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
+            
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
 
