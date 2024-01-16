@@ -98,7 +98,7 @@ namespace Etherna.VideoImporter.Core.Services
             // Run FFmpeg command.
             var outputThumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{Guid.NewGuid()}_thumbnail.jpg");
             var args = new[] {
-                "-i", videoSourceFile.FileUri.OriginalUri,
+                "-i", videoSourceFile.FileUri.ToAbsoluteUri().Item1,
                 "-vf", "select='eq(pict_type\\,I)',random",
                 "-vframes", "1",
                 outputThumbnailFilePath
