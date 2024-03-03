@@ -182,7 +182,7 @@ namespace Etherna.VideoImporter.Core
                                 sourceMetadata.Title,
                                 sourceMetadata.Description,
                                 TimeSpan.FromSeconds(alreadyPresentVideo.LastValidManifest!.Duration),
-                                alreadyPresentVideo.LastValidManifest!.OriginalQuality);
+                                sourceMetadata.OriginVideoQualityLabel);
 
                             var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference));
 
