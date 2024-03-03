@@ -23,7 +23,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bee.Net" Version="0.2.0-alpha.216" />
+    <PackageReference Include="Bee.Net" Version="0.2.0-alpha.218" />
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
     <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.3.9" />
     <PackageReference Include="EthernaSdk.Users.Native" Version="0.3.3" />
