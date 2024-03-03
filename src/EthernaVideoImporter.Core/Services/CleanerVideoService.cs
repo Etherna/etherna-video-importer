@@ -122,13 +122,13 @@ namespace Etherna.VideoImporter.Core.Services
                 removeSucceeded = true;
 
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine($"Video with index Id {indexedVideo} removed");
+                Console.WriteLine($"Video with index Id {indexedVideo.IndexId} removed");
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
                 Console.WriteLine($"Error: {ex.Message}");
-                Console.WriteLine($"Unable to remove video with index Id {indexedVideo}");
+                Console.WriteLine($"Unable to remove video with index Id {indexedVideo.IndexId}");
             }
 
             Console.ResetColor();
