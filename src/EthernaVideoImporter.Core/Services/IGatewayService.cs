@@ -12,8 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeeNet.InputModels;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -55,9 +55,11 @@ namespace Etherna.VideoImporter.Core.Services
         /// </summary>
         Task<IEnumerable<string>> GetPinnedResourcesAsync();
 
-        Task<string> UploadFilesAsync(
+        Task<string> UploadFileAsync(
             string batchId,
-            IEnumerable<FileParameterInput> files,
+            Stream content,
+            string? name,
+            string? contentType,
             bool swarmPin);
     }
 }

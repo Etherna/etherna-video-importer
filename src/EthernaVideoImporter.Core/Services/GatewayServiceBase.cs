@@ -13,9 +13,9 @@
 //   limitations under the License.
 
 using Etherna.BeeNet.Clients.GatewayApi;
-using Etherna.BeeNet.InputModels;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -50,13 +50,17 @@ namespace Etherna.VideoImporter.Core.Services
 
         public abstract Task OfferContentAsync(string hash);
 
-        public Task<string> UploadFilesAsync(
+        public Task<string> UploadFileAsync(
             string batchId,
-            IEnumerable<FileParameterInput> files,
+            Stream content,
+            string? name,
+            string? contentType,
             bool swarmPin) =>
             beeGatewayClient.UploadFileAsync(
                 batchId,
-                files,
+                content,
+                name: name,
+                contentType: contentType,
                 swarmDeferredUpload: true,
                 swarmPin: swarmPin);
 

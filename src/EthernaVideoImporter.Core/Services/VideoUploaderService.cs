@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeeNet.InputModels;
 using Etherna.Sdk.GeneratedClients.Index;
 using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
@@ -20,7 +19,6 @@ using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -124,14 +122,11 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        var fileParameterInput = new FileParameterInput(
+                        encodedFile.SetSwarmHash(await gatewayService.UploadFileAsync(
+                            batchId,
                             (await encodedFile.ReadAsStreamAsync()).Stream,
                             encodedFile.TryGetFileName(),
-                            "video/mp4");
-
-                        encodedFile.SetSwarmHash(await gatewayService.UploadFilesAsync(
-                            batchId,
-                            files: new List<FileParameterInput> { fileParameterInput },
+                            "video/mp4",
                             pinVideo));
                         uploadSucceeded = true;
                     }
@@ -162,14 +157,11 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        var fileThumbnailParameterInput = new FileParameterInput(
+                        thumbnailReference = await gatewayService.UploadFileAsync(
+                            batchId,
                             (await thumbnailFile.ReadAsStreamAsync()).Stream,
                             thumbnailFile.TryGetFileName(),
-                            "image/jpeg");
-
-                        thumbnailReference = await gatewayService.UploadFilesAsync(
-                            batchId,
-                            new List<FileParameterInput> { fileThumbnailParameterInput },
+                            "image/jpeg",
                             pinVideo);
                         uploadSucceeded = true;
                     }
@@ -249,14 +241,11 @@ namespace Etherna.VideoImporter.Core.Services
                     var serializedManifest = JsonSerializer.Serialize(videoManifest, jsonSerializerOptions);
                     using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
 
-                    manifestReference = await gatewayService.UploadFilesAsync(
+                    manifestReference = await gatewayService.UploadFileAsync(
                         videoManifest.BatchId,
-                        new[] {
-                            new FileParameterInput(
-                                manifestStream,
-                                "metadata.json",
-                                "application/json")
-                        },
+                        manifestStream,
+                        "metadata.json",
+                        "application/json",
                         pinManifest);
                     uploadSucceeded = true;
                 }
