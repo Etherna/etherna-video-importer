@@ -41,7 +41,9 @@ namespace Etherna.VideoImporter.Devcon
               -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
-              -d, --disable-index     Disable listing video on index
+              
+            Index Options:
+              --no-index              Disable video listing on any index
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
@@ -81,7 +83,7 @@ namespace Etherna.VideoImporter.Devcon
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
-            bool indexManifest = true;
+            bool noIndex = false;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -144,9 +146,8 @@ namespace Etherna.VideoImporter.Devcon
                         autoPurchaseBatches = true;
                         break;
 
-                    case "-d":
-                    case "--disable-index":
-                        indexManifest = false;
+                    case "--no-index":
+                        noIndex = true;
                         break;
 
                     //video management
@@ -282,7 +283,9 @@ namespace Etherna.VideoImporter.Devcon
                     });
             }
             ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
-                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
+                .AddEthernaIndexClient(new Uri(
+                    EthernaIndexServiceOptions.DefaultIndexUrls[0] //only first supported now. See https://etherna.atlassian.net/browse/ESC-46
+                ));
 
             // Setup DI.
             //configure options
@@ -298,6 +301,11 @@ namespace Etherna.VideoImporter.Devcon
                 {
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
                 },
+                ethernaIndexOptions =>
+                {
+                    if (noIndex)
+                        ethernaIndexOptions.IndexUrls = Array.Empty<string>();
+                },
                 ffMpegOptions =>
                 {
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
@@ -305,7 +313,6 @@ namespace Etherna.VideoImporter.Devcon
                 uploaderOptions =>
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = autoPurchaseBatches;
-                    uploaderOptions.IndexManifest = indexManifest;
 
                     if (!string.IsNullOrEmpty(ttlPostageStampStr))
                     {
@@ -331,8 +338,7 @@ namespace Etherna.VideoImporter.Devcon
                 forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                unpinRemovedVideos,
-                indexManifest);
+                unpinRemovedVideos);
         }
     }
 }

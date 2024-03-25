@@ -74,8 +74,7 @@ namespace Etherna.VideoImporter.Core
             bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
-            bool unpinRemovedVideos,
-            bool indexManifest)
+            bool unpinRemovedVideos)
         {
             // Signin user.
             try
