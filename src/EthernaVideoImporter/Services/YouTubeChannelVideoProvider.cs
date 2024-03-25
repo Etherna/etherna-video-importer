@@ -1,11 +1,11 @@
-﻿//   Copyright 2022-present Etherna Sagl
-//
+﻿//   Copyright 2022-present Etherna SA
+// 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -85,10 +85,24 @@ namespace Etherna.VideoImporter.Services
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
+                catch (TimeoutException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Time out retrieving video: {video.Title}. Try again later");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
                 catch (VideoUnplayableException ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
                     Console.WriteLine($"Unplayable video: {video.Title}");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
+                catch (YoutubeExplodeException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine($"Can't read information from YouTube: {video.Title}");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }

@@ -1,26 +1,24 @@
-﻿//   Copyright 2022-present Etherna Sagl
-//
+﻿//   Copyright 2022-present Etherna SA
+// 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.BeeNet.InputModels;
-using Etherna.ServicesClient.GeneratedClients.Index;
-using Etherna.ServicesClient.Users;
+using Etherna.Sdk.GeneratedClients.Index;
+using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -40,6 +38,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
+        private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly VideoUploaderServiceOptions options;
 
         // Constructor.
@@ -60,8 +59,7 @@ namespace Etherna.VideoImporter.Core.Services
             bool offerVideo,
             string userEthAddress)
         {
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
+            ArgumentNullException.ThrowIfNull(video, nameof(video));
 
             // Create new batch.
             //calculate batch depth
@@ -124,14 +122,11 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        var fileParameterInput = new FileParameterInput(
+                        encodedFile.SetSwarmHash(await gatewayService.UploadFileAsync(
+                            batchId,
                             (await encodedFile.ReadAsStreamAsync()).Stream,
                             encodedFile.TryGetFileName(),
-                            "video/mp4");
-
-                        encodedFile.SetSwarmHash(await gatewayService.UploadFilesAsync(
-                            batchId,
-                            files: new List<FileParameterInput> { fileParameterInput },
+                            "video/mp4",
                             pinVideo));
                         uploadSucceeded = true;
                     }
@@ -162,14 +157,11 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        var fileThumbnailParameterInput = new FileParameterInput(
+                        thumbnailReference = await gatewayService.UploadFileAsync(
+                            batchId,
                             (await thumbnailFile.ReadAsStreamAsync()).Stream,
                             thumbnailFile.TryGetFileName(),
-                            "image/jpeg");
-
-                        thumbnailReference = await gatewayService.UploadFilesAsync(
-                            batchId,
-                            new List<FileParameterInput> { fileThumbnailParameterInput },
+                            "image/jpeg",
                             pinVideo);
                         uploadSucceeded = true;
                     }
@@ -240,8 +232,7 @@ namespace Etherna.VideoImporter.Core.Services
             bool pinManifest,
             bool offerManifest)
         {
-            if (videoManifest is null)
-                throw new ArgumentNullException(nameof(videoManifest));
+            ArgumentNullException.ThrowIfNull(videoManifest, nameof(videoManifest));
 
             // Upload manifest.
             var uploadSucceeded = false;
@@ -250,20 +241,14 @@ namespace Etherna.VideoImporter.Core.Services
             {
                 try
                 {
-                    var serializedManifest = JsonSerializer.Serialize(videoManifest, new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    });
+                    var serializedManifest = JsonSerializer.Serialize(videoManifest, jsonSerializerOptions);
                     using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
 
-                    manifestReference = await gatewayService.UploadFilesAsync(
+                    manifestReference = await gatewayService.UploadFileAsync(
                         videoManifest.BatchId,
-                        new[] {
-                            new FileParameterInput(
-                                manifestStream,
-                                "metadata.json",
-                                "application/json")
-                        },
+                        manifestStream,
+                        "metadata.json",
+                        "application/json",
                         pinManifest);
                     uploadSucceeded = true;
                 }

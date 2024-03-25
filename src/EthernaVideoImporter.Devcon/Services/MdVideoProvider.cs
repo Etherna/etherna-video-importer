@@ -1,11 +1,11 @@
-﻿//   Copyright 2022-present Etherna Sagl
-//
+﻿//   Copyright 2022-present Etherna SA
+// 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -89,10 +89,10 @@ namespace Etherna.VideoImporter.Devcon.Services
                 ArchiveMdFileDto videoDataInfoDto;
                 try
                 {
-                    string content = File.ReadAllText(mdFilePath);
+                    var content = await File.ReadAllTextAsync(mdFilePath);
                     videoDataInfoDto = DeserializeYamlContent(content);
 
-                    Console.Write($"\tparsed md file...");
+                    Console.Write("\tparsed md file...");
                 }
                 catch (Exception ex) when (ex is InvalidDataException or YamlException)
                 {
@@ -107,27 +107,43 @@ namespace Etherna.VideoImporter.Devcon.Services
                 // Get from youtube.
                 try
                 {
-                    var youtubeVideo = await youtubeDownloader.YoutubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
-                    var youtubeBestStreamInfo = (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
+                    var youtubeVideo =
+                        await youtubeDownloader.YoutubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
+                    var youtubeBestStreamInfo =
+                        (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
                         .GetVideoOnlyStreams()
                         .OrderByDescending(s => s.VideoResolution.Area)
                         .First();
 
-                    Console.WriteLine($" and downloaded YouTube metadata.");
+                    Console.WriteLine(" and downloaded YouTube metadata.");
 
                     videosMetadata.Add((videoDataInfoDto, youtubeVideo, youtubeBestStreamInfo, mdFileRelativePath));
                 }
                 catch (HttpRequestException ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error retrieving video from YouTube. Try again later");
+                    Console.WriteLine("Error retrieving video from YouTube. Try again later");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
+                catch (TimeoutException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine("Time out retrieving video from YouTube. Try again later");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
                 catch (VideoUnplayableException ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Unplayable video from YouTube");
+                    Console.WriteLine("Unplayable video from YouTube");
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                }
+                catch (YoutubeExplodeException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine("Can't read information from YouTube");
                     Console.WriteLine(ex.Message);
                     Console.ResetColor();
                 }
@@ -155,8 +171,8 @@ namespace Etherna.VideoImporter.Devcon.Services
             var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + ethernaIndexId;
             var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + ethernaPermalinkHash;
 
-            // Reaad all line.
-            var lines = File.ReadLines(filePath).ToList();
+            // Read all line.
+            var lines = (await File.ReadAllLinesAsync(filePath)).ToList();
 
             // Set ethernaIndex.
             var index = GetLineNumber(lines, EthernaIndexPrefix);
@@ -197,7 +213,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 bool isInString = false;
                 foreach (var line in lines)
                 {
-                    //add an empty line if necessary. Deserializator only read "folded" scalar type and not "literal"
+                    //add an empty line if necessary. Deserializer only read "folded" scalar type and not "literal"
                     if (isInString)
                         fixedYamlBuilder.AppendLine();
 
@@ -236,7 +252,7 @@ namespace Etherna.VideoImporter.Devcon.Services
 
         private int GetIndexOfInsertLine(int lines)
         {
-            // Last position. (Exclueded final ---)
+            // Last position. (Excluded final ---)
             return lines - 2;
         }
     }
