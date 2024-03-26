@@ -27,6 +27,7 @@ namespace Etherna.VideoImporter.Core
         public static void AddCoreServices(
             this IServiceCollection services,
             Action<EncoderServiceOptions> configureEncoderOptions,
+            Action<EthernaIndexServiceOptions> configureEthernaIndexOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
             Action<VideoUploaderServiceOptions> configureVideoUploaderOptions,
             string httpClientName,
@@ -34,6 +35,7 @@ namespace Etherna.VideoImporter.Core
         {
             // Configure options.
             services.Configure(configureEncoderOptions);
+            services.Configure(configureEthernaIndexOptions);
             services.Configure(configureFFmpegOptions);
             services.Configure(configureVideoUploaderOptions);
 
@@ -46,7 +48,7 @@ namespace Etherna.VideoImporter.Core
                 services.AddTransient<IGatewayService, BeeGatewayService>();
             else
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
-            services.AddTransient<IMigrationService, MigrationService>();
+            services.AddTransient<IEthernaIndexService, EthernaIndexService>();
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             // Add singleton services.

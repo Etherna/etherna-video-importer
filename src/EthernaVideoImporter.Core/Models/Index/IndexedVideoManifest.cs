@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 using Etherna.Sdk.GeneratedClients.Index;
+using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
@@ -44,11 +45,41 @@ namespace Etherna.VideoImporter.Core.Models.Index
         public string Description { get; set; }
         public long Duration { get; set; }
         public string Hash { get; set; }
+        public bool HasLastSpecifications
+        {
+            get
+            {
+                // If client version is missing (0.1.x or 0.2.x).
+                if (string.IsNullOrWhiteSpace(PersonalData?.ClientVersion))
+                    return false;
+
+                // If has invalid version.
+                if (!Version.TryParse(PersonalData.ClientVersion, out var clientVersion))
+                    return false;
+
+                // Select by client version.
+                return clientVersion switch
+                {
+                    { Major: 0, Minor: <= 2 } => false,
+                    _ => true
+                };
+            }
+        }
         public string OriginalQuality { get; set; }
         public ManifestPersonalDataDto? PersonalData { get; set; }
         public string? RawPersonalData { get; set; }
         public IEnumerable<SourceDto> Sources { get; set; }
         public ImageDto Thumbnail { get; set; }
         public string Title { get; set; }
+
+        // Methods.
+        public bool HasEqualMetadata(VideoMetadataBase sourceMetadata)
+        {
+            ArgumentNullException.ThrowIfNull(sourceMetadata, nameof(sourceMetadata));
+
+            return PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id) &&
+                   Title == sourceMetadata.Title &&
+                   Description == sourceMetadata.Description;
+        }
     }
 }
