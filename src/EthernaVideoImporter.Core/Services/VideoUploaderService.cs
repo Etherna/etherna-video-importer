@@ -12,8 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.Sdk.GeneratedClients.Index;
-using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
@@ -36,19 +34,19 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
-        private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
+        private readonly IEthernaIndexService indexService;
         private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly VideoUploaderServiceOptions options;
 
         // Constructor.
         public VideoUploaderService(
-            IEthernaUserIndexClient ethernaIndexClient,
             IGatewayService gatewayService,
+            IEthernaIndexService indexService,
             IOptions<VideoUploaderServiceOptions> options)
         {
-            this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
+            this.indexService = indexService;
             this.options = options.Value;
         }
 
@@ -211,20 +209,22 @@ namespace Etherna.VideoImporter.Core.Services
 
             Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
 
-            // List on index.
-            if (options.IndexManifest)
+            // List on indexes.
+            foreach (var index in indexService.ActiveIndexes)
             {
-                if (video.EthernaIndexId is null)
-                    video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
-                        new VideoCreateInput
-                        {
-                            ManifestHash = video.EthernaPermalinkHash!,
-                        });
+                if (video.IndexVideoIdMap.TryGetValue(index, out var videoId))
+                {
+                    await indexService.UpdateVideoAsync(videoId, video.EthernaPermalinkHash!, index);
+                }
                 else
-                    await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash!);
+                {
+                    video.IndexVideoIdMap[index] = await indexService.AddVideoAsync(
+                        video.EthernaPermalinkHash!,
+                        index);
+                }
+                
+                Console.WriteLine($"Listed on index {index.Url} with Id: {video.IndexVideoIdMap[index]}");
             }
-
-            Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }
 
         public async Task<string> UploadVideoManifestAsync(

@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
@@ -39,7 +40,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Properties.
         public IEnumerable<FileBase> EncodedFiles { get; }
-        public string? EthernaIndexId { get; set; }
+        public IDictionary<EthernaIndex, string> IndexVideoIdMap { get; } = new Dictionary<EthernaIndex, string>();
         public string? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
         public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }

@@ -26,7 +26,7 @@ namespace Etherna.VideoImporter.Core.Services
         IEnumerable<EthernaIndex> ActiveIndexes { get; }
         
         // Methods.
-        Task<string> AddVideoAsync(VideoCreateInput createInput, EthernaIndex index);
+        Task<string> AddVideoAsync(string hash, EthernaIndex index);
 
         Task DeleteVideoAsync(IndexedVideo video);
 
@@ -34,10 +34,10 @@ namespace Etherna.VideoImporter.Core.Services
 
         Task RefreshParametersAsync(EthernaIndex index);
 
+        Task<VideoManifestDto> UpdateVideoAsync(string videoId, string newHash, EthernaIndex index);
+
         IEnumerable<IndexedVideo> SearchIndexedVideos(
             VideoMetadataBase videoMetadata,
             IEnumerable<IndexedVideo> indexedVideos);
-
-        Task<VideoManifestDto> UpdateVideoAsync(string videoId, string newHash);
     }
 }

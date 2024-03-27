@@ -53,8 +53,8 @@ namespace Etherna.VideoImporter.Core.Services
         public IEnumerable<EthernaIndex> ActiveIndexes { get; }
         
         // Methods.
-        public Task<string> AddVideoAsync(VideoCreateInput createInput, EthernaIndex index) =>
-            ethernaIndexClient.VideosClient.VideosPostAsync(createInput);
+        public Task<string> AddVideoAsync(string hash, EthernaIndex index) =>
+            ethernaIndexClient.VideosClient.VideosPostAsync(new VideoCreateInput { ManifestHash = hash });
 
         public Task DeleteVideoAsync(IndexedVideo video)
         {
@@ -92,9 +92,6 @@ namespace Etherna.VideoImporter.Core.Services
                 parametersDto.VideoTitleMaxLength);
         }
 
-        public Task<VideoManifestDto> UpdateVideoAsync(string videoId, string newHash) =>
-            ethernaIndexClient.VideosClient.VideosPutAsync(videoId, newHash);
-
         public IEnumerable<IndexedVideo> SearchIndexedVideos(
             VideoMetadataBase videoMetadata,
             IEnumerable<IndexedVideo> indexedVideos)
@@ -109,5 +106,8 @@ namespace Etherna.VideoImporter.Core.Services
             return indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.VideoIdHash is not null &&
                                             allVideoIdHashes.Contains(v.LastValidManifest.PersonalData.VideoIdHash));
         }
+
+        public Task<VideoManifestDto> UpdateVideoAsync(string videoId, string newHash, EthernaIndex index) =>
+            ethernaIndexClient.VideosClient.VideosPutAsync(videoId, newHash);
     }
 }
