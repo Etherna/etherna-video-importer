@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
@@ -26,16 +25,16 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class CleanerVideoService : ICleanerVideoService
     {
         // Fields.
-        private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
+        private readonly IEthernaIndexService ethernaIndexService;
 
         // Constructor.
         public CleanerVideoService(
-            IEthernaUserIndexClient ethernaIndexClient,
-            IGatewayService gatewayService)
+            IGatewayService gatewayService,
+            IEthernaIndexService ethernaIndexService)
         {
-            this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
+            this.ethernaIndexService = ethernaIndexService;
         }
 
         // Methods.
@@ -63,7 +62,7 @@ namespace Etherna.VideoImporter.Core.Services
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Impossible to remove from index video {video.IndexId}");
+                    Console.WriteLine($"Impossible to remove from index video {video.VideoId}");
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
                 }
@@ -99,7 +98,7 @@ namespace Etherna.VideoImporter.Core.Services
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Impossible to remove from index video {sourceRemovedVideo.IndexId}");
+                    Console.WriteLine($"Impossible to remove from index video {sourceRemovedVideo.VideoId}");
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
                 }
@@ -118,17 +117,17 @@ namespace Etherna.VideoImporter.Core.Services
             bool removeSucceeded = false;
             try
             {
-                await ethernaIndexClient.VideosClient.VideosDeleteAsync(indexedVideo.IndexId);
+                await ethernaIndexService.DeleteVideoAsync(indexedVideo);
                 removeSucceeded = true;
 
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine($"Video with index Id {indexedVideo.IndexId} removed");
+                Console.WriteLine($"Video with index Id {indexedVideo.VideoId} removed");
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
                 Console.WriteLine($"Error: {ex.Message}");
-                Console.WriteLine($"Unable to remove video with index Id {indexedVideo.IndexId}");
+                Console.WriteLine($"Unable to remove video with index Id {indexedVideo.VideoId}");
             }
 
             Console.ResetColor();

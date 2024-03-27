@@ -56,8 +56,12 @@ namespace Etherna.VideoImporter.Core.Services
         public Task<string> AddVideoAsync(VideoCreateInput createInput, EthernaIndex index) =>
             ethernaIndexClient.VideosClient.VideosPostAsync(createInput);
 
-        public Task DeleteVideoAsync(string videoId, EthernaIndex index) =>
-            ethernaIndexClient.VideosClient.VideosDeleteAsync(videoId);
+        public Task DeleteVideoAsync(IndexedVideo video)
+        {
+            ArgumentNullException.ThrowIfNull(video, nameof(video));
+            
+            return ethernaIndexClient.VideosClient.VideosDeleteAsync(video.VideoId);
+        }
 
         public async Task<IEnumerable<IndexedVideo>> GetUserVideosAsync(string userAddress, EthernaIndex index)
         {
@@ -78,7 +82,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         public async Task RefreshParametersAsync(EthernaIndex index)
         {
-            ArgumentNullException.ThrowIfNull(index);
+            ArgumentNullException.ThrowIfNull(index, nameof(index));
             
             var parametersDto = await ethernaIndexClient.SystemClient.ParametersAsync();
             index.Parameters = new EthernaIndexParameters(

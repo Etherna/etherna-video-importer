@@ -28,7 +28,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Methods.
         Task<string> AddVideoAsync(VideoCreateInput createInput, EthernaIndex index);
 
-        Task DeleteVideoAsync(string videoId, EthernaIndex index);
+        Task DeleteVideoAsync(IndexedVideo video);
 
         Task<IEnumerable<IndexedVideo>> GetUserVideosAsync(string userAddress, EthernaIndex index);
 
