@@ -12,8 +12,10 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Epoche;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
@@ -44,11 +46,17 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         }
 
         // Properties.
-        public abstract string Id { get; }
+        public IEnumerable<string> AllSourceIdHashes => OldSourceIds.Append(SourceId).Select(HashVideoId);
         public string Description { get; }
         public TimeSpan Duration { get; }
-        public abstract IEnumerable<string> OldIds { get; }
+        public abstract IEnumerable<string> OldSourceIds { get; }
         public string OriginVideoQualityLabel { get; }
+        public abstract string SourceId { get; }
+        public string SourceIdHash => HashVideoId(SourceId);
         public string Title { get; }
+        
+        // Helpers.
+        public static string HashVideoId(string videoId) =>
+            BitConverter.ToString(Keccak256.ComputeHash(videoId)).Replace("-", "", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -14,9 +14,7 @@
 
 using Etherna.Sdk.GeneratedClients.Index;
 using Etherna.Sdk.Users;
-using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
@@ -90,21 +88,6 @@ namespace Etherna.VideoImporter.Core.Services
                 parametersDto.VideoDescriptionMaxLength,
                 parametersDto.VideoPersonalDataMaxLength,
                 parametersDto.VideoTitleMaxLength);
-        }
-
-        public IEnumerable<IndexedVideo> SearchIndexedVideos(
-            VideoMetadataBase videoMetadata,
-            IEnumerable<IndexedVideo> indexedVideos)
-        {
-            ArgumentNullException.ThrowIfNull(videoMetadata, nameof(videoMetadata));
-
-            // Extract all possible Id hashes.
-            var allVideoIds = videoMetadata.OldIds.Append(videoMetadata.Id);
-            var allVideoIdHashes = allVideoIds.Select(id => ManifestPersonalDataDto.HashVideoId(id));
-            
-            // Search for previously published videos. Compare with video manifest's personal data.
-            return indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.VideoIdHash is not null &&
-                                            allVideoIdHashes.Contains(v.LastValidManifest.PersonalData.VideoIdHash));
         }
 
         public Task<VideoManifestDto> UpdateVideoAsync(string videoId, string newHash, EthernaIndex index) =>

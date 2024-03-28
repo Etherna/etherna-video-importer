@@ -32,6 +32,6 @@ namespace Etherna.VideoImporter.Models.Domain
         { }
 
         // Properties.
-        public override string Id => YoutubeId;
+        public override string SourceId => YoutubeId;
     }
 }

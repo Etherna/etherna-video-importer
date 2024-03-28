@@ -24,28 +24,43 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public class Video
     {
+        // Fields.
+        private readonly Dictionary<EthernaIndex, IndexedVideo> _indexedNewByIndex = new();
+        
         // Constructor.
         public Video(
             VideoMetadataBase metadata,
-            IEnumerable<FileBase> encodedFiles,
-            IEnumerable<IThumbnailFile> thumbnailFiles)
+            IEnumerable<IndexedVideo>? userIndexedVideos = null)
         {
-            if (!encodedFiles.Any())
-                throw new ArgumentException("Must exist at least a stream");
-
-            EncodedFiles = encodedFiles;
-            Metadata = metadata;
-            ThumbnailFiles = thumbnailFiles;
+            Metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
+            
+            //select old published video versions, by possible source Ids.
+            IndexedOld = (userIndexedVideos ?? Array.Empty<IndexedVideo>()).Where(
+                v => v.LastValidManifest?.PersonalData?.VideoIdHash is not null &&
+                     metadata.AllSourceIdHashes.Contains(v.LastValidManifest.PersonalData.VideoIdHash)).ToArray();
         }
 
         // Properties.
-        public IEnumerable<FileBase> EncodedFiles { get; }
-        public IDictionary<EthernaIndex, string> IndexVideoIdMap { get; } = new Dictionary<EthernaIndex, string>();
+        public IList<FileBase> EncodedFiles { get; } = new List<FileBase>();
         public string? EthernaPermalinkHash { get; set; }
+        public IEnumerable<IndexedVideo> IndexedAnyIndex => IndexedNew.UnionBy(IndexedOld, i => i.Index); //order is relevant
+        public IEnumerable<IndexedVideo> IndexedNew => _indexedNewByIndex.Values;
+        public IEnumerable<IndexedVideo> IndexedOld { get; }
+        public IEnumerable<IndexedVideo> IndexedUpdated => IndexedAnyIndex.Where(v =>
+            v.LastValidManifest is not null &&
+            v.LastValidManifest.HasLastSpecifications &&
+            v.LastValidManifest.HasEqualMetadata(Metadata)
+            /* don't consider data stream */);
         public VideoMetadataBase Metadata { get; }
-        public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }
+        public IList<IThumbnailFile> ThumbnailFiles { get; } = new List<IThumbnailFile>();
 
         // Methods.
+        public void AddOrReplaceIndexed(IndexedVideo indexedVideo)
+        {
+            ArgumentNullException.ThrowIfNull(indexedVideo, nameof(indexedVideo));
+            _indexedNewByIndex[indexedVideo.Index] = indexedVideo;
+        }
+
         public async Task<long> GetTotalByteSizeAsync()
         {
             long totalByteSize = 0;

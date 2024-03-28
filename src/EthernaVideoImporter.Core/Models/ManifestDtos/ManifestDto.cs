@@ -61,7 +61,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 UpdatedAt = null,
                 BatchId = batchId,
-                PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id))
+                PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.SourceId))
             };
         }
 

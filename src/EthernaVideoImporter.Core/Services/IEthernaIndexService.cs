@@ -35,9 +35,5 @@ namespace Etherna.VideoImporter.Core.Services
         Task RefreshParametersAsync(EthernaIndex index);
 
         Task<VideoManifestDto> UpdateVideoAsync(string videoId, string newHash, EthernaIndex index);
-
-        IEnumerable<IndexedVideo> SearchIndexedVideos(
-            VideoMetadataBase videoMetadata,
-            IEnumerable<IndexedVideo> indexedVideos);
     }
 }

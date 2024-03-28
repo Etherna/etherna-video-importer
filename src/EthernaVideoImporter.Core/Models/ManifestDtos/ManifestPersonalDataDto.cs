@@ -12,8 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Epoche;
-using System;
+using Etherna.VideoImporter.Core.Models.Domain;
 
 namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 {
@@ -29,10 +28,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         {
             ClientName = CommonConsts.ImporterIdentifier,
             ClientVersion = EthernaVersionControl.CurrentVersion.ToString(),
-            VideoIdHash = HashVideoId(videoId),
+            VideoIdHash = VideoMetadataBase.HashVideoId(videoId),
         };
-
-        public static string HashVideoId(string videoId) =>
-            BitConverter.ToString(Keccak256.ComputeHash(videoId)).Replace("-", "", StringComparison.OrdinalIgnoreCase);
     }
 }

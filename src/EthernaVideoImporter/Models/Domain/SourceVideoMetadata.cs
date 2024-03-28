@@ -30,15 +30,15 @@ namespace Etherna.VideoImporter.Models.Domain
             ThumbnailSourceFile? sourceThumbnail)
             : base(title, description, sourceVideo.Duration, sourceVideo.VideoQualityLabel)
         {
-            Id = id;
-            OldIds = oldIds ?? Array.Empty<string>();
+            OldSourceIds = oldIds ?? Array.Empty<string>();
+            SourceId = id;
             SourceThumbnail = sourceThumbnail;
             SourceVideo = sourceVideo;
         }
 
         // Properties.
-        public override string Id { get; }
-        public override IEnumerable<string> OldIds { get; }
+        public override IEnumerable<string> OldSourceIds { get; }
+        public override string SourceId { get; }
         public ThumbnailSourceFile? SourceThumbnail { get; }
         public VideoSourceFile SourceVideo { get; }
     }

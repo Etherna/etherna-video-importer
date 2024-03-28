@@ -77,7 +77,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
         {
             ArgumentNullException.ThrowIfNull(sourceMetadata, nameof(sourceMetadata));
 
-            return PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id) &&
+            return PersonalData?.VideoIdHash == sourceMetadata.SourceIdHash &&
                    Title == sourceMetadata.Title &&
                    Description == sourceMetadata.Description;
         }
