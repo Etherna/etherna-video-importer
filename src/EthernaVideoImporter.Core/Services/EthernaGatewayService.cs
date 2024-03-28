@@ -13,8 +13,8 @@
 //   limitations under the License.
 
 using Etherna.BeeNet.Clients.GatewayApi;
-using Etherna.ServicesClient.GeneratedClients.Gateway;
-using Etherna.ServicesClient.Users;
+using Etherna.Sdk.GeneratedClients.Gateway;
+using Etherna.Sdk.Users;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

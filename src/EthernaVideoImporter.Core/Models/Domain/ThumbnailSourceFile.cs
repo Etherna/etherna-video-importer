@@ -76,8 +76,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public async Task<IEnumerable<ThumbnailSourceFile>> GetScaledThumbnailsAsync(
             DirectoryInfo importerTempDirectoryInfo)
         {
-            if (importerTempDirectoryInfo is null)
-                throw new ArgumentNullException(nameof(importerTempDirectoryInfo));
+            ArgumentNullException.ThrowIfNull(importerTempDirectoryInfo, nameof(importerTempDirectoryInfo));
 
             List<ThumbnailSourceFile> thumbnails = new();
 

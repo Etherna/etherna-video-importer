@@ -37,7 +37,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         }
 
         // Properties.
-        public override IEnumerable<string> OldIds => Array.Empty<string>();
+        public override IEnumerable<string> OldSourceIds => Array.Empty<string>();
         public Thumbnail? Thumbnail { get; }
         public string YoutubeId
         {

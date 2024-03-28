@@ -28,11 +28,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             string originVideoQualityLabel)
             : base(title, description, duration, originVideoQualityLabel)
         {
-            Id = id;
+            SourceId = id;
         }
 
         // Properties.
-        public override string Id { get; }
-        public override IEnumerable<string> OldIds => Array.Empty<string>();
+        public override string SourceId { get; }
+        public override IEnumerable<string> OldSourceIds => Array.Empty<string>();
     }
 }

@@ -17,7 +17,6 @@ using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using System;
 using System.Net.Http;
 
@@ -28,6 +27,7 @@ namespace Etherna.VideoImporter.Core
         public static void AddCoreServices(
             this IServiceCollection services,
             Action<EncoderServiceOptions> configureEncoderOptions,
+            Action<EthernaIndexServiceOptions> configureEthernaIndexOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
             Action<VideoUploaderServiceOptions> configureVideoUploaderOptions,
             string httpClientName,
@@ -35,6 +35,7 @@ namespace Etherna.VideoImporter.Core
         {
             // Configure options.
             services.Configure(configureEncoderOptions);
+            services.Configure(configureEthernaIndexOptions);
             services.Configure(configureFFmpegOptions);
             services.Configure(configureVideoUploaderOptions);
 
@@ -47,7 +48,7 @@ namespace Etherna.VideoImporter.Core
                 services.AddTransient<IGatewayService, BeeGatewayService>();
             else
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
-            services.AddTransient<IMigrationService, MigrationService>();
+            services.AddTransient<IEthernaIndexService, EthernaIndexService>();
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             // Add singleton services.
@@ -57,8 +58,7 @@ namespace Etherna.VideoImporter.Core
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 return new BeeGatewayClient(
                     httpClientFactory.CreateClient(httpClientName),
-                    new Uri(CommonConsts.EthernaGatewayUrl),
-                    CommonConsts.BeeNodeGatewayVersion);
+                    new Uri(CommonConsts.EthernaGatewayUrl));
             });
             services.AddSingleton<IBeeNodeClient, BeeNodeClient>();
             services.AddSingleton<IFFmpegService, FFmpegService>();

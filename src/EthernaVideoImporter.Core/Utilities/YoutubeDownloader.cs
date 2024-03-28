@@ -56,8 +56,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Methods.
         public async Task<Video> GetVideoAsync(YouTubeVideoMetadataBase videoMetadata)
         {
-            if (videoMetadata is null)
-                throw new ArgumentNullException(nameof(videoMetadata));
+            ArgumentNullException.ThrowIfNull(videoMetadata, nameof(videoMetadata));
 
             // Get manifest data.
             var youtubeStreamsManifest = await YoutubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
@@ -79,16 +78,14 @@ namespace Etherna.VideoImporter.Core.Utilities
             var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
 
             // Get thumbnail.
-            IEnumerable<ThumbnailSourceFile> thumbnailFiles = Array.Empty<ThumbnailSourceFile>();
-            if (videoMetadata.Thumbnail is not null)
-            {
-                var bestResolutionThumbnail = await DownloadThumbnailAsync(
-                    videoMetadata.Thumbnail,
-                    videoMetadata.Title);
+            var bestResolutionThumbnail = videoMetadata.Thumbnail is null ?
+                await ThumbnailSourceFile.BuildNewAsync(
+                    new SourceUri(await ffMpegService.ExtractThumbnailAsync(videoLocalFile), SourceUriKind.LocalAbsolute),
+                    httpClientFactory) :
+                await DownloadThumbnailAsync(videoMetadata.Thumbnail, videoMetadata.Title);
 
-                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
-            }
-
+            var thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
+            
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
 
@@ -97,8 +94,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             Thumbnail thumbnail,
             string videoTitle)
         {
-            if (thumbnail is null)
-                throw new ArgumentNullException(nameof(thumbnail));
+            ArgumentNullException.ThrowIfNull(thumbnail, nameof(thumbnail));
 
             string thumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
 

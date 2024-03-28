@@ -1,4 +1,4 @@
-﻿//   Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,12 +12,19 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using System.Collections.Generic;
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Core.Options
 {
-    public interface IMigrationService
+    public sealed class EthernaIndexServiceOptions
     {
-        OperationType DecideOperation(ManifestPersonalDataDto? manifestPersonalDataDto);
+        // Consts.
+        public static readonly string[] DefaultIndexUrls =
+        [
+            "https://index.etherna.io/"
+        ];
+
+        // Properties.
+        public IEnumerable<string> IndexUrls { get; set; } = DefaultIndexUrls;
     }
 }

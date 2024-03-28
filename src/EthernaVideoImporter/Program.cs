@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Users.Native;
+using Etherna.Sdk.Users.Native;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
@@ -32,6 +32,7 @@ namespace Etherna.VideoImporter
     internal static class Program
     {
         // Consts.
+        private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
         private static readonly string HelpText = $$"""
             Usage:  evi COMMAND SOURCE_URI [OPTIONS]
 
@@ -45,6 +46,9 @@ namespace Etherna.VideoImporter
               -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
+              
+            Index Options:
+              --no-index              Disable video listing on any index
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
@@ -112,6 +116,7 @@ namespace Etherna.VideoImporter
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            bool noIndex = false;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -192,6 +197,10 @@ namespace Etherna.VideoImporter
                         autoPurchaseBatches = true;
                         break;
 
+                    case "--no-index":
+                        noIndex = true;
+                        break;
+
                     //video management
                     case "-t":
                     case "--ttl":
@@ -241,7 +250,7 @@ namespace Etherna.VideoImporter
                             throw new ArgumentException("Bee node value is missing");
                         beeNodeUrl = optArgs[++i];
                         useBeeNativeNode = true;
-                        if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
+                        if (!beeNodeUrl.EndsWith('/'))
                             beeNodeUrl += "/";
                         break;
 
@@ -312,7 +321,7 @@ namespace Etherna.VideoImporter
                     CommonConsts.EthernaVideoImporterClientId,
                     null,
                     11420,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {
@@ -324,7 +333,7 @@ namespace Etherna.VideoImporter
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
                     CommonConsts.EthernaSsoUrl,
                     apiKey,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {
@@ -332,13 +341,20 @@ namespace Etherna.VideoImporter
                     });
             }
             ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
-                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
+                .AddEthernaIndexClient(new Uri(
+                    EthernaIndexServiceOptions.DefaultIndexUrls[0] //only first supported now. See https://etherna.atlassian.net/browse/ESC-46
+                ));
 
             // Setup DI.
             services.AddCoreServices(
                 encoderOptions =>
                 {
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
+                },
+                ethernaIndexOptions =>
+                {
+                    if (noIndex)
+                        ethernaIndexOptions.IndexUrls = Array.Empty<string>();
                 },
                 ffMpegOptions =>
                 {

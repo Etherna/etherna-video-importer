@@ -12,10 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,16 +24,16 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class CleanerVideoService : ICleanerVideoService
     {
         // Fields.
-        private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
+        private readonly IEthernaIndexService ethernaIndexService;
 
         // Constructor.
         public CleanerVideoService(
-            IEthernaUserIndexClient ethernaIndexClient,
-            IGatewayService gatewayService)
+            IGatewayService gatewayService,
+            IEthernaIndexService ethernaIndexService)
         {
-            this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
+            this.ethernaIndexService = ethernaIndexService;
         }
 
         // Methods.
@@ -46,8 +44,7 @@ namespace Etherna.VideoImporter.Core.Services
         {
             if (gatewayPinnedHashes is null && unpinRemovedVideos)
                 throw new ArgumentNullException(nameof(gatewayPinnedHashes), "gatewayPinnedHashes can't be null if needs to unpin removed video");
-            if (indexedVideos is null)
-                throw new ArgumentNullException(nameof(indexedVideos));
+            ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
 
             Console.WriteLine($"Start removing videos not generated with this tool");
 
@@ -64,7 +61,7 @@ namespace Etherna.VideoImporter.Core.Services
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Impossible to remove from index video {video.IndexId}");
+                    Console.WriteLine($"Impossible to remove from index video {video.VideoId}");
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
                 }
@@ -81,14 +78,13 @@ namespace Etherna.VideoImporter.Core.Services
         {
             if (gatewayPinnedHashes is null && unpinRemovedVideos)
                 throw new ArgumentNullException(nameof(gatewayPinnedHashes), "gatewayPinnedHashes can't be null if needs to unpin removed video");
-            if (indexedVideos is null)
-                throw new ArgumentNullException(nameof(indexedVideos));
+            ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
 
             Console.WriteLine($"Start removing videos deleted from source");
 
             var indexedVideosFromImporter = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier);
             var sourceRemovedVideos = indexedVideos.Where(
-                v => !videosMetadataFromSource.Any(metadata => ManifestPersonalDataDto.HashVideoId(metadata.Id) == v.LastValidManifest!.PersonalData!.VideoIdHash));
+                v => videosMetadataFromSource.All(metadata => metadata.SourceIdHash != v.LastValidManifest!.PersonalData!.VideoIdHash));
 
             var deindexedVideos = 0;
             foreach (var sourceRemovedVideo in sourceRemovedVideos)
@@ -101,7 +97,7 @@ namespace Etherna.VideoImporter.Core.Services
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Impossible to remove from index video {sourceRemovedVideo.IndexId}");
+                    Console.WriteLine($"Impossible to remove from index video {sourceRemovedVideo.VideoId}");
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
                 }
@@ -120,17 +116,17 @@ namespace Etherna.VideoImporter.Core.Services
             bool removeSucceeded = false;
             try
             {
-                await ethernaIndexClient.VideosClient.VideosDeleteAsync(indexedVideo.IndexId);
+                await ethernaIndexService.DeleteVideoAsync(indexedVideo);
                 removeSucceeded = true;
 
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
-                Console.WriteLine($"Video with index Id {indexedVideo} removed");
+                Console.WriteLine($"Video with index Id {indexedVideo.VideoId} removed");
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
                 Console.WriteLine($"Error: {ex.Message}");
-                Console.WriteLine($"Unable to remove video with index Id {indexedVideo}");
+                Console.WriteLine($"Unable to remove video with index Id {indexedVideo.VideoId}");
             }
 
             Console.ResetColor();

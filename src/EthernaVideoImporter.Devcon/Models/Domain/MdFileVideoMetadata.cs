@@ -42,15 +42,15 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
             MdFileRelativePath = mdFileRelativePath;
             
             // Generate Id and old Ids.
-            Id = mdFileRelativePath.Replace('\\', '/'); //use unix-like path
-            OldIds = new[] { mdFileRelativePath.Replace('/', '\\') }; //migrate from windows-like path
+            SourceId = mdFileRelativePath.Replace('\\', '/'); //use unix-like path
+            OldSourceIds = new[] { mdFileRelativePath.Replace('/', '\\') }; //migrate from windows-like path
         }
 
         // Properties.
-        public override string Id { get; }
+        public override string SourceId { get; }
         public string? EthernaIndexUrl { get; }
         public string? EthernaPermalinkUrl { get; }
         public string MdFileRelativePath { get; }
-        public override IEnumerable<string> OldIds { get; }
+        public override IEnumerable<string> OldSourceIds { get; }
     }
 }

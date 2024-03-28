@@ -89,7 +89,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 ArchiveMdFileDto videoDataInfoDto;
                 try
                 {
-                    string content = File.ReadAllText(mdFilePath);
+                    var content = await File.ReadAllTextAsync(mdFilePath);
                     videoDataInfoDto = DeserializeYamlContent(content);
 
                     Console.Write("\tparsed md file...");
@@ -171,8 +171,8 @@ namespace Etherna.VideoImporter.Devcon.Services
             var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + ethernaIndexId;
             var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + ethernaPermalinkHash;
 
-            // Reaad all line.
-            var lines = File.ReadLines(filePath).ToList();
+            // Read all line.
+            var lines = (await File.ReadAllLinesAsync(filePath)).ToList();
 
             // Set ethernaIndex.
             var index = GetLineNumber(lines, EthernaIndexPrefix);
@@ -213,7 +213,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 bool isInString = false;
                 foreach (var line in lines)
                 {
-                    //add an empty line if necessary. Deserializator only read "folded" scalar type and not "literal"
+                    //add an empty line if necessary. Deserializer only read "folded" scalar type and not "literal"
                     if (isInString)
                         fixedYamlBuilder.AppendLine();
 
@@ -252,7 +252,7 @@ namespace Etherna.VideoImporter.Devcon.Services
 
         private int GetIndexOfInsertLine(int lines)
         {
-            // Last position. (Exclueded final ---)
+            // Last position. (Excluded final ---)
             return lines - 2;
         }
     }

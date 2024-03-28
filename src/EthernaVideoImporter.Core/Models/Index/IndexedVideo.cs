@@ -12,9 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.GeneratedClients.Index;
-using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Etherna.Sdk.GeneratedClients.Index;
 using System;
 
 namespace Etherna.VideoImporter.Core.Models.Index
@@ -22,26 +20,23 @@ namespace Etherna.VideoImporter.Core.Models.Index
     public sealed class IndexedVideo
     {
         // Constructors.
-        public IndexedVideo(VideoDto video)
+        public IndexedVideo(
+            EthernaIndex index,
+            VideoDto video)
         {
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
+            ArgumentNullException.ThrowIfNull(video, nameof(video));
 
-            IndexId = video.Id;
             CreationDateTime = video.CreationDateTime;
+            Index = index;
+            VideoId = video.Id;
             if (video.LastValidManifest is not null)
                 LastValidManifest = new IndexedVideoManifest(video.LastValidManifest);
         }
 
         // Properties.
-        public string IndexId { get; set; }
-        public DateTimeOffset CreationDateTime { get; set; }
-        public IndexedVideoManifest? LastValidManifest { get; set; }
-
-        // Internal methods.
-        internal bool IsEqualTo(VideoMetadataBase sourceMetadata) =>
-            LastValidManifest?.PersonalData?.VideoIdHash == ManifestPersonalDataDto.HashVideoId(sourceMetadata.Id) &&
-            LastValidManifest?.Title == sourceMetadata.Title &&
-            LastValidManifest?.Description == sourceMetadata.Description;
+        public DateTimeOffset CreationDateTime { get; }
+        public EthernaIndex Index { get; }
+        public IndexedVideoManifest? LastValidManifest { get; }
+        public string VideoId { get; }
     }
 }

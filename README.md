@@ -10,7 +10,7 @@ Currently exists two versions:
 * `EthernaVideoImporter` for a generic use
 * `EthernaVideoImporter.Devcon` to import specifically Devcon Archive's videos
 
-Etherna Video Importer requires at least [.NET 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) and [ASP.NET Core 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
+Etherna Video Importer requires at least [.NET 8 Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) and [ASP.NET Core 8 Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
 
 ### Setup FFmpeg and FFprobe
 To run the importer you need to download [FFmpeg and FFprobe](https://ffmpeg.org/download.html) locally, and copy them into the default folder "\FFmpeg", or specify its location with arguments.
@@ -31,6 +31,9 @@ General Options:
   -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
+              
+Index Options:
+  --no-index              Disable video listing on any index
 
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
@@ -86,6 +89,9 @@ General Options:
   -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
+              
+Index Options:
+  --no-index              Disable video listing on any index~~~~
 
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)

@@ -1,4 +1,4 @@
-﻿//   Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -12,23 +12,28 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.Sdk.GeneratedClients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.FFmpegDto;
+using Etherna.VideoImporter.Core.Models.Index;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public interface IFFmpegService
+    public interface IEthernaIndexService
     {
+        // Properties.
+        IEnumerable<EthernaIndex> ActiveIndexes { get; }
+        
         // Methods.
-        Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
-            VideoSourceFile sourceVideoFile,
-            IEnumerable<int> outputHeights);
-        Task<string> ExtractThumbnailAsync(
-            VideoSourceFile videoSourceFile);
-        Task<string> GetFFmpegBinaryPathAsync();
-        Task<string> GetFFprobeBinaryPathAsync();
-        Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri);
+        Task<string> AddVideoAsync(string hash, EthernaIndex index);
+
+        Task DeleteVideoAsync(IndexedVideo video);
+
+        Task<IEnumerable<IndexedVideo>> GetUserVideosAsync(string userAddress, EthernaIndex index);
+
+        Task RefreshParametersAsync(EthernaIndex index);
+
+        Task<VideoManifestDto> UpdateVideoAsync(string videoId, string newHash, EthernaIndex index);
     }
 }
