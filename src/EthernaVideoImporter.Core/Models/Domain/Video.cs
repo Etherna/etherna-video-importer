@@ -12,10 +12,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.Sdk.GeneratedClients.Index;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -34,23 +36,41 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         {
             Metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
             
-            //select old published video versions, by possible source Ids.
+            // Select old published video versions, by possible source Ids.
             IndexedOld = (userIndexedVideos ?? Array.Empty<IndexedVideo>()).Where(
                 v => v.LastValidManifest?.PersonalData?.VideoIdHash is not null &&
                      metadata.AllSourceIdHashes.Contains(v.LastValidManifest.PersonalData.VideoIdHash)).ToArray();
+            
+            // Try initialize props with updated info from old indexed.
+            var lastIndexed = IndexedUpdated.MaxBy(i => i.CreationDateTime);
+            if (lastIndexed != null)
+            {
+                EncodedFiles = lastIndexed.LastValidManifest!.Sources
+                    .Select<SourceDto, FileBase>(s => new VideoSwarmFile(s.Size, s.Quality, s.Reference)).ToList();
+                ManifestHash = lastIndexed.LastValidManifest.Hash;
+                ThumbnailFiles = lastIndexed.LastValidManifest.Thumbnail.Sources
+                    .Select<KeyValuePair<string, string>, IThumbnailFile>(s => new ThumbnailSwarmFile(
+                        lastIndexed.LastValidManifest.Thumbnail.AspectRatio,
+                        lastIndexed.LastValidManifest.Thumbnail.Blurhash,
+                        s.Value,
+                        0,
+                        int.Parse(s.Key.Trim('w'), CultureInfo.InvariantCulture))).ToList();
+            }
         }
 
         // Properties.
         public IList<FileBase> EncodedFiles { get; } = new List<FileBase>();
-        public string? EthernaPermalinkHash { get; set; }
-        public IEnumerable<IndexedVideo> IndexedAnyIndex => IndexedNew.UnionBy(IndexedOld, i => i.Index); //order is relevant
+        public string? ManifestHash { get; set; }
         public IEnumerable<IndexedVideo> IndexedNew => _indexedNewByIndex.Values;
         public IEnumerable<IndexedVideo> IndexedOld { get; }
-        public IEnumerable<IndexedVideo> IndexedUpdated => IndexedAnyIndex.Where(v =>
+        public IEnumerable<IndexedVideo> IndexedUpdated => LatestIndexedByIndex.Values.Where(v =>
             v.LastValidManifest is not null &&
             v.LastValidManifest.HasLastSpecifications &&
             v.LastValidManifest.HasEqualMetadata(Metadata)
             /* don't consider data stream */);
+        public IDictionary<EthernaIndex, IndexedVideo> LatestIndexedByIndex =>
+            IndexedNew.UnionBy(IndexedOld, i => i.Index) //union order is relevant
+                .ToDictionary(i => i.Index);
         public VideoMetadataBase Metadata { get; }
         public IList<IThumbnailFile> ThumbnailFiles { get; } = new List<IThumbnailFile>();
 

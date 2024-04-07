@@ -190,7 +190,7 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo, offerVideo);
+                        video.ManifestHash = await UploadVideoManifestAsync(metadataVideo, pinVideo, offerVideo);
                         uploadSucceeded = true;
                     }
                     catch (Exception ex)
@@ -207,19 +207,19 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
             }
 
-            Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
+            Console.WriteLine($"Published with swarm hash (permalink): {video.ManifestHash}");
 
             // List on indexes.
             foreach (var index in indexService.ActiveIndexes)
             {
                 if (video.IndexVideoIdMap.TryGetValue(index, out var videoId))
                 {
-                    await indexService.UpdateVideoAsync(videoId, video.EthernaPermalinkHash!, index);
+                    await indexService.UpdateVideoAsync(videoId, video.ManifestHash!, index);
                 }
                 else
                 {
                     video.IndexVideoIdMap[index] = await indexService.AddVideoAsync(
-                        video.EthernaPermalinkHash!,
+                        video.ManifestHash!,
                         index);
                 }
                 

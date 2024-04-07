@@ -14,9 +14,8 @@
 
 using Etherna.Authentication;
 using Etherna.Authentication.Native;
-using Etherna.Sdk.GeneratedClients.Index;
-using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Importer;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Models.ModelView;
@@ -125,108 +124,132 @@ namespace Etherna.VideoImporter.Core
             var importSummaryModelView = new ImportSummaryModelView();
             foreach (var (videoImportOp, i) in videoImportOperations.Select((op, i) => (op, i)))
             {
+                Console.WriteLine("===============================");
+                Console.WriteLine($"Processing video #{i + 1} of #{totalSourceVideo}. Source Id: {videoImportOp.Video.Metadata.SourceId}");
+                Console.WriteLine($"Title: {videoImportOp.Video.Metadata.Title}");
+
+                while (!videoImportOp.IsCompleted)
+                {
+                    // Dispatch sub operations.
+                    if (videoImportOp.IsUploadVideoStreamsRequired)
+                    {
+                        videoImportOp.TraceOperationStage(VideoImportOperationStage.UploadVideo);
+                        
+                        //TODO
+                    }
+                    else if (videoImportOp.IsUploadThumbnailRequired)
+                    {
+                        // Import data.
+                        videoImportOp.TraceOperationStage(VideoImportOperationStage.UploadThumbnail);
+                        
+                        //TODO
+                    }
+                    else if (videoImportOp.IsUploadManifestRequired)
+                    {
+                        // Update manifest.
+                        videoImportOp.TraceOperationStage(VideoImportOperationStage.UploadManifest);
+                        
+                        //TODO
+                        
+                        // Publish new manifest.
+                        videoImportOp.TraceOperationStage(VideoImportOperationStage.PublishManifest);
+                        
+                        //TODO
+                    }
+                    else
+                    {
+                        // Skip import.
+                        videoImportOp.TraceOperationStage(VideoImportOperationStage.Succeeded);
+                        
+                        //TODO
+                    }
+                }
+                
+                
+                
+                
+                
+                
+                
                 string updatedIndexId;
                 string updatedPermalinkHash;
-                OperationType operationType;
 
                 try
                 {
-                    Console.WriteLine("===============================");
-                    Console.WriteLine($"Processing video #{i + 1} of #{totalSourceVideo}. Source Id: {sourceMetadata.Id}");
-                    Console.WriteLine($"Title: {sourceMetadata.Title}");
 
-                    // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.
-                    var allVideoIdHashes = sourceMetadata.OldIds.Append(sourceMetadata.Id)
-                        .Select(id => ManifestPersonalDataDto.HashVideoId(id))
-                        .ToList();
-                    var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
-                        v => v.LastValidManifest?.PersonalData?.VideoIdHash is not null &&
-                            allVideoIdHashes.Contains(v.LastValidManifest.PersonalData.VideoIdHash));
-
-                    // Check if need a migration operation.
-                    var minRequiredMigrationOp = migrationService.DecideOperation(alreadyPresentVideo?.LastValidManifest?.PersonalData);
-
-                    //try to update only manifest, or to skip if possible
-                    if (alreadyPresentVideo is not null &&
-                        !forceVideoUpload &&
-                        minRequiredMigrationOp is OperationType.Skip or OperationType.UpdateManifest)
+                    // Perform required uploads to swarm.
+                    if (!videoImportOp.IsUploadManifestRequired)
                     {
-                        Console.WriteLine("Video already uploaded on etherna");
+                        Console.WriteLine("Video already uploaded on etherna, skip all uploads");
 
-                        // Verify if manifest needs to be updated with new metadata.
-                        updatedIndexId = alreadyPresentVideo.IndexId;
+                        updatedPermalinkHash = lastIndexedVideo.LastValidManifest!.Hash;
 
-                        //try to skip
-                        if (alreadyPresentVideo.IsEqualTo(sourceMetadata) &&
-                            minRequiredMigrationOp is OperationType.Skip)
-                        {
-                            operationType = OperationType.Skip;
-                            updatedPermalinkHash = alreadyPresentVideo.LastValidManifest!.Hash;
-                        }
-
-                        //else update manifest
-                        else
-                        {
-                            Console.WriteLine($"Metadata has changed, update the video manifest");
-
-                            operationType = OperationType.UpdateManifest;
-
-                            // Create manifest.
-                            var thumbnailFiles = alreadyPresentVideo.LastValidManifest!.Thumbnail.Sources.Select(t =>
-                                new ThumbnailSwarmFile(
-                                    alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
-                                    alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
-                                    t.Value,
-                                    0,/*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
-                                    int.Parse(t.Key.Replace("w", "", StringComparison.OrdinalIgnoreCase), CultureInfo.InvariantCulture))); 
-
-                            var videoMetadata = new SwarmVideoMetadata(
-                                sourceMetadata.Id,
-                                sourceMetadata.Title,
-                                sourceMetadata.Description,
-                                TimeSpan.FromSeconds(alreadyPresentVideo.LastValidManifest!.Duration),
-                                sourceMetadata.OriginVideoQualityLabel);
-
-                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference));
-
-                            var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
-
-                            // Upload new manifest.
-                            var metadataVideo = await ManifestDto.BuildNewAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
-
-                            // Update on index.
-                            if (indexManifest)
-                                await ethernaIndexClient.VideosClient.VideosPutAsync(
-                                    alreadyPresentVideo.IndexId,
-                                    updatedPermalinkHash);
-                        }
+                        videoImportOperationStage = VideoImportOperationStage.SkipImport;
                     }
+                    else if (!videoImportOp.IsUploadThumbnailRequired &&
+                             !videoImportOp.IsUploadVideoStreamsRequired)
+                    {
+                        Console.WriteLine("Video already uploaded on etherna, upload only new manifest");
 
-                    //else, full upload the new video on etherna
+                        videoImportOperationStage = VideoImportOperationStage.UploadManifest;
+
+                        // Create manifest.
+                        var thumbnailFiles = lastIndexedVideo.LastValidManifest!.Thumbnail.Sources.Select(t =>
+                            new ThumbnailSwarmFile(
+                                lastIndexedVideo.LastValidManifest.Thumbnail.AspectRatio,
+                                lastIndexedVideo.LastValidManifest.Thumbnail.Blurhash,
+                                t.Value,
+                                0, /*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
+                                int.Parse(t.Key.Replace("w", "", StringComparison.OrdinalIgnoreCase),
+                                    CultureInfo.InvariantCulture)));
+
+                        var videoMetadata = new SwarmVideoMetadata(
+                            sourceMetadata.Id,
+                            sourceMetadata.Title,
+                            sourceMetadata.Description,
+                            TimeSpan.FromSeconds(lastIndexedVideo.LastValidManifest!.Duration),
+                            lastIndexedVideo.LastValidManifest!.OriginalQuality);
+
+                        var videoSwarmFile =
+                            lastIndexedVideo.LastValidManifest.Sources.Select(v =>
+                                new VideoSwarmFile(v.Size, v.Quality, v.Reference));
+
+                        var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
+
+                        // Upload new manifest.
+                        var metadataVideo = await ManifestDto.BuildNewAsync(video,
+                            lastIndexedVideo.LastValidManifest.BatchId, userEthAddress);
+                        updatedPermalinkHash =
+                            await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
+                    }
                     else
                     {
-                        operationType = OperationType.ImportAll;
+                        Console.WriteLine("Import new video on etherna");
+
+                        videoImportOperationStage = VideoImportOperationStage.FullImport;
 
                         // Validate metadata.
                         if (sourceMetadata.Title.Length > ethernaIndexParameters.VideoTitleMaxLength)
                         {
                             Console.ForegroundColor = ConsoleColor.DarkRed;
-                            Console.WriteLine($"Error: Title too long, max length: {ethernaIndexParameters.VideoTitleMaxLength}\n");
+                            Console.WriteLine(
+                                $"Error: Title too long, max length: {ethernaIndexParameters.VideoTitleMaxLength}\n");
                             Console.ResetColor();
                             continue;
                         }
+
                         if (sourceMetadata.Description.Length > ethernaIndexParameters.VideoDescriptionMaxLength)
                         {
                             Console.ForegroundColor = ConsoleColor.DarkRed;
-                            Console.WriteLine($"Error: Description too long, max length: {ethernaIndexParameters.VideoDescriptionMaxLength}\n");
+                            Console.WriteLine(
+                                $"Error: Description too long, max length: {ethernaIndexParameters.VideoDescriptionMaxLength}\n");
                             Console.ResetColor();
                             continue;
                         }
 
                         // Get and encode video from source.
                         var video = await videoProvider.GetVideoAsync(sourceMetadata);
-                        video.EthernaIndexId = alreadyPresentVideo?.IndexId;
+                        video.EthernaIndexId = lastIndexedVideo?.IndexId;
 
                         if (!video.EncodedFiles.Any())
                         {
@@ -240,7 +263,36 @@ namespace Etherna.VideoImporter.Core
                         await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos, userEthAddress);
 
                         updatedIndexId = video.EthernaIndexId!;
-                        updatedPermalinkHash = video.EthernaPermalinkHash!;
+                        updatedPermalinkHash = video.ManifestHash!;
+                    }
+
+                    // Reindex where necessary
+                    foreach (var index in ethernaIndexService.ActiveIndexes)
+                    {
+                        //se index è già aggiornato
+                        {
+                            //  riprendi lo stesso index.VideoId
+                            updatedIndexId = lastIndexedVideo.IndexId;
+                        }
+                        //altrimenti, se è già presente ma vecchio
+                        {
+                            //  aggiorna il video in index con il nuovo permalink
+                            updatedIndexId = lastIndexedVideo.IndexId;
+                            await ethernaIndexService.UpdateVideoAsync(
+                                0,
+                                lastIndexedVideo.IndexId,
+                                updatedPermalinkHash);
+                        }
+                        //altrimenti
+                        {
+                            //  indicizza un nuovo video
+                            updatedIndexId = await ethernaIndexService.CreateVideoAsync(
+                                0,
+                                new VideoCreateInput
+                                {
+                                    ManifestHash = video.EthernaPermalinkHash!,
+                                });
+                        }
                     }
 
                     // Import succeeded.
@@ -249,15 +301,15 @@ namespace Etherna.VideoImporter.Core
                     Console.ResetColor();
 
                     // Summary count.
-                    switch (operationType)
+                    switch (videoImportOperationStage)
                     {
-                        case OperationType.ImportAll:
+                        case VideoImportOperationStage.FullImport:
                             importSummaryModelView.TotSuccessVideoImported++;
                             break;
-                        case OperationType.UpdateManifest:
+                        case VideoImportOperationStage.UploadManifest:
                             importSummaryModelView.TotUpdatedVideoImported++;
                             break;
-                        case OperationType.Skip:
+                        case VideoImportOperationStage.SkipImport:
                             importSummaryModelView.TotSkippedVideoImported++;
                             break;
                     }

@@ -63,12 +63,12 @@ namespace Etherna.VideoImporter.Core.Services
 
         public async Task<IEnumerable<IndexedVideo>> GetUserVideosAsync(string userAddress, EthernaIndex index)
         {
-            var videos = new List<VideoDto>();
+            var videos = new List<Video2Dto>();
 
-            VideoDtoPaginatedEnumerableDto? page = null;
+            Video2DtoPaginatedEnumerableDto? page = null;
             do
             {
-                page = await ethernaIndexClient.UsersClient.Videos2Async(
+                page = await ethernaIndexClient.UsersClient.Videos3Async(
                     userAddress,
                     page is null ? 0 : page.CurrentPage + 1,
                     MaxVideosForPage);

@@ -24,7 +24,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
     public sealed class IndexedVideoManifest
     {
         // Constructors.
-        public IndexedVideoManifest(VideoManifestDto lastValidManifest)
+        public IndexedVideoManifest(VideoManifest2Dto lastValidManifest)
         {
             ArgumentNullException.ThrowIfNull(lastValidManifest, nameof(lastValidManifest));
 
@@ -32,7 +32,6 @@ namespace Etherna.VideoImporter.Core.Models.Index
             Description = lastValidManifest.Description ?? "";
             Duration = lastValidManifest.Duration ?? 0;
             Hash = lastValidManifest.Hash;
-            OriginalQuality = lastValidManifest.OriginalQuality ?? "";
             PersonalData = lastValidManifest.PersonalData is null ? null : JsonSerializer.Deserialize<ManifestPersonalDataDto>(lastValidManifest.PersonalData);
             RawPersonalData = lastValidManifest.PersonalData;
             Sources = lastValidManifest.Sources;
@@ -65,11 +64,10 @@ namespace Etherna.VideoImporter.Core.Models.Index
                 };
             }
         }
-        public string OriginalQuality { get; set; }
         public ManifestPersonalDataDto? PersonalData { get; set; }
         public string? RawPersonalData { get; set; }
-        public IEnumerable<SourceDto> Sources { get; set; }
-        public ImageDto Thumbnail { get; set; }
+        public IEnumerable<VideoSourceDto> Sources { get; set; }
+        public Image2Dto Thumbnail { get; set; }
         public string Title { get; set; }
 
         // Methods.

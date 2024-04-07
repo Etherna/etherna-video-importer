@@ -22,7 +22,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
         // Constructors.
         public IndexedVideo(
             EthernaIndex index,
-            VideoDto video)
+            Video2Dto video)
         {
             ArgumentNullException.ThrowIfNull(video, nameof(video));
 
