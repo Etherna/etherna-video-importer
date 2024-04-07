@@ -21,10 +21,8 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using YoutubeExplode.Common;
-using YoutubeExplode.Exceptions;
 
 namespace Etherna.VideoImporter.Services
 {
@@ -57,58 +55,7 @@ namespace Etherna.VideoImporter.Services
 
             Console.WriteLine($"Found {youtubeVideos.Count} videos");
 
-            var videosMetadata = new List<VideoMetadataBase>();
-            foreach (var video in youtubeVideos)
-            {
-                try
-                {
-                    var metadata = await youtubeDownloader.YoutubeClient.Videos.GetAsync(video.Url);
-                    var bestStreamInfo = (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
-                        .GetVideoOnlyStreams()
-                        .OrderByDescending(s => s.VideoResolution.Area)
-                        .First();
-
-                    videosMetadata.Add(new YouTubeVideoMetadata(
-                        metadata.Title,
-                        metadata.Description,
-                        metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
-                        bestStreamInfo.VideoQuality.Label,
-                        metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
-                        metadata.Url));
-
-                    Console.WriteLine($"Downloaded metadata for {video.Title}");
-                }
-                catch (HttpRequestException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error retrieving video: {video.Title}. Try again later");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (TimeoutException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Time out retrieving video: {video.Title}. Try again later");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (VideoUnplayableException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Unplayable video: {video.Title}");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (YoutubeExplodeException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Can't read information from YouTube: {video.Title}");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-            }
-
-            return videosMetadata;
+            return youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url));
         }
 
         public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>

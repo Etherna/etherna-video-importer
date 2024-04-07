@@ -24,15 +24,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using YoutubeExplode.Exceptions;
-using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
@@ -79,7 +76,7 @@ namespace Etherna.VideoImporter.Devcon.Services
 
             Console.WriteLine($"Found {mdFilesPaths.Length} videos");
 
-            var videosMetadata = new List<(ArchiveMdFileDto mdDto, YoutubeExplode.Videos.Video ytVideo, VideoOnlyStreamInfo ytBestStreamInfo, string mdRelativePath)>();
+            var videosMetadata = new List<(ArchiveMdFileDto mdDto, string mdRelativePath)>();
             foreach (var (mdFilePath, i) in mdFilesPaths.Select((f, i) => (f, i)))
             {
                 var mdFileRelativePath = Path.GetRelativePath(options.MdSourceFolderPath, mdFilePath);
@@ -92,7 +89,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     var content = await File.ReadAllTextAsync(mdFilePath);
                     videoDataInfoDto = DeserializeYamlContent(content);
 
-                    Console.Write("\tparsed md file...");
+                    Console.WriteLine("\tParsed md file");
                 }
                 catch (Exception ex) when (ex is InvalidDataException or YamlException)
                 {
@@ -103,60 +100,16 @@ namespace Etherna.VideoImporter.Devcon.Services
 
                     continue;
                 }
-
-                // Get from youtube.
-                try
-                {
-                    var youtubeVideo =
-                        await youtubeDownloader.YoutubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
-                    var youtubeBestStreamInfo =
-                        (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
-                        .GetVideoOnlyStreams()
-                        .OrderByDescending(s => s.VideoResolution.Area)
-                        .First();
-
-                    Console.WriteLine(" and downloaded YouTube metadata.");
-
-                    videosMetadata.Add((videoDataInfoDto, youtubeVideo, youtubeBestStreamInfo, mdFileRelativePath));
-                }
-                catch (HttpRequestException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Error retrieving video from YouTube. Try again later");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (TimeoutException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Time out retrieving video from YouTube. Try again later");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (VideoUnplayableException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Unplayable video from YouTube");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (YoutubeExplodeException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Can't read information from YouTube");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
+                
+                videosMetadata.Add((videoDataInfoDto, mdFileRelativePath));
             }
 
             return videosMetadata.Select(
                 p => new MdFileVideoMetadata(
                     p.mdDto.Title,
                     p.mdDto.Description,
-                    p.ytVideo.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
-                    p.ytBestStreamInfo.VideoQuality.Label,
-                    p.ytVideo.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
                     p.mdRelativePath,
+                    youtubeDownloader,
                     p.mdDto.YoutubeUrl,
                     p.mdDto.EthernaIndex,
                     p.mdDto.EthernaPermalink));

@@ -20,7 +20,6 @@ using Etherna.VideoImporter.Options;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Services
@@ -47,25 +46,9 @@ namespace Etherna.VideoImporter.Services
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
             videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
 
-        public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
-        {
-            var metadata = await youtubeDownloader.YoutubeClient.Videos.GetAsync(options.VideoUrl);
-            var bestStreamInfo = (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
-                .GetVideoOnlyStreams()
-                .OrderByDescending(s => s.VideoResolution.Area)
-                .First();
-
-            return new[]
-            {
-                new YouTubeVideoMetadata(
-                    metadata.Title,
-                    metadata.Description,
-                    metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
-                    bestStreamInfo.VideoQuality.Label,
-                    metadata.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
-                    metadata.Url)
-            };
-        }
+        public Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync() =>
+            Task.FromResult<IEnumerable<VideoMetadataBase>>(
+                [new YouTubeVideoMetadata(youtubeDownloader, options.VideoUrl)]);
 
         public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
             Task.CompletedTask;
