@@ -26,9 +26,12 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             string description,
             TimeSpan duration,
             string originVideoQualityLabel)
-            : base(title, description, duration, originVideoQualityLabel)
         {
             Id = id;
+            Description = description;
+            Duration = duration;
+            OriginVideoQualityLabel = originVideoQualityLabel;
+            Title = title;
         }
 
         // Properties.

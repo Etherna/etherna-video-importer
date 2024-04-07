@@ -130,6 +130,14 @@ namespace Etherna.VideoImporter.Core
                 {
                     Console.WriteLine("===============================");
                     Console.WriteLine($"Processing video #{i + 1} of #{totalSourceVideo}. Source Id: {sourceMetadata.Id}");
+
+                    if (!sourceMetadata.IsDataFetched &&
+                        !await sourceMetadata.TryFetchMetadataAsync())
+                    {
+                        importSummaryModelView.TotErrorVideoImported++;
+                        continue;
+                    }
+                    
                     Console.WriteLine($"Title: {sourceMetadata.Title}");
 
                     // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.

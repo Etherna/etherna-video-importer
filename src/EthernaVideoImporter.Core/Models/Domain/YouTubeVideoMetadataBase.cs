@@ -12,6 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,21 +25,16 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     {
         // Constructor.
         protected YouTubeVideoMetadataBase(
-            string title,
-            string description,
-            TimeSpan duration,
-            string originVideoQualityLabel,
-            Thumbnail? thumbnail,
+            IYoutubeDownloader youtubeDownloader,
             string youtubeUrl)
-            : base(title, description, duration, originVideoQualityLabel)
         {
-            Thumbnail = thumbnail;
+            YoutubeDownloader = youtubeDownloader;
             YoutubeUrl = youtubeUrl;
         }
 
         // Properties.
         public override IEnumerable<string> OldIds => Array.Empty<string>();
-        public Thumbnail? Thumbnail { get; }
+        public Thumbnail? Thumbnail { get; protected set; }
         public string YoutubeId
         {
             get
@@ -53,5 +49,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             }
         }
         public string YoutubeUrl { get; }
+        
+        // Protected properties.
+        protected IYoutubeDownloader YoutubeDownloader { get; }
     }
 }

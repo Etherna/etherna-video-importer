@@ -28,12 +28,15 @@ namespace Etherna.VideoImporter.Models.Domain
             IEnumerable<string>? oldIds,
             VideoSourceFile sourceVideo,
             ThumbnailSourceFile? sourceThumbnail)
-            : base(title, description, sourceVideo.Duration, sourceVideo.VideoQualityLabel)
         {
             Id = id;
+            Description = description;
+            Duration = sourceVideo.Duration;
             OldIds = oldIds ?? Array.Empty<string>();
+            OriginVideoQualityLabel = sourceVideo.VideoQualityLabel;
             SourceThumbnail = sourceThumbnail;
             SourceVideo = sourceVideo;
+            Title = title;
         }
 
         // Properties.
