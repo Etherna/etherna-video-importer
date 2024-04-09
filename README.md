@@ -19,12 +19,11 @@ To run the importer you need to download [FFmpeg and FFprobe](https://ffmpeg.org
 
 **EthernaVideoImporter's help**
 ```
-Usage:  evi COMMAND SOURCE_URI [OPTIONS]
+Usage:  evi COMMAND SOURCE_URI [SOURCE_URI, ...] [OPTIONS]
 
 Commands:
-  json              Import from json video list (requires metadata descriptor, see below)
-  youtube-channel   Import from a YouTube channel
-  youtube-video     Import from a YouTube video
+  json      Import from json video list (requires metadata descriptor, see below)
+  youtube   Import from multiple YouTube links. Supports videos and channels urls
 
 General Options:
   -k, --api-key           Api Key (optional)

@@ -23,7 +23,9 @@ using Etherna.VideoImporter.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -34,12 +36,11 @@ namespace Etherna.VideoImporter
         // Consts.
         private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
         private static readonly string HelpText = $$"""
-            Usage:  evi COMMAND SOURCE_URI [OPTIONS]
+            Usage:  evi COMMAND SOURCE_URI [SOURCE_URI, ...] [OPTIONS]
 
             Commands:
-              json              Import from json video list (requires metadata descriptor, see below)
-              youtube-channel   Import from a YouTube channel
-              youtube-video     Import from a YouTube video
+              json      Import from json video list (requires metadata descriptor, see below)
+              youtube   Import from multiple YouTube links. Supports videos and channels urls
 
             General Options:
               -k, --api-key           Api Key (optional)
@@ -98,7 +99,7 @@ namespace Etherna.VideoImporter
         {
             // Parse arguments.
             SourceType sourceType;
-            string sourceUri;
+            List<string> sourceUrls = new();
 
             string? apiKey = null;
             string? customFFMpegFolderPath = null;
@@ -146,12 +147,8 @@ namespace Etherna.VideoImporter
                     sourceType = SourceType.JsonList;
                     break;
 
-                case "youtube-channel":
-                    sourceType = SourceType.YouTubeChannel;
-                    break;
-
-                case "youtube-video":
-                    sourceType = SourceType.YouTubeVideo;
+                case "youtube":
+                    sourceType = SourceType.YouTube;
                     break;
 
                 default:
@@ -159,11 +156,8 @@ namespace Etherna.VideoImporter
                     throw new ArgumentException($"Invalid command: {args[0]}");
             }
 
-            //source uri
-            sourceUri = args[1];
-
-            //options
-            var optArgs = args[2..];
+            //source uri and options
+            var optArgs = args[1..];
             for (int i = 0; i < optArgs.Length; i++)
             {
                 switch (optArgs[i])
@@ -261,7 +255,11 @@ namespace Etherna.VideoImporter
                         break;
 
                     default:
-                        throw new ArgumentException(optArgs[i] + " is not a valid option");
+                        if (sourceType == SourceType.JsonList && sourceUrls.Count != 0)
+                            throw new ArgumentException("Json import only supports a single url");
+                        
+                        sourceUrls.Add(optArgs[i]);
+                        break;
                 }
             }
 
@@ -288,13 +286,6 @@ namespace Etherna.VideoImporter
                 !int.TryParse(beeNodeDebugPortStr, CultureInfo.InvariantCulture, out beeNodeDebugPort))
             {
                 Console.WriteLine($"Invalid value for Gateway Debug port");
-                return;
-            }
-
-            //deny delete video old sources when is single video
-            if (sourceType == SourceType.YouTubeVideo && removeMissingVideosFromSource)
-            {
-                Console.WriteLine($"Cannot delete video removed from source when the source is a single video");
                 return;
             }
 
@@ -366,38 +357,25 @@ namespace Etherna.VideoImporter
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {
-                        options.JsonMetadataUri = new SourceUri(sourceUri, SourceUriKind.Local | SourceUriKind.OnlineAbsolute);
+                        options.JsonMetadataUri = new SourceUri(sourceUrls.First(), SourceUriKind.Local | SourceUriKind.OnlineAbsolute);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 
                     //services
                     services.AddTransient<IVideoProvider, JsonListVideoProvider>();
                     break;
-                case SourceType.YouTubeChannel:
+                case SourceType.YouTube:
                     //options
-                    services.Configure<YouTubeChannelVideoProviderOptions>(options =>
+                    services.Configure<YouTubeVideoProviderOptions>(options =>
                     {
-                        options.ChannelUrl = sourceUri;
+                        options.SourceUrls = sourceUrls;
                     });
-                    services.AddSingleton<IValidateOptions<YouTubeChannelVideoProviderOptions>, YouTubeChannelVideoProviderOptionsValidation>();
+                    services.AddSingleton<IValidateOptions<YouTubeVideoProviderOptions>, YouTubeVideoProviderOptionsValidation>();
 
                     //services
                     services.AddTransient<IYoutubeClient, YoutubeClient>();
                     services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
-                    services.AddTransient<IVideoProvider, YouTubeChannelVideoProvider>();
-                    break;
-                case SourceType.YouTubeVideo:
-                    //options
-                    services.Configure<YouTubeSingleVideoProviderOptions>(options =>
-                    {
-                        options.VideoUrl = sourceUri;
-                    });
-                    services.AddSingleton<IValidateOptions<YouTubeSingleVideoProviderOptions>, YouTubeSingleVideoProviderOptionsValidation>();
-
-                    //services
-                    services.AddTransient<IYoutubeClient, YoutubeClient>();
-                    services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
-                    services.AddTransient<IVideoProvider, YouTubeSingleVideoProvider>();
+                    services.AddTransient<IVideoProvider, YouTubeVideoProvider>();
                     break;
                 default:
                     throw new InvalidOperationException();

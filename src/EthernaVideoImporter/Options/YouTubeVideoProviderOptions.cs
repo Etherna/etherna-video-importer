@@ -12,10 +12,12 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+using System.Collections.Generic;
+
 namespace Etherna.VideoImporter.Options
 {
-    internal sealed class YouTubeChannelVideoProviderOptions
+    internal sealed class YouTubeVideoProviderOptions
     {
-        public string ChannelUrl { get; set; } = default!;
+        public IEnumerable<string> SourceUrls { get; set; } = default!;
     }
 }
