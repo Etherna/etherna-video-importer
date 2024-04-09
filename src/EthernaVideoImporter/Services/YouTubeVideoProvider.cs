@@ -56,7 +56,8 @@ namespace Etherna.VideoImporter.Services
             List<YouTubeVideoMetadata> videosMetadata = new();
             foreach (var sourceUrl in options.SourceUrls)
             {
-                if (ChannelId.TryParse(sourceUrl) != null)
+                //channel
+                if (ChannelHandle.TryParse(sourceUrl) != null)
                 {
                     var youtubeChannel = await youtubeDownloader.YoutubeClient.Channels.GetByHandleAsync(sourceUrl);
                     var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
@@ -65,17 +66,52 @@ namespace Etherna.VideoImporter.Services
 
                     videosMetadata.AddRange(youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url)));
                 }
+                else if (ChannelId.TryParse(sourceUrl) != null)
+                {
+                    var youtubeChannel = await youtubeDownloader.YoutubeClient.Channels.GetAsync(sourceUrl);
+                    var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
+
+                    Console.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl}");
+
+                    videosMetadata.AddRange(youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url)));
+                }
+                else if (ChannelSlug.TryParse(sourceUrl) != null)
+                {
+                    var youtubeChannel = await youtubeDownloader.YoutubeClient.Channels.GetBySlugAsync(sourceUrl);
+                    var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
+
+                    Console.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl}");
+
+                    videosMetadata.AddRange(youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url)));
+                }
+                else if (UserName.TryParse(sourceUrl) != null)
+                {
+                    var youtubeChannel = await youtubeDownloader.YoutubeClient.Channels.GetByUserAsync(sourceUrl);
+                    var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
+
+                    Console.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl}");
+
+                    videosMetadata.AddRange(youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url)));
+                }
+                
+                //single video
                 else if (VideoId.TryParse(sourceUrl) != null)
                 {
                     Console.WriteLine($"Found video on {sourceUrl}");
 
                     videosMetadata.Add(new YouTubeVideoMetadata(youtubeDownloader, sourceUrl));
                 }
+                
                 else
                     throw new ArgumentException($"Can't parse YouTube url {sourceUrl}");
             }
+            
+            //remove duplicates by video Id
+            var distinctMetadata = videosMetadata.DistinctBy(m => m.Id).ToArray();
+            
+            Console.WriteLine($"Found {distinctMetadata.Length} distinct videos");
 
-            return videosMetadata;
+            return distinctMetadata;
         }
 
         public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
