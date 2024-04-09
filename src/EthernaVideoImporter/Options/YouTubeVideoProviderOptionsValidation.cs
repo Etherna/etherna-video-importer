@@ -13,15 +13,16 @@
 //   limitations under the License.
 
 using Microsoft.Extensions.Options;
+using System.Linq;
 
 namespace Etherna.VideoImporter.Options
 {
-    internal sealed class YouTubeChannelVideoProviderOptionsValidation : IValidateOptions<YouTubeChannelVideoProviderOptions>
+    internal sealed class YouTubeVideoProviderOptionsValidation : IValidateOptions<YouTubeVideoProviderOptions>
     {
-        public ValidateOptionsResult Validate(string? name, YouTubeChannelVideoProviderOptions options)
+        public ValidateOptionsResult Validate(string? name, YouTubeVideoProviderOptions options)
         {
-            if (string.IsNullOrWhiteSpace(options.ChannelUrl))
-                return ValidateOptionsResult.Fail("Invalid YouTube channel url");
+            if (!options.SourceUrls.Any())
+                return ValidateOptionsResult.Fail("Empty YouTube urls");
 
             return ValidateOptionsResult.Success;
         }

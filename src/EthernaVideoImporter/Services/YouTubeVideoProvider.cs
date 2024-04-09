@@ -22,19 +22,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using YoutubeExplode.Channels;
 using YoutubeExplode.Common;
+using YoutubeExplode.Videos;
+using Video = Etherna.VideoImporter.Core.Models.Domain.Video;
 
 namespace Etherna.VideoImporter.Services
 {
-    internal sealed class YouTubeChannelVideoProvider : IVideoProvider
+    internal sealed class YouTubeVideoProvider : IVideoProvider
     {
         // Fields.
-        private readonly YouTubeChannelVideoProviderOptions options;
+        private readonly YouTubeVideoProviderOptions options;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
-        public YouTubeChannelVideoProvider(
-            IOptions<YouTubeChannelVideoProviderOptions> options,
+        public YouTubeVideoProvider(
+            IOptions<YouTubeVideoProviderOptions> options,
             IYoutubeDownloader youtubeDownloader)
         {
             this.options = options.Value;
@@ -42,7 +45,7 @@ namespace Etherna.VideoImporter.Services
         }
 
         // Properties.
-        public string SourceName => options.ChannelUrl;
+        public string SourceName => "YouTube";
 
         // Methods.
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
@@ -50,12 +53,29 @@ namespace Etherna.VideoImporter.Services
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
-            var youtubeChannel = await youtubeDownloader.YoutubeClient.Channels.GetByHandleAsync(options.ChannelUrl);
-            var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
+            List<YouTubeVideoMetadata> videosMetadata = new();
+            foreach (var sourceUrl in options.SourceUrls)
+            {
+                if (ChannelId.TryParse(sourceUrl) != null)
+                {
+                    var youtubeChannel = await youtubeDownloader.YoutubeClient.Channels.GetByHandleAsync(sourceUrl);
+                    var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
 
-            Console.WriteLine($"Found {youtubeVideos.Count} videos");
+                    Console.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl}");
 
-            return youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url));
+                    videosMetadata.AddRange(youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url)));
+                }
+                else if (VideoId.TryParse(sourceUrl) != null)
+                {
+                    Console.WriteLine($"Found video on {sourceUrl}");
+
+                    videosMetadata.Add(new YouTubeVideoMetadata(youtubeDownloader, sourceUrl));
+                }
+                else
+                    throw new ArgumentException($"Can't parse YouTube url {sourceUrl}");
+            }
+
+            return videosMetadata;
         }
 
         public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>

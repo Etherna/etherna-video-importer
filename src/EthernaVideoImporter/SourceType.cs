@@ -17,7 +17,6 @@ namespace Etherna.VideoImporter
     enum SourceType
     {
         JsonList,
-        YouTubeChannel,
-        YouTubeVideo
+        YouTube
     }
 }
