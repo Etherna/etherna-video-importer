@@ -40,7 +40,7 @@ namespace Etherna.VideoImporter
 
             Commands:
               json      Import from json video list (requires metadata descriptor, see below)
-              youtube   Import from multiple YouTube links. Supports videos and channels urls
+              youtube   Import from multiple YouTube links. Supports videos, channels and playlists urls
 
             General Options:
               -k, --api-key           Api Key (optional)
