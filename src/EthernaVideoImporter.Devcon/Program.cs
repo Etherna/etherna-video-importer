@@ -295,6 +295,7 @@ namespace Etherna.VideoImporter.Devcon
                 {
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                 },
+                _ => { },
                 uploaderOptions =>
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = autoPurchaseBatches;

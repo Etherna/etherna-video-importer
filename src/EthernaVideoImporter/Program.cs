@@ -47,6 +47,7 @@ namespace Etherna.VideoImporter
               -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
+              -w, --write-file        Write published videos result to a JSON file
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
@@ -105,6 +106,7 @@ namespace Etherna.VideoImporter
             string? customFFMpegFolderPath = null;
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
+            string? outputFile = null;
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
@@ -185,6 +187,13 @@ namespace Etherna.VideoImporter
                     case "-a":
                     case "--auto-purchase":
                         autoPurchaseBatches = true;
+                        break;
+                    
+                    case "-w":
+                    case "--write-file":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Output file path is missing");
+                        outputFile = optArgs[++i];
                         break;
 
                     //video management
@@ -335,6 +344,10 @@ namespace Etherna.VideoImporter
                 ffMpegOptions =>
                 {
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
+                },
+                reporterOptions =>
+                {
+                    reporterOptions.OutputFilePath = outputFile;
                 },
                 uploaderOptions =>
                 {

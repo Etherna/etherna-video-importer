@@ -28,6 +28,7 @@ namespace Etherna.VideoImporter.Core
             this IServiceCollection services,
             Action<EncoderServiceOptions> configureEncoderOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
+            Action<ResultReporterServiceOptions> configureResultReporterOptions,
             Action<VideoUploaderServiceOptions> configureVideoUploaderOptions,
             string httpClientName,
             bool useBeeNativeNode)
@@ -35,6 +36,7 @@ namespace Etherna.VideoImporter.Core
             // Configure options.
             services.Configure(configureEncoderOptions);
             services.Configure(configureFFmpegOptions);
+            services.Configure(configureResultReporterOptions);
             services.Configure(configureVideoUploaderOptions);
 
             // Add transient services.
@@ -47,6 +49,7 @@ namespace Etherna.VideoImporter.Core
             else
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
             services.AddTransient<IMigrationService, MigrationService>();
+            services.AddTransient<IResultReporterService, ResultReporterService>();
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             // Add singleton services.

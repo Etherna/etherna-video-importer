@@ -39,6 +39,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IEthernaSignInService ethernaSignInService;
         private readonly IGatewayService gatewayService;
         private readonly IMigrationService migrationService;
+        private readonly IResultReporterService resultReporterService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -50,6 +51,7 @@ namespace Etherna.VideoImporter.Core
             IEthernaSignInService ethernaSignInService,
             IGatewayService gatewayService,
             IMigrationService migrationService,
+            IResultReporterService resultReporterService,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
@@ -63,6 +65,7 @@ namespace Etherna.VideoImporter.Core
             this.ethernaSignInService = ethernaSignInService;
             this.gatewayService = gatewayService;
             this.migrationService = migrationService;
+            this.resultReporterService = resultReporterService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
