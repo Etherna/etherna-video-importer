@@ -115,14 +115,14 @@ namespace Etherna.VideoImporter.Devcon.Services
                     p.mdDto.EthernaPermalink));
         }
 
-        public async Task ReportEthernaReferencesAsync(
-            string sourceVideoId,
-            string ethernaIndexId,
-            string ethernaPermalinkHash)
+        public async Task ReportEthernaReferencesAsync(VideoImportResultBase importResult)
         {
-            var filePath = Path.Combine(options.MdSourceFolderPath, sourceVideoId);
-            var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + ethernaIndexId;
-            var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + ethernaPermalinkHash;
+            if (importResult is not VideoImportResultSucceeded succededResult)
+                return;
+            
+            var filePath = Path.Combine(options.MdSourceFolderPath, succededResult.SourceMetadata.Id);
+            var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + succededResult.IndexId;
+            var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + succededResult.ReferenceHash;
 
             // Read all line.
             var lines = (await File.ReadAllLinesAsync(filePath)).ToList();

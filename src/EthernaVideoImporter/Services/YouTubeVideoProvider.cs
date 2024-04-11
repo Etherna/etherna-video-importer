@@ -98,7 +98,7 @@ namespace Etherna.VideoImporter.Services
             return distinctMetadata;
         }
 
-        public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
+        public Task ReportEthernaReferencesAsync(VideoImportResultBase importResult) =>
             Task.CompletedTask;
         
         // Helpers.

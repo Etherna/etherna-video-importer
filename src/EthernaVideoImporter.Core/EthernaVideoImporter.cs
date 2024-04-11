@@ -126,8 +126,7 @@ namespace Etherna.VideoImporter.Core
             var results = new List<VideoImportResultBase>();
             foreach (var (sourceMetadata, i) in sourceVideosMetadata.Select((m, i) => (m, i)))
             {
-                string updatedIndexId;
-                string updatedPermalinkHash;
+                VideoImportResultBase importResult;
 
                 try
                 {
@@ -136,20 +135,17 @@ namespace Etherna.VideoImporter.Core
 
                     if (!sourceMetadata.IsDataFetched &&
                         !await sourceMetadata.TryFetchMetadataAsync())
-                    {
-                        results.Add(new VideoImportResultFailed(sourceMetadata));
-                        continue;
-                    }
-                    
+                        throw new InvalidOperationException("Can't fetch source metadata");
+
                     Console.WriteLine($"Title: {sourceMetadata.Title}");
 
                     // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.
                     var allVideoIdHashes = sourceMetadata.OldIds.Append(sourceMetadata.Id)
-                        .Select(id => ManifestPersonalDataDto.HashVideoId(id))
+                        .Select(ManifestPersonalDataDto.HashVideoId)
                         .ToList();
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
                         v => v.LastValidManifest?.PersonalData?.VideoIdHash is not null &&
-                            allVideoIdHashes.Contains(v.LastValidManifest.PersonalData.VideoIdHash));
+                             allVideoIdHashes.Contains(v.LastValidManifest.PersonalData.VideoIdHash));
 
                     // Check if need a migration operation.
                     var minRequiredMigrationOp = migrationService.DecideOperation(alreadyPresentVideo?.LastValidManifest?.PersonalData);
@@ -162,18 +158,14 @@ namespace Etherna.VideoImporter.Core
                         Console.WriteLine("Video already uploaded on etherna");
 
                         // Verify if manifest needs to be updated with new metadata.
-                        updatedIndexId = alreadyPresentVideo.IndexId;
-
                         //try to skip
                         if (alreadyPresentVideo.IsEqualTo(sourceMetadata) &&
                             minRequiredMigrationOp is OperationType.Skip)
                         {
-                            updatedPermalinkHash = alreadyPresentVideo.LastValidManifest!.Hash;
-                            
-                            results.Add(VideoImportResultSucceeded.Skipped(
+                            importResult = VideoImportResultSucceeded.Skipped(
                                 sourceMetadata,
                                 alreadyPresentVideo.IndexId,
-                                alreadyPresentVideo.LastValidManifest!.Hash));
+                                alreadyPresentVideo.LastValidManifest!.Hash);
                         }
 
                         //else update manifest
@@ -187,8 +179,8 @@ namespace Etherna.VideoImporter.Core
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
                                     t.Value,
-                                    0,/*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
-                                    int.Parse(t.Key.Replace("w", "", StringComparison.OrdinalIgnoreCase), CultureInfo.InvariantCulture))); 
+                                    0, /*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
+                                    int.Parse(t.Key.Replace("w", "", StringComparison.OrdinalIgnoreCase), CultureInfo.InvariantCulture)));
 
                             var videoMetadata = new SwarmVideoMetadata(
                                 sourceMetadata.Id,
@@ -203,17 +195,17 @@ namespace Etherna.VideoImporter.Core
 
                             // Upload new manifest.
                             var metadataVideo = await ManifestDto.BuildNewAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
-                            updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
+                            var updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.
                             await ethernaIndexClient.VideosClient.VideosPutAsync(
                                 alreadyPresentVideo.IndexId,
                                 updatedPermalinkHash);
-                            
-                            results.Add(VideoImportResultSucceeded.ManifestUpdated(
+
+                            importResult = VideoImportResultSucceeded.ManifestUpdated(
                                 sourceMetadata,
                                 alreadyPresentVideo.IndexId,
-                                updatedPermalinkHash));
+                                updatedPermalinkHash);
                         }
                     }
 
@@ -251,13 +243,10 @@ namespace Etherna.VideoImporter.Core
                         // Upload video and all related data.
                         await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos, userEthAddress);
 
-                        updatedIndexId = video.EthernaIndexId!;
-                        updatedPermalinkHash = video.EthernaPermalinkHash!;
-                        
-                        results.Add(VideoImportResultSucceeded.FullUploaded(
+                        importResult = VideoImportResultSucceeded.FullUploaded(
                             sourceMetadata,
                             video.EthernaIndexId!,
-                            video.EthernaPermalinkHash!));
+                            video.EthernaPermalinkHash!);
                     }
 
                     // Import succeeded.
@@ -273,10 +262,10 @@ namespace Etherna.VideoImporter.Core
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
 
-                    results.Add(new VideoImportResultFailed(sourceMetadata, ex));
-                    continue;
+                    importResult = new VideoImportResultFailed(sourceMetadata, ex);
                 }
-                finally {
+                finally
+                {
                     try
                     {
                         // Clear tmp folder.
@@ -293,23 +282,21 @@ namespace Etherna.VideoImporter.Core
                         Console.ResetColor();
                     }
                 }
-
-                // Report etherna new references.
+                
+                // Report import result.
+                results.Add(importResult);
                 try
                 {
                     /*
                      * Report etherna references even if video is already present on index.
                      * This handle cases where references are missing for some previous execution error.
                      */
-                    await videoProvider.ReportEthernaReferencesAsync(
-                        sourceMetadata.Id,
-                        updatedIndexId,
-                        updatedPermalinkHash);
+                    await videoProvider.ReportEthernaReferencesAsync(importResult);
                 }
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Unable to report etherna links");
+                    Console.WriteLine("Unable to report etherna import result");
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
                 }
