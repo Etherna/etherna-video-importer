@@ -14,12 +14,45 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class VideoImportResultSucceeded(
-        VideoMetadataBase sourceMetadata,
-        bool isFullUpload)
-        : VideoImportResultBase(sourceMetadata)
+    public class VideoImportResultSucceeded : VideoImportResultBase
     {
+        // Constructor.
+        protected VideoImportResultSucceeded(
+            VideoMetadataBase sourceMetadata,
+            bool isManifestUploaded,
+            bool isContentUploaded,
+            string indexId,
+            string referenceHash) : base(sourceMetadata)
+        {
+            IndexId = indexId;
+            IsManifestUploaded = isManifestUploaded;
+            IsContentUploaded = isContentUploaded;
+            ReferenceHash = referenceHash;
+        }
+        
+        // Static builders.
+        public static VideoImportResultSucceeded FullUploaded(
+            VideoMetadataBase sourceMetadata,
+            string indexId,
+            string referenceHash) =>
+            new(sourceMetadata, true, true, indexId, referenceHash);
+        
+        public static VideoImportResultSucceeded ManifestUpdated(
+            VideoMetadataBase sourceMetadata,
+            string indexId,
+            string referenceHash) =>
+            new(sourceMetadata, true, false, indexId, referenceHash);
+        
+        public static VideoImportResultSucceeded Skipped(
+            VideoMetadataBase sourceMetadata,
+            string indexId,
+            string referenceHash) =>
+            new(sourceMetadata, false, false, indexId, referenceHash);
+
         // Properties.
-        public bool IsFullUpload { get; } = isFullUpload;
+        public string IndexId { get; }
+        public bool IsManifestUploaded { get; }
+        public bool IsContentUploaded { get; }
+        public string ReferenceHash { get; }
     }
 }
