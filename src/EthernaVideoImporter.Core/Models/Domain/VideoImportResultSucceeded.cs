@@ -14,19 +14,12 @@
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class VideoPublishingResult
+    public class VideoImportResultSucceeded(
+        VideoMetadataBase sourceMetadata,
+        bool isFullUpload)
+        : VideoImportResultBase(sourceMetadata)
     {
-        // Constructor.
-        public VideoPublishingResult(
-            VideoMetadataBase sourceMetadata,
-            bool succeeded)
-        {
-            SourceMetadata = sourceMetadata;
-            Succeeded = succeeded;
-        }
-        
         // Properties.
-        public VideoMetadataBase SourceMetadata { get; }
-        public bool Succeeded { get; }
+        public bool IsFullUpload { get; } = isFullUpload;
     }
 }

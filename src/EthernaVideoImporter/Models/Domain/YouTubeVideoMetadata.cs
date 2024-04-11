@@ -41,8 +41,8 @@ namespace Etherna.VideoImporter.Models.Domain
         // Methods.
         public override async Task<bool> TryFetchMetadataAsync()
         {
-            /* Youtube could block fetches to avoid data scrapping.
-             * If this happen, we need to retry with enough delay.
+            /* YouTube could block fetches to avoid data scrapping.
+             * If this happens, we need to retry with enough delay.
              */
             for (int i = 0; i < FetchRetryMax; i++)
             {

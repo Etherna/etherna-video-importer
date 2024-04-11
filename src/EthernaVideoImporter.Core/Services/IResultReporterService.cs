@@ -20,6 +20,6 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IResultReporterService
     {
-        Task WriteResultFile(IEnumerable<VideoPublishingResult> results);
+        Task WriteResultFile(IEnumerable<VideoImportResultBase> results);
     }
 }

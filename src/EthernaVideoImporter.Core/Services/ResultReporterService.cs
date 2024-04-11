@@ -36,7 +36,7 @@ namespace Etherna.VideoImporter.Core.Services
         }
         
         // Methods.
-        public Task WriteResultFile(IEnumerable<VideoPublishingResult> results)
+        public Task WriteResultFile(IEnumerable<VideoImportResultBase> results)
         {
             throw new System.NotImplementedException();
         }

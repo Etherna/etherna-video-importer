@@ -123,6 +123,7 @@ namespace Etherna.VideoImporter.Core
             Console.WriteLine("Start importing videos");
 
             var importSummaryModelView = new ImportSummaryModelView();
+            var results = new List<VideoImportResultBase>();
             foreach (var (sourceMetadata, i) in sourceVideosMetadata.Select((m, i) => (m, i)))
             {
                 string updatedIndexId;
@@ -137,7 +138,7 @@ namespace Etherna.VideoImporter.Core
                     if (!sourceMetadata.IsDataFetched &&
                         !await sourceMetadata.TryFetchMetadataAsync())
                     {
-                        importSummaryModelView.TotErrorVideoImported++;
+                        results.Add(new VideoImportResultFailed(sourceMetadata));
                         continue;
                     }
                     
@@ -259,13 +260,13 @@ namespace Etherna.VideoImporter.Core
                     switch (operationType)
                     {
                         case OperationType.ImportAll:
-                            importSummaryModelView.TotSuccessVideoImported++;
+                            results.Add(new VideoImportResultSucceeded(sourceMetadata, true));
                             break;
                         case OperationType.UpdateManifest:
-                            importSummaryModelView.TotUpdatedVideoImported++;
+                            results.Add(new VideoImportResultSucceeded(sourceMetadata, false));
                             break;
                         case OperationType.Skip:
-                            importSummaryModelView.TotSkippedVideoImported++;
+                            results.Add(new VideoImportResultSkipped(sourceMetadata));
                             break;
                     }
                 }
@@ -277,7 +278,7 @@ namespace Etherna.VideoImporter.Core
                     Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
 
-                    importSummaryModelView.TotErrorVideoImported++;
+                    results.Add(new VideoImportResultFailed(sourceMetadata, ex));
                     continue;
                 }
                 finally {
@@ -343,11 +344,11 @@ namespace Etherna.VideoImporter.Core
             Console.ForegroundColor = ConsoleColor.DarkGreen;
             Console.WriteLine("Import completed.");
             Console.WriteLine();
-            Console.WriteLine($"Total video processed: {importSummaryModelView.TotProcessedVideos}");
-            Console.WriteLine($"Total video imported: {importSummaryModelView.TotSuccessVideoImported}");
-            Console.WriteLine($"Total video updated: {importSummaryModelView.TotUpdatedVideoImported}");
-            Console.WriteLine($"Total video skipped (already present): {importSummaryModelView.TotSkippedVideoImported}");
-            Console.WriteLine($"Total video with errors: {importSummaryModelView.TotErrorVideoImported}");
+            Console.WriteLine($"Total video processed: {results.Count}");
+            Console.WriteLine($"Total video imported: {results.OfType<VideoImportResultSucceeded>().Count(r => r.IsFullUpload)}");
+            Console.WriteLine($"Total video updated: {results.OfType<VideoImportResultSucceeded>().Count(r => !r.IsFullUpload)}");
+            Console.WriteLine($"Total video skipped (already present): {results.OfType<VideoImportResultSkipped>().Count()}");
+            Console.WriteLine($"Total video with errors: {results.OfType<VideoImportResultFailed>().Count()}");
             Console.WriteLine($"Total video deleted for missing in source: {importSummaryModelView.TotDeletedRemovedFromSource}");
             Console.WriteLine($"Total video deleted because not from this tool: {importSummaryModelView.TotDeletedExogenous}");
             Console.ResetColor();
