@@ -278,14 +278,7 @@ namespace Etherna.VideoImporter.Devcon
                                  .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
 
             // Setup DI.
-            //configure options
-            services.Configure<MdVideoProviderOptions>(options =>
-            {
-                options.MdSourceFolderPath = mdSourceFolderPath;
-            });
-            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
-
-            //add services
+            //core
             services.AddCoreServices(
                 encoderOptions =>
                 {
@@ -295,7 +288,6 @@ namespace Etherna.VideoImporter.Devcon
                 {
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                 },
-                _ => { },
                 uploaderOptions =>
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = autoPurchaseBatches;
@@ -310,9 +302,24 @@ namespace Etherna.VideoImporter.Devcon
                 },
                 HttpClientName,
                 useBeeNativeNode);
+            
+            //source provider
+            services.Configure<MdVideoProviderOptions>(options =>
+            {
+                options.MdSourceFolderPath = mdSourceFolderPath;
+            });
+            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
             services.AddTransient<IYoutubeClient, YoutubeClient>();
             services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
             services.AddTransient<IVideoProvider, MdVideoProvider>();
+            
+            //result reporter
+            services.Configure<MdResultReporterOptions>(options =>
+            {
+                options.MdResultFolderPath = mdSourceFolderPath;
+            });
+            services.AddSingleton<IValidateOptions<MdResultReporterOptions>, MdResultReporterOptionsValidation>();
+            services.AddTransient<IResultReporterService, MdResultReporterService>();
 
             var serviceProvider = services.BuildServiceProvider();
 

@@ -26,12 +26,5 @@ namespace Etherna.VideoImporter.Core.Services
         // Methods.
         Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata);
         Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync();
-
-        /// <summary>
-        /// Set etherna data in destination Uri.
-        /// </summary>
-        /// <param name="importResult">The import operation result</param>
-        Task ReportEthernaReferencesAsync(
-            VideoImportResultBase importResult);
     }
 }

@@ -131,8 +131,5 @@ namespace Etherna.VideoImporter.Services
 
             return videosMetadataList;
         }
-
-        public Task ReportEthernaReferencesAsync(VideoImportResultBase importResult) =>
-            Task.CompletedTask;
     }
 }

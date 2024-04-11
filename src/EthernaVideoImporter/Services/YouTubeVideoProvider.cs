@@ -97,9 +97,6 @@ namespace Etherna.VideoImporter.Services
 
             return distinctMetadata;
         }
-
-        public Task ReportEthernaReferencesAsync(VideoImportResultBase importResult) =>
-            Task.CompletedTask;
         
         // Helpers.
         private async Task<IEnumerable<YouTubeVideoMetadata>> GetVideosMetadataFromChannelAsync(

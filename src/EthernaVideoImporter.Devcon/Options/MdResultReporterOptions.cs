@@ -12,20 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.VideoImporter.Core.Models.Domain;
-using System.Threading.Tasks;
-
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Devcon.Options
 {
-    public interface IResultReporterService
+    internal sealed class MdResultReporterOptions
     {
-        Task FlushResultOutputAsync();
-        
-        /// <summary>
-        /// Report an import operation result.
-        /// </summary>
-        /// <param name="importResult">The result</param>
-        Task ReportResultAsync(
-            VideoImportResultBase importResult);
+        public string MdResultFolderPath { get; set; } = default!;
     }
 }

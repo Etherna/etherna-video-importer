@@ -336,6 +336,7 @@ namespace Etherna.VideoImporter
                                  .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
 
             // Setup DI.
+            //core
             services.AddCoreServices(
                 encoderOptions =>
                 {
@@ -344,10 +345,6 @@ namespace Etherna.VideoImporter
                 ffMpegOptions =>
                 {
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
-                },
-                reporterOptions =>
-                {
-                    reporterOptions.OutputFilePath = outputFile;
                 },
                 uploaderOptions =>
                 {
@@ -364,6 +361,7 @@ namespace Etherna.VideoImporter
                 HttpClientName,
                 useBeeNativeNode);
 
+            //source provider
             switch (sourceType)
             {
                 case SourceType.JsonList:
@@ -393,6 +391,13 @@ namespace Etherna.VideoImporter
                 default:
                     throw new InvalidOperationException();
             }
+            
+            //result reporter
+            services.Configure<JsonResultReporterOptions>(options =>
+            {
+                options.OutputFilePath = outputFile;
+            });
+            services.AddTransient<IResultReporterService, JsonResultReporterService>();
 
             var serviceProvider = services.BuildServiceProvider();
 

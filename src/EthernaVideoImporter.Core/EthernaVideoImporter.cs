@@ -291,7 +291,7 @@ namespace Etherna.VideoImporter.Core
                      * Report etherna references even if video is already present on index.
                      * This handle cases where references are missing for some previous execution error.
                      */
-                    await videoProvider.ReportEthernaReferencesAsync(importResult);
+                    await resultReporterService.ReportResultAsync(importResult);
                 }
                 catch (Exception ex)
                 {
@@ -319,6 +319,9 @@ namespace Etherna.VideoImporter.Core
                     userVideosOnIndex,
                     gatewayPinnedHashes,
                     unpinRemovedVideos);
+            
+            // Flush result report.
+            await resultReporterService.FlushResultOutputAsync();
 
             // Print summary.
             Console.ForegroundColor = ConsoleColor.DarkGreen;

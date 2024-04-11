@@ -13,32 +13,37 @@
 // limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Options;
+using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Options;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Services
 {
-    public class ResultReporterService : IResultReporterService
+    internal sealed class JsonResultReporterService : IResultReporterService
     {
         // Fields.
-        private readonly ResultReporterServiceOptions options;
+        private readonly JsonResultReporterOptions options;
 
         // Constructor.
-        public ResultReporterService(
-            IOptions<ResultReporterServiceOptions> options)
+        public JsonResultReporterService(
+            IOptions<JsonResultReporterOptions> options)
         {
             ArgumentNullException.ThrowIfNull(options, nameof(options));
-            
+
             this.options = options.Value;
         }
-        
+
         // Methods.
-        public Task WriteResultFile(IEnumerable<VideoImportResultBase> results)
+        public Task FlushResultOutputAsync()
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+
+        public Task ReportResultAsync(VideoImportResultBase importResult)
+        {
+            throw new NotImplementedException();
         }
     }
 }

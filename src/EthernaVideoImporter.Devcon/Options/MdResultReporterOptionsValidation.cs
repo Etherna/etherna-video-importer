@@ -12,11 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace Etherna.VideoImporter.Core.Options
+using Microsoft.Extensions.Options;
+using System.IO;
+
+namespace Etherna.VideoImporter.Devcon.Options
 {
-    public class ResultReporterServiceOptions
+    internal sealed class MdResultReporterOptionsValidation : IValidateOptions<MdResultReporterOptions>
     {
-        // Properties.
-        public string? OutputFilePath { get; set; }
+        public ValidateOptionsResult Validate(string? name, MdResultReporterOptions options)
+        {
+            if (!Directory.Exists(options.MdResultFolderPath))
+                return ValidateOptionsResult.Fail($"Not found MD directory path at ({options.MdResultFolderPath})");
+
+            return ValidateOptionsResult.Success;
+        }
     }
 }
