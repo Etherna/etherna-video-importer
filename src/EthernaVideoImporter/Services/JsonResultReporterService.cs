@@ -14,9 +14,13 @@
 
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Models.ResultDtos;
 using Etherna.VideoImporter.Options;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Services
@@ -25,6 +29,8 @@ namespace Etherna.VideoImporter.Services
     {
         // Fields.
         private readonly JsonResultReporterOptions options;
+        private readonly List<VideoImportResultDto> results = new();
+        private readonly JsonSerializerOptions serializerOptions = new() { WriteIndented = true };
 
         // Constructor.
         public JsonResultReporterService(
@@ -36,14 +42,17 @@ namespace Etherna.VideoImporter.Services
         }
 
         // Methods.
-        public Task FlushResultOutputAsync()
+        public async Task FlushResultOutputAsync()
         {
-            throw new NotImplementedException();
+            var jsonContent = JsonSerializer.Serialize(results, serializerOptions);
+            var filePath = options.OutputFilePath ?? throw new InvalidOperationException("OutputFilePath is not set");
+            await File.WriteAllTextAsync(filePath, jsonContent);
         }
 
         public Task ReportResultAsync(VideoImportResultBase importResult)
         {
-            throw new NotImplementedException();
+            results.Add(new VideoImportResultDto(importResult));
+            return Task.CompletedTask;
         }
     }
 }

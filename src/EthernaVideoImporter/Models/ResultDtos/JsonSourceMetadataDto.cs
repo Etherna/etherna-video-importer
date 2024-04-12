@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
+using Etherna.VideoImporter.Models.Domain;
 
-namespace Etherna.VideoImporter.Core.Models.Domain
+namespace Etherna.VideoImporter.Models.ResultDtos
 {
-    public abstract class VideoImportResultBase(VideoMetadataBase sourceMetadata)
+    public class JsonSourceMetadataDto : SourceMetadataDtoBase
     {
-        // Properties.
-        public DateTime CompletedDateTime { get; } = DateTime.UtcNow;
-        public VideoMetadataBase SourceMetadata { get; } = sourceMetadata;
+        internal JsonSourceMetadataDto(JsonVideoMetadata jsonSource)
+            : base(jsonSource)
+        { }
     }
 }

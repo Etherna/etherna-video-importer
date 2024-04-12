@@ -12,14 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 
-namespace Etherna.VideoImporter.Core.Models.Domain
+namespace Etherna.VideoImporter.Models.ResultDtos
 {
-    public abstract class VideoImportResultBase(VideoMetadataBase sourceMetadata)
+    public abstract class SourceMetadataDtoBase
     {
+        protected internal SourceMetadataDtoBase(VideoMetadataBase sourceMetadata)
+        {
+            ArgumentNullException.ThrowIfNull(sourceMetadata, nameof(sourceMetadata));
+            
+            Id = sourceMetadata.Id;
+            Duration = sourceMetadata.Duration;
+            Title = sourceMetadata.Title;
+        }
+        
         // Properties.
-        public DateTime CompletedDateTime { get; } = DateTime.UtcNow;
-        public VideoMetadataBase SourceMetadata { get; } = sourceMetadata;
+        public string Id { get; }
+        public TimeSpan Duration { get; }
+        public string Title { get; }
     }
 }

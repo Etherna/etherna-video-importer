@@ -17,7 +17,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public class VideoImportResultSucceeded : VideoImportResultBase
     {
         // Constructor.
-        protected VideoImportResultSucceeded(
+        private VideoImportResultSucceeded(
             VideoMetadataBase sourceMetadata,
             bool isManifestUploaded,
             bool isContentUploaded,

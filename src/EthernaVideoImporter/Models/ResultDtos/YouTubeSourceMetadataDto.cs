@@ -12,14 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 
-namespace Etherna.VideoImporter.Core.Models.Domain
+namespace Etherna.VideoImporter.Models.ResultDtos
 {
-    public abstract class VideoImportResultBase(VideoMetadataBase sourceMetadata)
+    public class YouTubeSourceMetadataDto : SourceMetadataDtoBase
     {
-        // Properties.
-        public DateTime CompletedDateTime { get; } = DateTime.UtcNow;
-        public VideoMetadataBase SourceMetadata { get; } = sourceMetadata;
+        internal YouTubeSourceMetadataDto(YouTubeVideoMetadataBase youtubeSource)
+            : base(youtubeSource)
+        {
+            ChannelName = youtubeSource.ChannelName ?? throw new InvalidOperationException();
+            PlaylistName = youtubeSource.PlaylistName;
+        }
+        
+        public string ChannelName { get; }
+        public string? PlaylistName { get; }
     }
 }
