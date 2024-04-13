@@ -18,10 +18,10 @@ using System.Collections.Generic;
 
 namespace Etherna.VideoImporter.Models.Domain
 {
-    internal sealed class SourceVideoMetadata : VideoMetadataBase
+    internal sealed class JsonVideoMetadata : VideoMetadataBase
     {
         // Constructors.
-        internal SourceVideoMetadata(
+        internal JsonVideoMetadata(
             string id,
             string title,
             string description,

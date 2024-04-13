@@ -16,7 +16,7 @@ using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
-using Etherna.VideoImporter.Models.SourceVideoDtos;
+using Etherna.VideoImporter.Models.SourceDtos;
 using Etherna.VideoImporter.Options;
 using Microsoft.Extensions.Options;
 using System;
@@ -56,8 +56,8 @@ namespace Etherna.VideoImporter.Services
         public async Task<Video> GetVideoAsync(
             VideoMetadataBase videoMetadata)
         {
-            var sourceVideoMetadata = videoMetadata as SourceVideoMetadata 
-                ?? throw new ArgumentException($"Metadata must be of type {nameof(SourceVideoMetadata)}", nameof(videoMetadata));
+            var sourceVideoMetadata = videoMetadata as JsonVideoMetadata 
+                ?? throw new ArgumentException($"Metadata must be of type {nameof(JsonVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
             var encodedFiles = await encoderService.EncodeVideosAsync(
@@ -110,7 +110,7 @@ namespace Etherna.VideoImporter.Services
 
                     // Add video metadata.
                     videosMetadataList.Add(
-                        new SourceVideoMetadata(
+                        new JsonVideoMetadata(
                             metadataDto.Id,
                             metadataDto.Title,
                             metadataDto.Description,
@@ -131,8 +131,5 @@ namespace Etherna.VideoImporter.Services
 
             return videosMetadataList;
         }
-
-        public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
-            Task.CompletedTask;
     }
 }

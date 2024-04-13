@@ -12,7 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -36,9 +35,6 @@ namespace Etherna.VideoImporter.Devcon.Services
     internal sealed partial class MdVideoProvider : IVideoProvider
     {
         // Consts.
-        private const string EthernaIndexPrefix = "ethernaIndex:";
-        private const string EthernaPermalinkPrefix = "ethernaPermalink:";
-
         [GeneratedRegex("(?<!\\\\)\"")]
         private static partial Regex UnescapedQuotesCounterRegex();
 
@@ -115,38 +111,6 @@ namespace Etherna.VideoImporter.Devcon.Services
                     p.mdDto.EthernaPermalink));
         }
 
-        public async Task ReportEthernaReferencesAsync(
-            string sourceVideoId,
-            string ethernaIndexId,
-            string ethernaPermalinkHash)
-        {
-            var filePath = Path.Combine(options.MdSourceFolderPath, sourceVideoId);
-            var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + ethernaIndexId;
-            var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + ethernaPermalinkHash;
-
-            // Read all line.
-            var lines = (await File.ReadAllLinesAsync(filePath)).ToList();
-
-            // Set ethernaIndex.
-            var index = GetLineNumber(lines, EthernaIndexPrefix);
-            var ethernaIndexLine = $"{EthernaIndexPrefix} \"{ethernaIndexUrl}\"";
-            if (index >= 0)
-                lines[index] = ethernaIndexLine;
-            else
-                lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaIndexLine);
-
-            // Set ethernaPermalink.
-            index = GetLineNumber(lines, EthernaPermalinkPrefix);
-            var ethernaPermalinkLine = $"{EthernaPermalinkPrefix} \"{ethernaPermalinkUrl}\"";
-            if (index >= 0)
-                lines[index] = ethernaPermalinkLine;
-            else
-                lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaPermalinkLine);
-
-            // Save file.
-            await File.WriteAllLinesAsync(filePath, lines);
-        }
-
         // Helpers.
         private ArchiveMdFileDto DeserializeYamlContent(string content)
         {
@@ -188,25 +152,6 @@ namespace Etherna.VideoImporter.Devcon.Services
             //deserialize
             return deserializer.Deserialize<ArchiveMdFileDto>(fixedYaml) ??
                 throw new InvalidDataException("Can't parse valid YAML metadata");
-        }
-
-        private int GetLineNumber(List<string> lines, string prefix)
-        {
-            var lineIndex = 0;
-            foreach (var line in lines)
-            {
-                if (line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    return lineIndex;
-
-                lineIndex++;
-            }
-            return -1;
-        }
-
-        private int GetIndexOfInsertLine(int lines)
-        {
-            // Last position. (Excluded final ---)
-            return lines - 2;
         }
     }
 }

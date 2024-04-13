@@ -36,7 +36,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                                      _duration is not null &&
                                      _originVideoQualityLabel is not null &&
                                      _title is not null;
-        public string Description
+        public virtual string Description
         {
             get => _description ?? throw new InvalidOperationException("Description is not fetched");
             protected set => _description = value;
@@ -59,7 +59,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     throw new InvalidOperationException("Invalid quality label");
             }
         }
-        public string Title
+        public virtual string Title
         {
             get => _title ?? throw new InvalidOperationException("Title is not fetched");
             protected set => _title = value;

@@ -16,15 +16,15 @@ using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
-using YoutubeExplode.Exceptions;
 
 namespace Etherna.VideoImporter.Devcon.Models.Domain
 {
-    public class MdFileVideoMetadata : YouTubeVideoMetadataBase
+    internal sealed class MdFileVideoMetadata : YouTubeVideoMetadataBase
     {
+        // Fields.
+        private readonly string descriptionOverride;
+        private readonly string titleOverride;
+        
         // Constructor.
         public MdFileVideoMetadata(
             string title,
@@ -34,7 +34,7 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
             string youtubeUrl,
             string? ethernaIndexUrl,
             string? ethernaPermalinkUrl)
-            : base(youtubeDownloader, youtubeUrl)
+            : base(youtubeDownloader, youtubeUrl, null)
         {
             if (string.IsNullOrWhiteSpace(mdFileRelativePath))
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(mdFileRelativePath));
@@ -43,70 +43,28 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
             Id = mdFileRelativePath.Replace('\\', '/'); //use unix-like path
             OldIds = new[] { mdFileRelativePath.Replace('/', '\\') }; //migrate from windows-like path
 
-            Description = description;
+            descriptionOverride = description;
             EthernaIndexUrl = ethernaIndexUrl;
             EthernaPermalinkUrl = ethernaPermalinkUrl;
             MdFileRelativePath = mdFileRelativePath;
-            Title = title;
+            titleOverride = title;
         }
 
         // Properties.
         public override string Id { get; }
+        public override string Description
+        {
+            get => descriptionOverride;
+            protected set { }
+        }
         public string? EthernaIndexUrl { get; }
         public string? EthernaPermalinkUrl { get; }
         public string MdFileRelativePath { get; }
         public override IEnumerable<string> OldIds { get; }
-        
-        // Methods.
-        public override async Task<bool> TryFetchMetadataAsync()
+        public override string Title
         {
-            try
-            {
-                var youtubeVideo = await YoutubeDownloader.YoutubeClient.Videos.GetAsync(YoutubeUrl);
-                var youtubeBestStreamInfo =
-                    (await YoutubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
-                    .GetVideoOnlyStreams()
-                    .OrderByDescending(s => s.VideoResolution.Area)
-                    .First();
-
-                Duration = youtubeVideo.Duration ?? throw new InvalidOperationException("Live streams are not supported");
-                OriginVideoQualityLabel = youtubeBestStreamInfo.VideoQuality.Label;
-                Thumbnail = youtubeVideo.Thumbnails.MaxBy(t => t.Resolution.Area);
-
-                Console.WriteLine("Fetched YouTube metadata.");
-
-                return true;
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine($"Error retrieving video: {YoutubeUrl}. Try again later");
-                Console.WriteLine(ex.Message);
-                Console.ResetColor();
-            }
-            catch (TimeoutException ex)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine($"Time out retrieving video: {YoutubeUrl}. Try again later");
-                Console.WriteLine(ex.Message);
-                Console.ResetColor();
-            }
-            catch (VideoUnplayableException ex)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine($"Unplayable video: {YoutubeUrl}");
-                Console.WriteLine(ex.Message);
-                Console.ResetColor();
-            }
-            catch (YoutubeExplodeException ex)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine($"Can't read information from YouTube: {YoutubeUrl}");
-                Console.WriteLine(ex.Message);
-                Console.ResetColor();
-            }
-
-            return false;
+            get => titleOverride;
+            protected set { }
         }
     }
 }

@@ -97,9 +97,6 @@ namespace Etherna.VideoImporter.Services
 
             return distinctMetadata;
         }
-
-        public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
-            Task.CompletedTask;
         
         // Helpers.
         private async Task<IEnumerable<YouTubeVideoMetadata>> GetVideosMetadataFromChannelAsync(
@@ -110,7 +107,9 @@ namespace Etherna.VideoImporter.Services
                 
             Console.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl} channel");
                 
-            return youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url));
+            return youtubeVideos.Select(v => new YouTubeVideoMetadata(
+                youtubeDownloader,
+                v.Url));
         }
 
         private async Task<IEnumerable<YouTubeVideoMetadata>> GetVideosMetadataFromPlaylistAsync(
@@ -121,7 +120,10 @@ namespace Etherna.VideoImporter.Services
 
             Console.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl} playlist");
 
-            return youtubeVideos.Select(v => new YouTubeVideoMetadata(youtubeDownloader, v.Url));
+            return youtubeVideos.Select(v => new YouTubeVideoMetadata(
+                youtubeDownloader,
+                v.Url,
+                playlistName: youtubePlaylist.Title));
         }
 
         private Task<YouTubeVideoMetadata> GetVideoMetadataFromSingleVideoAsync(
@@ -129,7 +131,9 @@ namespace Etherna.VideoImporter.Services
         {
             Console.WriteLine($"Found video on {sourceUrl}");
 
-            return Task.FromResult(new YouTubeVideoMetadata(youtubeDownloader, sourceUrl));
+            return Task.FromResult(new YouTubeVideoMetadata(
+                youtubeDownloader,
+                sourceUrl));
         }
     }
 }

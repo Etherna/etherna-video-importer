@@ -30,6 +30,7 @@ General Options:
   -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
+  -w, --write-file        Write published videos result to a JSON file
 
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)

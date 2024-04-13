@@ -14,7 +14,7 @@
 
 using System.Collections.Generic;
 
-namespace Etherna.VideoImporter.Models.SourceVideoDtos
+namespace Etherna.VideoImporter.Models.SourceDtos
 {
     internal sealed class JsonVideoMetadataDto
     {
