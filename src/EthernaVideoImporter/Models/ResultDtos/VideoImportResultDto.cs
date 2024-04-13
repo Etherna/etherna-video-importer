@@ -25,7 +25,7 @@ namespace Etherna.VideoImporter.Models.ResultDtos
         {
             ArgumentNullException.ThrowIfNull(result, nameof(result));
             
-            CompletedDateTime = result.CompletedDateTime;
+            CompletedDateTimeUtc = result.CompletedDateTime;
             SourceMetadata = result.SourceMetadata switch
             {
                 JsonVideoMetadata jsonSource => new JsonSourceMetadataDto(jsonSource),
@@ -46,7 +46,7 @@ namespace Etherna.VideoImporter.Models.ResultDtos
             }
         }
         
-        public DateTime CompletedDateTime { get; }
+        public DateTime CompletedDateTimeUtc { get; }
         public string? EmbeddedIndexLink => IndexId is null ? null : UrlBuilder.BuildEmbeddedIndexUrl(IndexId);
         public string? EmbeddedPermalink => SwarmHash is null ? null : UrlBuilder.BuildEmbeddedPermalinkUrl(SwarmHash);
         public string? IndexId { get; }
