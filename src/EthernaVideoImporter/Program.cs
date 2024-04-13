@@ -1,18 +1,18 @@
-﻿//   Copyright 2022-present Etherna Sagl
-//
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+﻿// Copyright 2022-present Etherna SA
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-using Etherna.ServicesClient.Users.Native;
+using Etherna.Sdk.Users.Native;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
@@ -23,7 +23,9 @@ using Etherna.VideoImporter.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -32,24 +34,25 @@ namespace Etherna.VideoImporter
     internal static class Program
     {
         // Consts.
+        private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
         private static readonly string HelpText = $$"""
-            Usage:  evi COMMAND SOURCE_URI [OPTIONS]
+            Usage:  evi COMMAND SOURCE_URI [SOURCE_URI, ...] [OPTIONS]
 
             Commands:
-              json              Import from json video list (requires metadata descriptor, see below)
-              youtube-channel   Import from a YouTube channel
-              youtube-video     Import from a YouTube video
+              json      Import from json video list (requires metadata descriptor, see below)
+              youtube   Import from multiple YouTube links. Supports videos, channels and playlists urls
 
             General Options:
               -k, --api-key           Api Key (optional)
-              -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
+              -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
+              -w, --write-file        Write published videos result to a JSON file
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
               -o, --offer             Offer video downloads to everyone
-              -p, --pin               Pin videos
+              --no-pin                Don't pin videos (pinning by default)
               --force                 Force upload video if they already have been uploaded
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
@@ -70,7 +73,11 @@ namespace Etherna.VideoImporter
                     "Title": "First video title",
                     "Description": "My first video description",
                     "VideoFilePath": "path/to/your/video1.mp4",
-                    "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg"
+                    "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg",
+                    "OldIds": [
+                        "optionalOldId1",
+                        "optionalOldId2"
+                    ]
                 },
                 {
                     "Id": "myId2",
@@ -83,8 +90,6 @@ namespace Etherna.VideoImporter
             ]
 
             Id field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique.
-            Video paths can be local or online uris. Thumbnail paths are optional, and can only be local.
-            Local paths can be relative or absolute, online urls can only be absolute.
 
             Run 'evi -h' or 'evi --help' to print help.
             """;
@@ -95,16 +100,17 @@ namespace Etherna.VideoImporter
         {
             // Parse arguments.
             SourceType sourceType;
-            string sourceUri;
+            List<string> sourceUrls = new();
 
             string? apiKey = null;
             string? customFFMpegFolderPath = null;
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
+            string? outputFile = null;
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
-            bool pinVideos = false;
+            bool pinVideos = true;
             bool forceVideoUpload = false;
             bool removeMissingVideosFromSource = false;
             bool removeUnrecognizedVideos = false;
@@ -143,12 +149,8 @@ namespace Etherna.VideoImporter
                     sourceType = SourceType.JsonList;
                     break;
 
-                case "youtube-channel":
-                    sourceType = SourceType.YouTubeChannel;
-                    break;
-
-                case "youtube-video":
-                    sourceType = SourceType.YouTubeVideo;
+                case "youtube":
+                    sourceType = SourceType.YouTube;
                     break;
 
                 default:
@@ -156,11 +158,8 @@ namespace Etherna.VideoImporter
                     throw new ArgumentException($"Invalid command: {args[0]}");
             }
 
-            //source uri
-            sourceUri = args[1];
-
-            //options
-            var optArgs = args[2..];
+            //source uri and options
+            var optArgs = args[1..];
             for (int i = 0; i < optArgs.Length; i++)
             {
                 switch (optArgs[i])
@@ -189,6 +188,13 @@ namespace Etherna.VideoImporter
                     case "--auto-purchase":
                         autoPurchaseBatches = true;
                         break;
+                    
+                    case "-w":
+                    case "--write-file":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Output file path is missing");
+                        outputFile = optArgs[++i];
+                        break;
 
                     //video management
                     case "-t":
@@ -203,9 +209,12 @@ namespace Etherna.VideoImporter
                         offerVideos = true;
                         break;
 
-                    case "-p":
-                    case "--pin":
-                        pinVideos = true;
+                    // case "-p":
+                    // case "--pin":
+                    //     pinVideos = true;
+                    //     break;
+                    case "--no-pin":
+                        pinVideos = false;
                         break;
 
                     case "--force":
@@ -236,7 +245,7 @@ namespace Etherna.VideoImporter
                             throw new ArgumentException("Bee node value is missing");
                         beeNodeUrl = optArgs[++i];
                         useBeeNativeNode = true;
-                        if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
+                        if (!beeNodeUrl.EndsWith('/'))
                             beeNodeUrl += "/";
                         break;
 
@@ -255,7 +264,11 @@ namespace Etherna.VideoImporter
                         break;
 
                     default:
-                        throw new ArgumentException(optArgs[i] + " is not a valid option");
+                        if (sourceType == SourceType.JsonList && sourceUrls.Count != 0)
+                            throw new ArgumentException("Json import only supports a single url");
+                        
+                        sourceUrls.Add(optArgs[i]);
+                        break;
                 }
             }
 
@@ -278,13 +291,6 @@ namespace Etherna.VideoImporter
                 return;
             }
 
-            //deny delete video old sources when is single video
-            if (sourceType == SourceType.YouTubeVideo && removeMissingVideosFromSource)
-            {
-                Console.WriteLine($"Cannot delete video removed from source when the source is a single video");
-                return;
-            }
-
             // Check for new versions.
             var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
             if (newVersionAvaiable && !ignoreUpdate)
@@ -300,7 +306,7 @@ namespace Etherna.VideoImporter
                     CommonConsts.EthernaVideoImporterClientId,
                     null,
                     11420,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {
@@ -312,7 +318,7 @@ namespace Etherna.VideoImporter
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
                     CommonConsts.EthernaSsoUrl,
                     apiKey,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {
@@ -323,6 +329,7 @@ namespace Etherna.VideoImporter
                                  .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
 
             // Setup DI.
+            //core
             services.AddCoreServices(
                 encoderOptions =>
                 {
@@ -330,8 +337,7 @@ namespace Etherna.VideoImporter
                 },
                 ffMpegOptions =>
                 {
-                    if (customFFMpegFolderPath is not null)
-                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
+                    ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                 },
                 uploaderOptions =>
                 {
@@ -348,48 +354,43 @@ namespace Etherna.VideoImporter
                 HttpClientName,
                 useBeeNativeNode);
 
+            //source provider
             switch (sourceType)
             {
                 case SourceType.JsonList:
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {
-                        options.JsonMetadataUri = new SourceUri(sourceUri, SourceUriKind.Local | SourceUriKind.OnlineAbsolute);
+                        options.JsonMetadataUri = new SourceUri(sourceUrls.First(), SourceUriKind.Local | SourceUriKind.OnlineAbsolute);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 
                     //services
                     services.AddTransient<IVideoProvider, JsonListVideoProvider>();
                     break;
-                case SourceType.YouTubeChannel:
+                case SourceType.YouTube:
                     //options
-                    services.Configure<YouTubeChannelVideoProviderOptions>(options =>
+                    services.Configure<YouTubeVideoProviderOptions>(options =>
                     {
-                        options.ChannelUrl = sourceUri;
+                        options.SourceUrls = sourceUrls;
                     });
-                    services.AddSingleton<IValidateOptions<YouTubeChannelVideoProviderOptions>, YouTubeChannelVideoProviderOptionsValidation>();
+                    services.AddSingleton<IValidateOptions<YouTubeVideoProviderOptions>, YouTubeVideoProviderOptionsValidation>();
 
                     //services
                     services.AddTransient<IYoutubeClient, YoutubeClient>();
                     services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
-                    services.AddTransient<IVideoProvider, YouTubeChannelVideoProvider>();
-                    break;
-                case SourceType.YouTubeVideo:
-                    //options
-                    services.Configure<YouTubeSingleVideoProviderOptions>(options =>
-                    {
-                        options.VideoUrl = sourceUri;
-                    });
-                    services.AddSingleton<IValidateOptions<YouTubeSingleVideoProviderOptions>, YouTubeSingleVideoProviderOptionsValidation>();
-
-                    //services
-                    services.AddTransient<IYoutubeClient, YoutubeClient>();
-                    services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
-                    services.AddTransient<IVideoProvider, YouTubeSingleVideoProvider>();
+                    services.AddTransient<IVideoProvider, YouTubeVideoProvider>();
                     break;
                 default:
                     throw new InvalidOperationException();
             }
+            
+            //result reporter
+            services.Configure<JsonResultReporterOptions>(options =>
+            {
+                options.OutputFilePath = outputFile;
+            });
+            services.AddTransient<IResultReporterService, JsonResultReporterService>();
 
             var serviceProvider = services.BuildServiceProvider();
 

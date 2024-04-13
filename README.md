@@ -10,32 +10,32 @@ Currently exists two versions:
 * `EthernaVideoImporter` for a generic use
 * `EthernaVideoImporter.Devcon` to import specifically Devcon Archive's videos
 
-Etherna Video Importer requires at least [.NET 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) and [ASP.NET Core 7 Runtime](https://dotnet.microsoft.com/download/dotnet/7.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
+Etherna Video Importer requires at least [.NET 8 Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) and [ASP.NET Core 8 Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed on local machine to run, or it needs the `selfcontained` version of package, that already contains framework dependencies.
 
-### Setup FFmpeg
-To run the importer you need to download [FFmpeg](https://ffmpeg.org/download.html) locally, and copy the binary file into the default folder "\FFmpeg", or specify its location with arguments.
+### Setup FFmpeg and FFprobe
+To run the importer you need to download [FFmpeg and FFprobe](https://ffmpeg.org/download.html) locally, and copy them into the default folder "\FFmpeg", or specify its location with arguments.
 
 ### How to use
 
 **EthernaVideoImporter's help**
 ```
-Usage:  evi COMMAND SOURCE_URI [OPTIONS]
+Usage:  evi COMMAND SOURCE_URI [SOURCE_URI, ...] [OPTIONS]
 
 Commands:
-  json              Import from json video list (requires metadata descriptor, see below)
-  youtube-channel   Import from a YouTube channel
-  youtube-video     Import from a YouTube video
+  json      Import from json video list (requires metadata descriptor, see below)
+  youtube   Import from multiple YouTube links. Supports videos, channels and playlists urls
 
 General Options:
   -k, --api-key           Api Key (optional)
-  -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
+  -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
+  -w, --write-file        Write published videos result to a JSON file
 
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
   -o, --offer             Offer video downloads to everyone
-  -p, --pin               Pin videos
+  --no-pin                Don't pin videos (pinning by default)
   --force                 Force upload video if they already have been uploaded
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
@@ -56,7 +56,11 @@ To import from a video list you need a metadata descriptor file. Metadata is a J
         "Title": "First video title",
         "Description": "My first video description",
         "VideoFilePath": "path/to/your/video1.mp4",
-        "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg"
+        "ThumbnailFilePath": "path/to/your/optional/thumbnail1.jpg",
+        "OldIds": [
+            "optionalOldId1",
+            "optionalOldId2"
+        ]
     },
     {
         "Id": "myId2",
@@ -69,8 +73,6 @@ To import from a video list you need a metadata descriptor file. Metadata is a J
 ]
 
 Id field is mandatory, and is needed to trace same video through different executions. Each Id needs to be unique.
-Video paths can be local or online uris. Thumbnail paths are optional, and can only be local.
-Local paths can be relative or absolute, online urls can only be absolute.
 
 Run 'evi -h' or 'evi --help' to print help.
 ```
@@ -81,14 +83,14 @@ Usage:  evid MD_FOLDER [OPTIONS]
 
 General Options:
   -k, --api-key           Api Key (optional)
-  -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
+  -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
 
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
   -o, --offer             Offer video downloads to everyone
-  -p, --pin               Pin videos
+  --no-pin                Don't pin videos (pinning by default)
   --force                 Force upload video if they already have been uploaded
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
