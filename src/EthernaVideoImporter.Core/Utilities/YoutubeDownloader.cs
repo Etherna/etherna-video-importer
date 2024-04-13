@@ -1,11 +1,11 @@
-﻿//   Copyright 2022-present Etherna Sagl
-//
+﻿//   Copyright 2022-present Etherna SA
+// 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,8 +56,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Methods.
         public async Task<Video> GetVideoAsync(YouTubeVideoMetadataBase videoMetadata)
         {
-            if (videoMetadata is null)
-                throw new ArgumentNullException(nameof(videoMetadata));
+            ArgumentNullException.ThrowIfNull(videoMetadata, nameof(videoMetadata));
 
             // Get manifest data.
             var youtubeStreamsManifest = await YoutubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
@@ -79,16 +78,14 @@ namespace Etherna.VideoImporter.Core.Utilities
             var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
 
             // Get thumbnail.
-            IEnumerable<ThumbnailSourceFile> thumbnailFiles = Array.Empty<ThumbnailSourceFile>();
-            if (videoMetadata.Thumbnail is not null)
-            {
-                var bestResolutionThumbnail = await DownloadThumbnailAsync(
-                    videoMetadata.Thumbnail,
-                    videoMetadata.Title);
+            var bestResolutionThumbnail = videoMetadata.Thumbnail is null ?
+                await ThumbnailSourceFile.BuildNewAsync(
+                    new SourceUri(await ffMpegService.ExtractThumbnailAsync(videoLocalFile), SourceUriKind.LocalAbsolute),
+                    httpClientFactory) :
+                await DownloadThumbnailAsync(videoMetadata.Thumbnail, videoMetadata.Title);
 
-                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
-            }
-
+            var thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
+            
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
 
@@ -97,8 +94,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             Thumbnail thumbnail,
             string videoTitle)
         {
-            if (thumbnail is null)
-                throw new ArgumentNullException(nameof(thumbnail));
+            ArgumentNullException.ThrowIfNull(thumbnail, nameof(thumbnail));
 
             string thumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
 
@@ -152,7 +148,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     var downloadStart = DateTime.UtcNow;
                     await YoutubeClient.Videos.DownloadAsync(
                         new IStreamInfo[] { audioOnlyStream, videoOnlyStream },
-                        new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(ffMpegService.FFmpegBinaryPath).Build(),
+                        new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(await ffMpegService.GetFFmpegBinaryPathAsync()).Build(),
                         new Progress<double>((progressStatus) =>
                             PrintProgressLine(
                                 $"Downloading and mux {videoQualityLabel}",
@@ -173,7 +169,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return VideoSourceFile.BuildNew(
+            return await VideoSourceFile.BuildNewAsync(
                 new SourceUri(videoFilePath, SourceUriKind.Local),
                 ffMpegService,
                 httpClientFactory);

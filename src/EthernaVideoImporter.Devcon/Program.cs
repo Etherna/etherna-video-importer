@@ -1,18 +1,18 @@
-﻿//   Copyright 2022-present Etherna Sagl
-//
+﻿//   Copyright 2022-present Etherna SA
+// 
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
-//
+// 
 //       http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-using Etherna.ServicesClient.Users.Native;
+using Etherna.Sdk.Users.Native;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
@@ -32,19 +32,20 @@ namespace Etherna.VideoImporter.Devcon
     internal static class Program
     {
         // Consts.
+        private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
         private static readonly string HelpText = $$"""
             Usage:  evid MD_FOLDER [OPTIONS]
 
             General Options:
               -k, --api-key           Api Key (optional)
-              -f, --ffmpeg-path       Path to FFmpeg folder (default: <app_dir>/FFmpeg)
+              -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
               -o, --offer             Offer video downloads to everyone
-              -p, --pin               Pin videos
+              --no-pin                Don't pin videos (pinning by default)
               --force                 Force upload video if they already have been uploaded
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
@@ -74,7 +75,7 @@ namespace Etherna.VideoImporter.Devcon
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
-            bool pinVideos = false;
+            bool pinVideos = true;
             bool forceVideoUpload = false;
             bool removeMissingVideosFromSource = false;
             bool removeUnrecognizedVideos = false;
@@ -156,9 +157,12 @@ namespace Etherna.VideoImporter.Devcon
                         offerVideos = true;
                         break;
 
-                    case "-p":
-                    case "--pin":
-                        pinVideos = true;
+                    // case "-p":
+                    // case "--pin":
+                    //     pinVideos = true;
+                    //     break;
+                    case "--no-pin":
+                        pinVideos = false;
                         break;
 
                     case "--force":
@@ -196,7 +200,7 @@ namespace Etherna.VideoImporter.Devcon
                             throw new ArgumentException("Bee node value is missing");
                         beeNodeUrl = optArgs[++i];
                         useBeeNativeNode = true;
-                        if (!beeNodeUrl.EndsWith("/", StringComparison.InvariantCulture))
+                        if (!beeNodeUrl.EndsWith('/'))
                             beeNodeUrl += "/";
                         break;
 
@@ -260,7 +264,7 @@ namespace Etherna.VideoImporter.Devcon
                     CommonConsts.EthernaVideoImporterClientId,
                     null,
                     11420,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {
@@ -272,7 +276,7 @@ namespace Etherna.VideoImporter.Devcon
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
                     CommonConsts.EthernaSsoUrl,
                     apiKey,
-                    new[] { "userApi.gateway", "userApi.index" },
+                    ApiScopes,
                     HttpClientName,
                     c =>
                     {
@@ -283,14 +287,7 @@ namespace Etherna.VideoImporter.Devcon
                                  .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
 
             // Setup DI.
-            //configure options
-            services.Configure<MdVideoProviderOptions>(options =>
-            {
-                options.MdSourceFolderPath = mdSourceFolderPath;
-            });
-            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
-
-            //add services
+            //core
             services.AddCoreServices(
                 encoderOptions =>
                 {
@@ -298,8 +295,7 @@ namespace Etherna.VideoImporter.Devcon
                 },
                 ffMpegOptions =>
                 {
-                    if (customFFMpegFolderPath is not null)
-                        ffMpegOptions.FFmpegFolderPath = customFFMpegFolderPath;
+                    ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                     ffMpegOptions.PresetCodec = presetCodec;
                 },
                 uploaderOptions =>
@@ -316,9 +312,24 @@ namespace Etherna.VideoImporter.Devcon
                 },
                 HttpClientName,
                 useBeeNativeNode);
+            
+            //source provider
+            services.Configure<MdVideoProviderOptions>(options =>
+            {
+                options.MdSourceFolderPath = mdSourceFolderPath;
+            });
+            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
             services.AddTransient<IYoutubeClient, YoutubeClient>();
             services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
             services.AddTransient<IVideoProvider, MdVideoProvider>();
+            
+            //result reporter
+            services.Configure<MdResultReporterOptions>(options =>
+            {
+                options.MdResultFolderPath = mdSourceFolderPath;
+            });
+            services.AddSingleton<IValidateOptions<MdResultReporterOptions>, MdResultReporterOptionsValidation>();
+            services.AddTransient<IResultReporterService, MdResultReporterService>();
 
             var serviceProvider = services.BuildServiceProvider();
 

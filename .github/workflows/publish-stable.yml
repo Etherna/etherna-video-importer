@@ -11,45 +11,121 @@ jobs:
 
     strategy:
       matrix:
-        kind: ['linux', 'linuxselfcontained', 'macos', 'macosselfcontained', 'windows', 'windowsselfcontained']
+        kind: [
+          'linux-x64',
+          'linux-arm',
+          'linux-arm64',
+          
+          'linux-selfcont-x64',
+          'linux-selfcont-arm',
+          'linux-selfcont-arm64',
+          
+          'macos-x64',
+          'macos-arm64',
+          
+          'macos-selfcont-x64',
+          'macos-selfcont-arm64',
+          
+          'windows-x86',
+          'windows-x64',
+          'windows-arm',
+          'windows-arm64',
+          
+          'windows-selfcont-x86',
+          'windows-selfcont-x64',
+          'windows-selfcont-arm',
+          'windows-selfcont-arm64']
         include:
-          - kind: linux
+          - kind: linux-x64
             os: ubuntu-latest
             target: linux-x64
             frameworktype: --no-self-contained
-          - kind: linuxselfcontained
+          - kind: linux-arm
+            os: ubuntu-latest
+            target: linux-arm
+            frameworktype: --no-self-contained
+          - kind: linux-arm64
+            os: ubuntu-latest
+            target: linux-arm64
+            frameworktype: --no-self-contained
+            
+          - kind: linux-selfcont-x64
             os: ubuntu-latest
             target: linux-x64
             frameworktype: --self-contained
-          - kind: macos
+          - kind: linux-selfcont-arm
+            os: ubuntu-latest
+            target: linux-arm
+            frameworktype: --self-contained
+          - kind: linux-selfcont-arm64
+            os: ubuntu-latest
+            target: linux-arm64
+            frameworktype: --self-contained
+            
+          - kind: macos-x64
             os: macOS-latest
             target: osx-x64
             frameworktype: --no-self-contained
-          - kind: macosselfcontained
+          - kind: macos-arm64
+            os: macOS-latest
+            target: osx-arm64
+            frameworktype: --no-self-contained
+            
+          - kind: macos-selfcont-x64
             os: macOS-latest
             target: osx-x64
             frameworktype: --self-contained
-          - kind: windows
+          - kind: macos-selfcont-arm64
+            os: macOS-latest
+            target: osx-arm64
+            frameworktype: --self-contained
+            
+          - kind: windows-x86
+            os: windows-latest
+            target: win-x86
+            frameworktype: --no-self-contained
+          - kind: windows-x64
             os: windows-latest
             target: win-x64
             frameworktype: --no-self-contained
-          - kind: windowsselfcontained
+          - kind: windows-arm
+            os: windows-latest
+            target: win-arm
+            frameworktype: --no-self-contained
+          - kind: windows-arm64
+            os: windows-latest
+            target: win-arm64
+            frameworktype: --no-self-contained
+            
+          - kind: windows-selfcont-x86
+            os: windows-latest
+            target: win-x86
+            frameworktype: --self-contained
+          - kind: windows-selfcont-x64
             os: windows-latest
             target: win-x64
+            frameworktype: --self-contained
+          - kind: windows-selfcont-arm
+            os: windows-latest
+            target: win-arm
+            frameworktype: --self-contained
+          - kind: windows-selfcont-arm64
+            os: windows-latest
+            target: win-arm64
             frameworktype: --self-contained
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup dotnet 
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
 
       - name: Build EthernaVideoImporter project
         shell: bash
@@ -59,7 +135,7 @@ jobs:
           # Build everything
           dotnet publish src/EthernaVideoImporter/EthernaVideoImporter.csproj --runtime "${{ matrix.target }}" "${{ matrix.frameworktype }}" -c Release -o "$release_name"
           # Pack files
-          if [ "${{ matrix.target }}" == "win-x64" ]; then
+          if [ "${{ matrix.kind }}" == windows* ]; then
             7z a -tzip "${release_name}.zip" "./${release_name}/*"
           else
             tar czvf "${release_name}.tar.gz" "$release_name"
@@ -73,7 +149,7 @@ jobs:
           # Build everything
           dotnet publish src/EthernaVideoImporter.Devcon/EthernaVideoImporter.Devcon.csproj --runtime "${{ matrix.target }}" "${{ matrix.frameworktype }}" -c Release -o "$release_name"
           # Pack files
-          if [ "${{ matrix.target }}" == "win-x64" ]; then
+          if [ "${{ matrix.kind }}" == windows* ]; then
             7z a -tzip "${release_name}.zip" "./${release_name}/*"
           else
             tar czvf "${release_name}.tar.gz" "$release_name"

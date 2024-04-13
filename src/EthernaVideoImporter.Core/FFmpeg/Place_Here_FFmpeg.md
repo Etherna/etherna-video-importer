@@ -1,6 +1,7 @@
-﻿Setup FFmpeg
-------------
+﻿# Setup FFmpeg and FFprobe
 
-This folder must contain the binary file of FFmpeg for the operating system in use. 
+This is the FFmpeg and FFprobe fallback folder.
 
-The file can be downloaded from the official site https://ffmpeg.org/download.html
+Put here binaries, install them globaly, or configure a custom path with application arguments. 
+
+FFmpeg and FFprobe can be downloaded from the official site https://ffmpeg.org/download.html
