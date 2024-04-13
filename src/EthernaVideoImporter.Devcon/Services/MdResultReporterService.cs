@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Devcon.Options;
 using Microsoft.Extensions.Options;
 using System;
@@ -52,8 +52,8 @@ namespace Etherna.VideoImporter.Devcon.Services
                 return;
             
             var filePath = Path.Combine(options.MdResultFolderPath, succededResult.SourceMetadata.Id);
-            var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + succededResult.IndexId;
-            var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + succededResult.ReferenceHash;
+            var ethernaIndexUrl = UrlBuilder.BuildEmbeddedIndexUrl(succededResult.IndexId);
+            var ethernaPermalinkUrl = UrlBuilder.BuildEmbeddedPermalinkUrl(succededResult.ReferenceHash);
 
             // Read all line.
             var lines = (await File.ReadAllLinesAsync(filePath)).ToList();

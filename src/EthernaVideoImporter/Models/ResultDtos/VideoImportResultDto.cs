@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Models.Domain;
 using System;
 
@@ -46,7 +47,11 @@ namespace Etherna.VideoImporter.Models.ResultDtos
         }
         
         public DateTime CompletedDateTime { get; }
+        public string? EmbeddedIndexLink => IndexId is null ? null : UrlBuilder.BuildEmbeddedIndexUrl(IndexId);
+        public string? EmbeddedPermalink => SwarmHash is null ? null : UrlBuilder.BuildEmbeddedPermalinkUrl(SwarmHash);
         public string? IndexId { get; }
+        public string? NormalIndexLink => IndexId is null ? null : UrlBuilder.BuildNormalIndexUrl(IndexId);
+        public string? NormalPermalink => SwarmHash is null ? null : UrlBuilder.BuildNormalPermalinkUrl(SwarmHash);
         public SourceMetadataDtoBase SourceMetadata { get; }
         public bool Succeeded { get; }
         public string? SwarmHash { get; }
