@@ -36,6 +36,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
+        private readonly IAppVersionService appVersionService;
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
         private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -43,10 +44,12 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Constructor.
         public VideoUploaderService(
+            IAppVersionService appVersionService,
             IEthernaUserIndexClient ethernaIndexClient,
             IGatewayService gatewayService,
             IOptions<VideoUploaderServiceOptions> options)
         {
+            this.appVersionService = appVersionService;
             this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
             this.options = options.Value;
@@ -185,7 +188,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Manifest.
-            var metadataVideo = await ManifestDto.BuildNewAsync(video, batchId, userEthAddress);
+            var metadataVideo = await ManifestDto.BuildNewAsync(video, batchId, userEthAddress, appVersionService.CurrentVersion);
             {
                 var uploadSucceeded = false;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)

@@ -35,10 +35,11 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         // Builders.
-        public static async Task<ManifestDto> BuildNewAsync(
+        internal static async Task<ManifestDto> BuildNewAsync(
             Video video,
             string batchId,
             string ownerAddress,
+            Version? appCurrentVersion,
             bool allowFakeReferences = false)
         {
             ArgumentNullException.ThrowIfNull(video, nameof(video));
@@ -61,7 +62,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 UpdatedAt = null,
                 BatchId = batchId,
-                PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id))
+                PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id, appCurrentVersion ?? new Version()))
             };
         }
 

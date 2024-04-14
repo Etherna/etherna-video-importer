@@ -57,6 +57,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 this,
                 CommonConsts.SwarmNullReference,
                 CommonConsts.EthereumNullAddress,
+                null,
                 allowFakeReferences: true)).Length;
 
             return totalByteSize;

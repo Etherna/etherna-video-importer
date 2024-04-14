@@ -298,11 +298,6 @@ namespace Etherna.VideoImporter
                 return;
             }
 
-            // Check for new versions.
-            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
-            if (newVersionAvaiable && !ignoreUpdate)
-                return;
-
             // Register etherna service clients.
             var services = new ServiceCollection();
             IEthernaUserClientsBuilder ethernaClientsBuilder;
@@ -409,7 +404,8 @@ namespace Etherna.VideoImporter
                 forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                unpinRemovedVideos);
+                unpinRemovedVideos,
+                ignoreUpdate);
         }
     }
 }

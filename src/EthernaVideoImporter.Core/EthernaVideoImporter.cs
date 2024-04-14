@@ -33,6 +33,7 @@ namespace Etherna.VideoImporter.Core
     public class EthernaVideoImporter : IEthernaVideoImporter
     {
         // Fields.
+        private readonly IAppVersionService appVersionService;
         private readonly ICleanerVideoService cleanerVideoService;
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
@@ -45,6 +46,7 @@ namespace Etherna.VideoImporter.Core
 
         // Constructor.
         public EthernaVideoImporter(
+            IAppVersionService appVersionService,
             ICleanerVideoService cleanerVideoService,
             IEthernaUserIndexClient ethernaIndexClient,
             IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
@@ -59,6 +61,7 @@ namespace Etherna.VideoImporter.Core
             ArgumentNullException.ThrowIfNull(videoProvider, nameof(videoProvider));
             ArgumentNullException.ThrowIfNull(videoUploaderService, nameof(videoUploaderService));
 
+            this.appVersionService = appVersionService;
             this.cleanerVideoService = cleanerVideoService;
             this.ethernaIndexClient = ethernaIndexClient;
             this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
@@ -77,8 +80,36 @@ namespace Etherna.VideoImporter.Core
             bool forceVideoUpload,
             bool offerVideos,
             bool pinVideos,
-            bool unpinRemovedVideos)
+            bool unpinRemovedVideos,
+            bool ignoreAppUpdates)
         {
+            // Print startup header.
+            Console.WriteLine();
+            Console.WriteLine($"Etherna Video Importer (v{appVersionService.CurrentVersion})");
+            Console.WriteLine();
+
+            // Check for new app versions.
+            try
+            {
+                var (lastVersion, lastVersionUrl) = await appVersionService.GetLastVersionAsync();
+                if (lastVersion > appVersionService.CurrentVersion)
+                {
+                    Console.WriteLine($"A new release is available: {lastVersion}");
+                    Console.WriteLine($"Upgrade now, or check out the release page at:");
+                    Console.WriteLine($" {lastVersionUrl}");
+
+                    if (!ignoreAppUpdates)
+                        return;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("Unable to verify last version on GitHub");
+                Console.WriteLine($"Error: {e.Message}");
+                Console.ResetColor();
+            }
+            
             // Signin user.
             try
             {
@@ -194,7 +225,11 @@ namespace Etherna.VideoImporter.Core
                             var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
                             // Upload new manifest.
-                            var metadataVideo = await ManifestDto.BuildNewAsync(video, alreadyPresentVideo.LastValidManifest.BatchId, userEthAddress);
+                            var metadataVideo = await ManifestDto.BuildNewAsync(
+                                video,
+                                alreadyPresentVideo.LastValidManifest.BatchId,
+                                userEthAddress,
+                                appVersionService.CurrentVersion);
                             var updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.

@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Threading.Tasks;
+using System;
 
-namespace Etherna.VideoImporter.Core
+namespace Etherna.VideoImporter.Core.Services
 {
-    public interface IEthernaVideoImporter
+    public interface IIoService
     {
-        Task RunAsync(
-            bool removeUnrecognizedVideos,
-            bool removeMissingVideosFromSource,
-            bool forceVideoUpload,
-            bool offerVideos,
-            bool pinVideos,
-            bool unpinRemovedVideos,
-            bool ignoreAppUpdates);
+        ConsoleKeyInfo ReadKey();
+        string? ReadLine();
+        void Write(string? value);
+        void WriteError(string value);
+        void WriteErrorLine(string value, bool addTimeStamp = true);
+        void WriteLine(string? value = null, bool addTimeStamp = true);
     }
 }
