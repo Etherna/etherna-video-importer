@@ -28,12 +28,10 @@ jobs:
           
           'windows-x86',
           'windows-x64',
-          'windows-arm',
           'windows-arm64',
           
           'windows-selfcont-x86',
           'windows-selfcont-x64',
-          'windows-selfcont-arm',
           'windows-selfcont-arm64']
         include:
           - kind: linux-x64
@@ -88,10 +86,6 @@ jobs:
             os: windows-latest
             target: win-x64
             frameworktype: --no-self-contained
-          - kind: windows-arm
-            os: windows-latest
-            target: win-arm
-            frameworktype: --no-self-contained
           - kind: windows-arm64
             os: windows-latest
             target: win-arm64
@@ -104,10 +98,6 @@ jobs:
           - kind: windows-selfcont-x64
             os: windows-latest
             target: win-x64
-            frameworktype: --self-contained
-          - kind: windows-selfcont-arm
-            os: windows-latest
-            target: win-arm
             frameworktype: --self-contained
           - kind: windows-selfcont-arm64
             os: windows-latest
