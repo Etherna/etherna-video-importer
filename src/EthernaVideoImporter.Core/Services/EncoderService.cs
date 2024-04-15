@@ -34,6 +34,8 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly IFFmpegService ffMpegService;
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly IIoService ioService;
+
         [SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used")]
         private readonly EncoderServiceOptions options;
 
@@ -41,11 +43,13 @@ namespace Etherna.VideoImporter.Core.Services
         public EncoderService(
             IFFmpegService ffMpegService,
             IHttpClientFactory httpClientFactory,
+            IIoService ioService,
             IOptions<EncoderServiceOptions> options)
         {
             this.options = options.Value;
             this.ffMpegService = ffMpegService;
             this.httpClientFactory = httpClientFactory;
+            this.ioService = ioService;
         }
 
         // Methods.
@@ -68,13 +72,13 @@ namespace Etherna.VideoImporter.Core.Services
                     ffMpegService,
                     httpClientFactory));
 
-                Console.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
+                ioService.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }
 
             // Remove all video encodings where exists another with greater resolution, and equal or less file size.
             await RemoveUnusefulResolutionsAsync(videoEncodedFiles);
 
-            Console.WriteLine($"Keep [{videoEncodedFiles.Select(vf => vf.Height.ToString(CultureInfo.InvariantCulture))
+            ioService.WriteLine($"Keep [{videoEncodedFiles.Select(vf => vf.Height.ToString(CultureInfo.InvariantCulture))
                                                         .Aggregate((r, h) => $"{r}, {h}")}] as valid resolutions to upload");
 
             return videoEncodedFiles;

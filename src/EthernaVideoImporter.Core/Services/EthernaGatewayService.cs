@@ -28,14 +28,17 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Fields.
         private readonly IEthernaUserGatewayClient ethernaGatewayClient;
+        private readonly IIoService ioService;
 
         // Constructor.
         public EthernaGatewayService(
             IBeeGatewayClient beeGatewayClient,
-            IEthernaUserGatewayClient ethernaGatewayClient)
-            : base(beeGatewayClient)
+            IEthernaUserGatewayClient ethernaGatewayClient,
+            IIoService ioService)
+            : base(beeGatewayClient, ioService)
         {
             this.ethernaGatewayClient = ethernaGatewayClient;
+            this.ioService = ioService;
         }
 
         // Methods.
@@ -44,7 +47,8 @@ namespace Etherna.VideoImporter.Core.Services
             var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDepth, amount);
 
             // Wait until created batch is avaiable.
-            Console.Write("Waiting for batch created... (it may take a while)");
+            ioService.PrintTimeStamp();
+            ioService.Write("Waiting for batch created... (it may take a while)");
 
             var batchStartWait = DateTime.UtcNow;
             string? batchId = null;
@@ -69,7 +73,7 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             } while (string.IsNullOrWhiteSpace(batchId));
 
-            Console.WriteLine(". Done");
+            ioService.WriteLine(". Done", false);
 
             await WaitForBatchUsableAsync(batchId);
 

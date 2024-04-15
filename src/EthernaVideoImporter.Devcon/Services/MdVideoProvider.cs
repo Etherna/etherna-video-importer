@@ -44,10 +44,12 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Fields.
         private readonly IDeserializer deserializer;
         private readonly MdVideoProviderOptions options;
+        private readonly IIoService ioService;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public MdVideoProvider(
+            IIoService ioService,
             IOptions<MdVideoProviderOptions> options,
             IYoutubeDownloader youtubeDownloader)
         {
@@ -56,6 +58,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 .IgnoreUnmatchedProperties()
                 .Build();
             this.options = options.Value;
+            this.ioService = ioService;
             this.youtubeDownloader = youtubeDownloader;
         }
 
@@ -70,14 +73,14 @@ namespace Etherna.VideoImporter.Devcon.Services
         {
             var mdFilesPaths = Directory.GetFiles(options.MdSourceFolderPath, "*.md", SearchOption.AllDirectories);
 
-            Console.WriteLine($"Found {mdFilesPaths.Length} videos");
+            ioService.WriteLine($"Found {mdFilesPaths.Length} videos");
 
             var videosMetadata = new List<(ArchiveMdFileDto mdDto, string mdRelativePath)>();
             foreach (var (mdFilePath, i) in mdFilesPaths.Select((f, i) => (f, i)))
             {
                 var mdFileRelativePath = Path.GetRelativePath(options.MdSourceFolderPath, mdFilePath);
 
-                Console.WriteLine($"File #{i + 1} of {mdFilesPaths.Length}: {mdFileRelativePath}");
+                ioService.WriteLine($"File #{i + 1} of {mdFilesPaths.Length}: {mdFileRelativePath}");
 
                 ArchiveMdFileDto videoDataInfoDto;
                 try
@@ -85,14 +88,12 @@ namespace Etherna.VideoImporter.Devcon.Services
                     var content = await File.ReadAllTextAsync(mdFilePath);
                     videoDataInfoDto = DeserializeYamlContent(content);
 
-                    Console.WriteLine("\tParsed md file");
+                    ioService.WriteLine("\tParsed md file");
                 }
                 catch (Exception ex) when (ex is InvalidDataException or YamlException)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error parsing metadata from md file \"{mdFilePath}\"");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
+                    ioService.WriteErrorLine($"Error parsing metadata from md file \"{mdFilePath}\"");
+                    ioService.PrintException(ex);
 
                     continue;
                 }

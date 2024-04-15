@@ -31,6 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Fields.
         private readonly List<Command> activedCommands = new();
+        private readonly IIoService ioService;
         private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly FFmpegServiceOptions options;
         private string? ffMpegBinaryPath;
@@ -38,8 +39,10 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Constructor.
         public FFmpegService(
+            IIoService ioService,
             IOptions<FFmpegServiceOptions> options)
         {
+            this.ioService = ioService;
             this.options = options.Value;
         }
 
@@ -54,13 +57,13 @@ namespace Etherna.VideoImporter.Core.Services
                 outputHeights,
                 out IEnumerable<(string filePath, int height, int width)> outputs);
 
-            Console.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
+            ioService.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
 
             // Run FFmpeg command.
             var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
 
             activedCommands.Add(command);
-            Console.CancelKeyPress += ManageInterrupted;
+            ioService.CancelKeyPress += ManageInterrupted;
 
             // Print filtered console output.
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -73,7 +76,7 @@ namespace Etherna.VideoImporter.Core.Services
                 foreach (var line in command.GetOutputAndErrorLines())
                 {
                     if (line.StartsWith("frame=", StringComparison.InvariantCulture))
-                        Console.Write(line + '\r');
+                        ioService.Write(line + '\r');
                 }
             });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -81,9 +84,9 @@ namespace Etherna.VideoImporter.Core.Services
             // Waiting until end and stop console output.
             var result = await command.Task;
 
-            Console.Write(new string(' ', Console.BufferWidth));
-            Console.SetCursorPosition(0, Console.CursorTop - 1);
-            Console.WriteLine();
+            ioService.Write(new string(' ', ioService.BufferWidth));
+            ioService.SetCursorPosition(0, ioService.CursorTop - 1);
+            ioService.WriteLine(null, false);
 
             // Inspect and print result.
             if (!result.Success)
@@ -93,7 +96,7 @@ namespace Etherna.VideoImporter.Core.Services
         
         public async Task<string> ExtractThumbnailAsync(VideoSourceFile videoSourceFile)
         {
-            Console.WriteLine($"Extract random thumbnail");
+            ioService.WriteLine($"Extract random thumbnail");
 
             // Run FFmpeg command.
             var outputThumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{Guid.NewGuid()}_thumbnail.jpg");
@@ -106,7 +109,7 @@ namespace Etherna.VideoImporter.Core.Services
             var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
 
             activedCommands.Add(command);
-            Console.CancelKeyPress += ManageInterrupted;
+            ioService.CancelKeyPress += ManageInterrupted;
 
             // Waiting until end and stop console output.
             var result = await command.Task;

@@ -33,7 +33,7 @@ namespace Etherna.VideoImporter.Devcon
     {
         // Consts.
         private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
-        private static readonly string HelpText = $$"""
+        private static readonly string HelpText = $"""
             Usage:  evid MD_FOLDER [OPTIONS]
 
             General Options:
@@ -43,7 +43,7 @@ namespace Etherna.VideoImporter.Devcon
               -a, --auto-purchase     Accept automatically purchase of all batches
 
             Video Management Options:
-              -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
+              -t, --ttl               TTL (days) Postage Stamp (default: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)
               -o, --offer             Offer video downloads to everyone
               --no-pin                Don't pin videos (pinning by default)
               --force                 Force upload video if they already have been uploaded
@@ -53,9 +53,9 @@ namespace Etherna.VideoImporter.Devcon
 
             Bee Node Options:
               --bee-node              Use bee native node
-              --bee-url               URL of Bee node (default: {{CommonConsts.BeeNodeUrl}})
-              --bee-api-port          Port used by API (default: {{CommonConsts.BeeApiPort}})
-              --bee-debug-port        Port used by Debug (default: {{CommonConsts.BeeDebugPort}})
+              --bee-url               URL of Bee node (default: {CommonConsts.BeeNodeUrl})
+              --bee-api-port          Port used by API (default: {CommonConsts.BeeApiPort})
+              --bee-debug-port        Port used by Debug (default: {CommonConsts.BeeDebugPort})
 
             Run 'evid -h' or 'evid --help' to print help.
             """;
@@ -240,11 +240,6 @@ namespace Etherna.VideoImporter.Devcon
                 return;
             }
 
-            // Check for new versions.
-            var newVersionAvaiable = await EthernaVersionControl.CheckNewVersionAsync();
-            if (newVersionAvaiable && !ignoreUpdate)
-                return;
-
             // Register etherna service clients.
             var services = new ServiceCollection();
             IEthernaUserClientsBuilder ethernaClientsBuilder;
@@ -331,7 +326,8 @@ namespace Etherna.VideoImporter.Devcon
                 forceVideoUpload,
                 offerVideos,
                 pinVideos,
-                unpinRemovedVideos);
+                unpinRemovedVideos,
+                ignoreUpdate);
         }
     }
 }

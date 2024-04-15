@@ -38,6 +38,7 @@ namespace Etherna.VideoImporter.Core
             services.Configure(configureVideoUploaderOptions);
 
             // Add transient services.
+            services.AddTransient<IAppVersionService, AppVersionService>();
             services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
 
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
@@ -47,6 +48,7 @@ namespace Etherna.VideoImporter.Core
             else
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
             services.AddTransient<IMigrationService, MigrationService>();
+            services.AddTransient<IIoService, ConsoleIoService>();
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             // Add singleton services.

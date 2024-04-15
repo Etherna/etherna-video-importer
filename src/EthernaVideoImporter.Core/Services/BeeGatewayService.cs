@@ -21,17 +21,25 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public class BeeGatewayService : GatewayServiceBase
     {
+        // Fields.
+        private readonly IIoService ioService;
+
         // Constructor.
-        public BeeGatewayService(IBeeGatewayClient beeGatewayClient)
-            : base(beeGatewayClient)
-        { }
+        public BeeGatewayService(
+            IBeeGatewayClient beeGatewayClient,
+            IIoService ioService)
+            : base(beeGatewayClient, ioService)
+        {
+            this.ioService = ioService;
+        }
 
         // Methods.
         public override async Task<string> CreatePostageBatchAsync(long amount, int batchDepth)
         {
-            Console.Write("Waiting for batch created... (it may take a while)");
+            ioService.PrintTimeStamp();
+            ioService.Write("Waiting for batch created... (it may take a while)");
             var batchId = await beeGatewayClient.BuyPostageBatchAsync(amount, batchDepth);
-            Console.WriteLine(". Done");
+            ioService.WriteLine(". Done", false);
 
             await WaitForBatchUsableAsync(batchId);
 

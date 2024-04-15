@@ -25,10 +25,12 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         public string? VideoIdHash { get; set; }
 
         // Public methods.
-        public static ManifestPersonalDataDto BuildNew(string videoId) => new()
+        internal static ManifestPersonalDataDto BuildNew(
+            string videoId,
+            Version appCurrentVersion) => new()
         {
             ClientName = CommonConsts.ImporterIdentifier,
-            ClientVersion = EthernaVersionControl.CurrentVersion.ToString(),
+            ClientVersion = appCurrentVersion.ToString(),
             VideoIdHash = HashVideoId(videoId),
         };
 
