@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -66,6 +67,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         }
 
         // Methods.
-        public virtual Task<bool> TryFetchMetadataAsync() => Task.FromResult(true);
+        public virtual Task<bool> TryFetchMetadataAsync(IIoService ioService) => Task.FromResult(true);
     }
 }

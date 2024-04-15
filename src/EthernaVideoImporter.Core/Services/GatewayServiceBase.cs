@@ -29,12 +29,16 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Fields.
         protected readonly IBeeGatewayClient beeGatewayClient;
+        private readonly IIoService ioService;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 
         // Constructor.
-        protected GatewayServiceBase(IBeeGatewayClient beeGatewayClient)
+        protected GatewayServiceBase(
+            IBeeGatewayClient beeGatewayClient,
+            IIoService ioService)
         {
             this.beeGatewayClient = beeGatewayClient;
+            this.ioService = ioService;
         }
 
         // Methods.
@@ -68,7 +72,8 @@ namespace Etherna.VideoImporter.Core.Services
         protected async Task WaitForBatchUsableAsync(string batchId)
         {
             // Wait until created batch is usable.
-            Console.Write("Waiting for batch being usable... (it may take a while)");
+            ioService.PrintTimeStamp();
+            ioService.Write("Waiting for batch being usable... (it may take a while)");
 
             var batchStartWait = DateTime.UtcNow;
             bool batchIsUsable;
@@ -88,7 +93,7 @@ namespace Etherna.VideoImporter.Core.Services
                 await Task.Delay(BatchCheckTimeSpan);
             } while (!batchIsUsable);
 
-            Console.WriteLine(". Done");
+            ioService.WriteLine(". Done", false);
         }
     }
 }

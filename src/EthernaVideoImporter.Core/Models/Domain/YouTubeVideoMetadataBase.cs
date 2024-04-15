@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
@@ -65,8 +66,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         protected IYoutubeDownloader YoutubeDownloader { get; }
         
         // Methods.
-        public override async Task<bool> TryFetchMetadataAsync()
+        public override async Task<bool> TryFetchMetadataAsync(
+            IIoService ioService)
         {
+            ArgumentNullException.ThrowIfNull(ioService, nameof(ioService));
+            
             /*
              * YouTube could block fetches to avoid data scrapping.
              * If this happens, we need to retry with enough delay.
@@ -88,42 +92,34 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     Thumbnail = metadata.Thumbnails.MaxBy(t => t.Resolution.Area);
                     Title = metadata.Title;
                     
-                    Console.WriteLine($"Fetched YouTube metadata for {metadata.Title}");
+                    ioService.WriteLine($"Fetched YouTube metadata for {metadata.Title}");
 
                     return true;
                 }
                 catch (HttpRequestException ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error retrieving video: {YoutubeUrl}. Try again later");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
+                    ioService.WriteErrorLine($"Error retrieving video: {YoutubeUrl}. Try again later");
+                    ioService.PrintException(ex);
                 }
                 catch (TimeoutException ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Time out retrieving video: {YoutubeUrl}. Try again later");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
+                    ioService.WriteErrorLine($"Time out retrieving video: {YoutubeUrl}. Try again later");
+                    ioService.PrintException(ex);
                 }
                 catch (VideoUnplayableException ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Unplayable video: {YoutubeUrl}");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
+                    ioService.WriteErrorLine($"Unplayable video: {YoutubeUrl}");
+                    ioService.PrintException(ex);
                 }
                 catch (YoutubeExplodeException ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Can't read information from YouTube: {YoutubeUrl}");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
+                    ioService.WriteErrorLine($"Can't read information from YouTube: {YoutubeUrl}");
+                    ioService.PrintException(ex);
                 }
 
                 if (i + 1 < FetchRetryMax)
                 {
-                    Console.WriteLine($"Retry in {FetchRetryDelay.TotalMinutes} minutes");
+                    ioService.WriteLine($"Retry in {FetchRetryDelay.TotalMinutes} minutes");
                     await Task.Delay(FetchRetryDelay);
                 }
             }

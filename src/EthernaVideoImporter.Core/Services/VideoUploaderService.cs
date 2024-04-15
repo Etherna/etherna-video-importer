@@ -39,6 +39,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly IAppVersionService appVersionService;
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
+        private readonly IIoService ioService;
         private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly VideoUploaderServiceOptions options;
 
@@ -47,11 +48,13 @@ namespace Etherna.VideoImporter.Core.Services
             IAppVersionService appVersionService,
             IEthernaUserIndexClient ethernaIndexClient,
             IGatewayService gatewayService,
+            IIoService ioService,
             IOptions<VideoUploaderServiceOptions> options)
         {
             this.appVersionService = appVersionService;
             this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
+            this.ioService = ioService;
             this.options = options.Value;
         }
 
@@ -76,7 +79,7 @@ namespace Etherna.VideoImporter.Core.Services
             var amount = (long)(options.TtlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
             var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
-            Console.WriteLine($"Creating postage batch... Depth: {batchDepth}, Amount: {amount}, BZZ price: {bzzPrice}");
+            ioService.WriteLine($"Creating postage batch... Depth: {batchDepth}, Amount: {amount}, BZZ price: {bzzPrice}");
 
             if (!options.AcceptPurchaseOfAllBatches)
             {
@@ -84,9 +87,9 @@ namespace Etherna.VideoImporter.Core.Services
 
                 while (validSelection == false)
                 {
-                    Console.WriteLine($"Confirm the batch purchase? Y to confirm, A to confirm all, N to deny [Y|a|n]");
+                    ioService.WriteLine($"Confirm the batch purchase? Y to confirm, A to confirm all, N to deny [Y|a|n]");
 
-                    switch (Console.ReadKey())
+                    switch (ioService.ReadKey())
                     {
                         case { Key: ConsoleKey.Y }:
                         case { Key: ConsoleKey.Enter }:
@@ -99,7 +102,7 @@ namespace Etherna.VideoImporter.Core.Services
                         case { Key: ConsoleKey.N }:
                             throw new InvalidOperationException("Batch purchase denied");
                         default:
-                            Console.WriteLine("Invalid selection");
+                            ioService.WriteLine("Invalid selection");
                             break;
                     }
                 }
@@ -108,12 +111,12 @@ namespace Etherna.VideoImporter.Core.Services
             //create batch
             var batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
 
-            Console.WriteLine($"Postage batch: {batchId}");
+            ioService.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
             foreach (var encodedFile in video.EncodedFiles.OfType<SourceFile>())
             {
-                Console.WriteLine(encodedFile switch
+                ioService.WriteLine(encodedFile switch
                 {
                     AudioSourceFile _ => "Uploading audio track in progress...",
                     VideoSourceFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
@@ -135,10 +138,11 @@ namespace Etherna.VideoImporter.Core.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error: {ex.Message}");
+                        ioService.WriteErrorLine("Error uploading video file");
+                        ioService.PrintException(ex);
                         if (i + 1 < UploadMaxRetry)
                         {
-                            Console.WriteLine("Retry...");
+                            ioService.WriteLine("Retry...");
                             await Task.Delay(UploadRetryTimeSpan);
                         }
                     }
@@ -151,7 +155,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // Upload thumbnail.
-            Console.WriteLine("Uploading thumbnail in progress...");
+            ioService.WriteLine("Uploading thumbnail in progress...");
             foreach (var thumbnailFile in video.ThumbnailFiles.OfType<SourceFile>())
             {
                 var uploadSucceeded = false;
@@ -170,10 +174,11 @@ namespace Etherna.VideoImporter.Core.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error: {ex.Message}");
+                        ioService.WriteErrorLine("Error uploading thumbnail file");
+                        ioService.PrintException(ex);
                         if (i + 1 < UploadMaxRetry)
                         {
-                            Console.WriteLine("Retry...");
+                            ioService.WriteLine("Retry...");
                             await Task.Delay(UploadRetryTimeSpan);
                         }
                     }
@@ -200,10 +205,11 @@ namespace Etherna.VideoImporter.Core.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error: {ex.Message}");
+                        ioService.WriteErrorLine("Error uploading manifest file");
+                        ioService.PrintException(ex);
                         if (i + 1 < UploadMaxRetry)
                         {
-                            Console.WriteLine("Retry...");
+                            ioService.WriteLine("Retry...");
                             await Task.Delay(UploadRetryTimeSpan);
                         }
                     }
@@ -212,7 +218,7 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
             }
 
-            Console.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
+            ioService.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
 
             // List on index.
             if (video.EthernaIndexId is null)
@@ -224,7 +230,7 @@ namespace Etherna.VideoImporter.Core.Services
             else
                 await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash!);
 
-            Console.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
+            ioService.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }
 
         public async Task<string> UploadVideoManifestAsync(
@@ -254,10 +260,11 @@ namespace Etherna.VideoImporter.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error: {ex.Message}");
+                    ioService.WriteErrorLine("Error uploading manifest file");
+                    ioService.PrintException(ex);
                     if (i + 1 < UploadMaxRetry)
                     {
-                        Console.WriteLine("Retry...");
+                        ioService.WriteLine("Retry...");
                         await Task.Delay(UploadRetryTimeSpan);
                     }
                 }

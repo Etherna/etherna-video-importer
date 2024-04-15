@@ -36,17 +36,20 @@ namespace Etherna.VideoImporter.Core.Utilities
         private readonly IEncoderService encoderService;
         private readonly IFFmpegService ffMpegService;
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly IIoService ioService;
 
         // Constructor.
         public YoutubeDownloader(
             IEncoderService encoderService,
             IFFmpegService ffMpegService,
             IHttpClientFactory httpClientFactory,
+            IIoService ioService,
             IYoutubeClient youtubeClient)
         {
             this.encoderService = encoderService;
             this.ffMpegService = ffMpegService;
             this.httpClientFactory = httpClientFactory;
+            this.ioService = ioService;
             YoutubeClient = youtubeClient;
         }
 
@@ -110,14 +113,14 @@ namespace Etherna.VideoImporter.Core.Utilities
                     using var fileStream = new FileStream(thumbnailFilePath, FileMode.Create, FileAccess.Write);
                     await stream.CopyToAsync(fileStream);
 
-                    Console.WriteLine("Downloaded thumbnail");
+                    ioService.WriteLine("Downloaded thumbnail");
                     break;
                 }
                 catch
                 {
                     if (i + 1 < CommonConsts.DownloadMaxRetry)
                     {
-                        Console.WriteLine("Failed. Retry...");
+                        ioService.WriteLine("Failed. Retry...");
                         await Task.Delay(CommonConsts.DownloadTimespanRetry);
                     }
                 }
@@ -155,15 +158,16 @@ namespace Etherna.VideoImporter.Core.Utilities
                                 progressStatus,
                                 videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes,
                                 downloadStart)));
-                    Console.WriteLine();
+                    ioService.WriteLine(null, false);
                     break;
                 }
                 catch
                 {
-                    Console.WriteLine();
+                    ioService.WriteLine(null, false);
                     if (i + 1 < CommonConsts.DownloadMaxRetry)
                     {
-                        Console.Write("Failed. Retry...\r");
+                        ioService.PrintTimeStamp();
+                        ioService.Write("Failed. Retry...\r");
                         await Task.Delay(CommonConsts.DownloadTimespanRetry);
                     }
                 }
@@ -175,7 +179,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 httpClientFactory);
         }
 
-        private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
+        private void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
         {
             // Calculate ETA.
             var elapsedTime = DateTime.UtcNow - startDateTime;
@@ -197,7 +201,7 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             strBuilder.Append('\r');
 
-            Console.Write(strBuilder.ToString());
+            ioService.Write(strBuilder.ToString());
         }
     }
 }

@@ -34,6 +34,7 @@ namespace Etherna.VideoImporter.Services
         private readonly IEncoderService encoderService;
         private readonly IFFmpegService ffMpegService;
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly IIoService ioService;
         private readonly JsonListVideoProviderOptions options;
 
         // Constructor.
@@ -41,11 +42,13 @@ namespace Etherna.VideoImporter.Services
             IEncoderService encoderService,
             IFFmpegService ffMpegService,
             IHttpClientFactory httpClientFactory,
+            IIoService ioService,
             IOptions<JsonListVideoProviderOptions> options)
         {
             this.encoderService = encoderService;
             this.ffMpegService = ffMpegService;
             this.httpClientFactory = httpClientFactory;
+            this.ioService = ioService;
             this.options = options.Value;
         }
 
@@ -118,14 +121,12 @@ namespace Etherna.VideoImporter.Services
                             video,
                             thumbnail));
 
-                    Console.WriteLine($"Loaded metadata for {metadataDto.Title}");
+                    ioService.WriteLine($"Loaded metadata for {metadataDto.Title}");
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error importing video Id:{metadataDto.Id}.");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
+                    ioService.WriteErrorLine($"Error importing video Id:{metadataDto.Id}.");
+                    ioService.PrintException(ex);
                 }
             }
 

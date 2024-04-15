@@ -39,6 +39,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
         private readonly IEthernaSignInService ethernaSignInService;
         private readonly IGatewayService gatewayService;
+        private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
         private readonly IResultReporterService resultReporterService;
         private readonly IVideoUploaderService videoUploaderService;
@@ -52,6 +53,7 @@ namespace Etherna.VideoImporter.Core
             IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
             IEthernaSignInService ethernaSignInService,
             IGatewayService gatewayService,
+            IIoService ioService,
             IMigrationService migrationService,
             IResultReporterService resultReporterService,
             IVideoProvider videoProvider,
@@ -67,6 +69,7 @@ namespace Etherna.VideoImporter.Core
             this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
             this.ethernaSignInService = ethernaSignInService;
             this.gatewayService = gatewayService;
+            this.ioService = ioService;
             this.migrationService = migrationService;
             this.resultReporterService = resultReporterService;
             this.videoProvider = videoProvider;
@@ -84,9 +87,12 @@ namespace Etherna.VideoImporter.Core
             bool ignoreAppUpdates)
         {
             // Print startup header.
-            Console.WriteLine();
-            Console.WriteLine($"Etherna Video Importer (v{appVersionService.CurrentVersion})");
-            Console.WriteLine();
+            ioService.WriteLine(
+                $"""
+                
+                Etherna Video Importer (v{appVersionService.CurrentVersion})
+                
+                """, false);
 
             // Check for new app versions.
             try
@@ -94,9 +100,12 @@ namespace Etherna.VideoImporter.Core
                 var (lastVersion, lastVersionUrl) = await appVersionService.GetLastVersionAsync();
                 if (lastVersion > appVersionService.CurrentVersion)
                 {
-                    Console.WriteLine($"A new release is available: {lastVersion}");
-                    Console.WriteLine($"Upgrade now, or check out the release page at:");
-                    Console.WriteLine($" {lastVersionUrl}");
+                    ioService.WriteLine(
+                        $"""
+                         A new release is available: {lastVersion}
+                         Upgrade now, or check out the release page at:
+                          {lastVersionUrl}
+                         """, false);
 
                     if (!ignoreAppUpdates)
                         return;
@@ -104,10 +113,8 @@ namespace Etherna.VideoImporter.Core
             }
             catch (Exception e)
             {
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine("Unable to verify last version on GitHub");
-                Console.WriteLine($"Error: {e.Message}");
-                Console.ResetColor();
+                ioService.WriteErrorLine("Unable to verify last version on GitHub");
+                ioService.PrintException(e);
             }
             
             // Signin user.
@@ -117,14 +124,14 @@ namespace Etherna.VideoImporter.Core
             }
             catch (InvalidOperationException e)
             {
-                Console.WriteLine($"Error during authentication");
-                Console.WriteLine(e.Message);
+                ioService.WriteErrorLine("Error during authentication");
+                ioService.PrintException(e);
                 throw;
             }
             catch (Win32Exception e)
             {
-                Console.WriteLine($"Error opening browser on local system. Try to authenticate with API key.");
-                Console.WriteLine(e.Message);
+                ioService.WriteErrorLine("Error opening browser on local system. Try to authenticate with API key.");
+                ioService.PrintException(e);
                 throw;
             }
 
@@ -132,26 +139,26 @@ namespace Etherna.VideoImporter.Core
             var userEthAddress = await ethernaOpenIdConnectClient.GetEtherAddressAsync();
             var userName = await ethernaOpenIdConnectClient.GetUsernameAsync();
 
-            Console.WriteLine($"User {userName} authenticated");
+            ioService.WriteLine($"User {userName} authenticated");
 
             // Get video info.
-            Console.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
+            ioService.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
 
             var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync();
             var totalSourceVideo = sourceVideosMetadata.Count();
 
-            Console.WriteLine($"Found {totalSourceVideo} valid videos from source");
+            ioService.WriteLine($"Found {totalSourceVideo} valid videos from source");
 
             // Get information from etherna index.
-            Console.WriteLine("Get user's videos on etherna index");
+            ioService.WriteLine("Get user's videos on etherna index");
 
             var userVideosOnIndex = await GetUserVideosOnEthernaAsync(userEthAddress);
             var ethernaIndexParameters = await ethernaIndexClient.SystemClient.ParametersAsync();
 
-            Console.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on etherna index");
+            ioService.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on etherna index");
 
             // Import each video.
-            Console.WriteLine("Start importing videos");
+            ioService.WriteLine("Start importing videos");
 
             var importSummaryModelView = new ImportSummaryModelView();
             var results = new List<VideoImportResultBase>();
@@ -161,14 +168,14 @@ namespace Etherna.VideoImporter.Core
 
                 try
                 {
-                    Console.WriteLine("===============================");
-                    Console.WriteLine($"Processing video #{i + 1} of #{totalSourceVideo}. Source Id: {sourceMetadata.Id}");
+                    ioService.WriteLine("===============================", false);
+                    ioService.WriteLine($"Processing video #{i + 1} of #{totalSourceVideo}. Source Id: {sourceMetadata.Id}");
 
                     if (!sourceMetadata.IsDataFetched &&
-                        !await sourceMetadata.TryFetchMetadataAsync())
+                        !await sourceMetadata.TryFetchMetadataAsync(ioService))
                         throw new InvalidOperationException("Can't fetch source metadata");
 
-                    Console.WriteLine($"Title: {sourceMetadata.Title}");
+                    ioService.WriteLine($"Title: {sourceMetadata.Title}", false);
 
                     // Search already uploaded video. Compare Id serialized on manifest personal data with metadata Id from source.
                     var allVideoIdHashes = sourceMetadata.OldIds.Append(sourceMetadata.Id)
@@ -186,7 +193,7 @@ namespace Etherna.VideoImporter.Core
                         !forceVideoUpload &&
                         minRequiredMigrationOp is OperationType.Skip or OperationType.UpdateManifest)
                     {
-                        Console.WriteLine("Video already uploaded on etherna");
+                        ioService.WriteLine("Video already uploaded on etherna");
 
                         // Verify if manifest needs to be updated with new metadata.
                         //try to skip
@@ -202,7 +209,7 @@ namespace Etherna.VideoImporter.Core
                         //else update manifest
                         else
                         {
-                            Console.WriteLine($"Metadata has changed, update the video manifest");
+                            ioService.WriteLine($"Metadata has changed, update the video manifest");
 
                             // Create manifest.
                             var thumbnailFiles = alreadyPresentVideo.LastValidManifest!.Thumbnail.Sources.Select(t =>
@@ -249,31 +256,18 @@ namespace Etherna.VideoImporter.Core
                     {
                         // Validate metadata.
                         if (sourceMetadata.Title.Length > ethernaIndexParameters.VideoTitleMaxLength)
-                        {
-                            Console.ForegroundColor = ConsoleColor.DarkRed;
-                            Console.WriteLine($"Error: Title too long, max length: {ethernaIndexParameters.VideoTitleMaxLength}\n");
-                            Console.ResetColor();
-                            continue;
-                        }
+                            throw new InvalidOperationException(
+                                $"Error: Title too long, max length: {ethernaIndexParameters.VideoTitleMaxLength}");
                         if (sourceMetadata.Description.Length > ethernaIndexParameters.VideoDescriptionMaxLength)
-                        {
-                            Console.ForegroundColor = ConsoleColor.DarkRed;
-                            Console.WriteLine($"Error: Description too long, max length: {ethernaIndexParameters.VideoDescriptionMaxLength}\n");
-                            Console.ResetColor();
-                            continue;
-                        }
+                            throw new InvalidOperationException(
+                                $"Error: Description too long, max length: {ethernaIndexParameters.VideoDescriptionMaxLength}");
 
                         // Get and encode video from source.
                         var video = await videoProvider.GetVideoAsync(sourceMetadata);
                         video.EthernaIndexId = alreadyPresentVideo?.IndexId;
 
                         if (!video.EncodedFiles.Any())
-                        {
-                            Console.ForegroundColor = ConsoleColor.DarkRed;
-                            Console.WriteLine($"Error: can't get valid stream from source\n");
-                            Console.ResetColor();
-                            continue;
-                        }
+                            throw new InvalidOperationException("Error: can't get valid stream from source");
 
                         // Upload video and all related data.
                         await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos, userEthAddress);
@@ -285,19 +279,14 @@ namespace Etherna.VideoImporter.Core
                     }
 
                     // Import succeeded.
-                    Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    Console.WriteLine($"#{i + 1} Video imported successfully");
-                    Console.ResetColor();
+                    ioService.WriteSuccessLine($"#{i + 1} Video imported successfully");
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Timestamp: {DateTime.UtcNow}");
-                    Console.WriteLine("Video unable to upload");
-                    Console.WriteLine($"Error: {ex.Message}");
-                    Console.ResetColor();
-
                     importResult = new VideoImportResultFailed(sourceMetadata, ex);
+                    
+                    ioService.WriteErrorLine($"Exception importing video {sourceMetadata.Id}");
+                    ioService.PrintException(ex);
                 }
                 finally
                 {
@@ -309,12 +298,11 @@ namespace Etherna.VideoImporter.Core
                         foreach (var dir in CommonConsts.TempDirectory.GetDirectories())
                             dir.Delete(true);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                        Console.WriteLine($"Warning: unable to delete some files inside of {CommonConsts.TempDirectory.FullName}.");
-                        Console.WriteLine($"Please remove manually after the process.");
-                        Console.ResetColor();
+                        ioService.WriteErrorLine(
+                            $"Warning: unable to delete some files in \"{CommonConsts.TempDirectory.FullName}\".");
+                        ioService.PrintException(e);
                     }
                 }
                 
@@ -330,10 +318,8 @@ namespace Etherna.VideoImporter.Core
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Unable to report etherna import result");
-                    Console.WriteLine($"Error: {ex.Message}");
-                    Console.ResetColor();
+                    ioService.WriteErrorLine("Unable to report etherna import result");
+                    ioService.PrintException(ex);
                 }
             }
 
@@ -359,17 +345,18 @@ namespace Etherna.VideoImporter.Core
             await resultReporterService.FlushResultOutputAsync();
 
             // Print summary.
-            Console.ForegroundColor = ConsoleColor.DarkGreen;
-            Console.WriteLine("Import completed.");
-            Console.WriteLine();
-            Console.WriteLine($"Total video processed: {results.Count}");
-            Console.WriteLine($"Total video imported: {results.OfType<VideoImportResultSucceeded>().Count(r => r is { IsManifestUploaded: true, IsContentUploaded: true })}");
-            Console.WriteLine($"Total video updated: {results.OfType<VideoImportResultSucceeded>().Count(r => r is { IsManifestUploaded: true, IsContentUploaded: false })}");
-            Console.WriteLine($"Total video skipped (already present): {results.OfType<VideoImportResultSucceeded>().Count(r => r is { IsManifestUploaded: false, IsContentUploaded: false })}");
-            Console.WriteLine($"Total video with errors: {results.OfType<VideoImportResultFailed>().Count()}");
-            Console.WriteLine($"Total video deleted for missing in source: {importSummaryModelView.TotDeletedRemovedFromSource}");
-            Console.WriteLine($"Total video deleted because not from this tool: {importSummaryModelView.TotDeletedExogenous}");
-            Console.ResetColor();
+            ioService.WriteSuccessLine(
+                $"""
+                 Import completed.
+                 
+                 Total video processed: {results.Count}
+                 Total video imported: {results.OfType<VideoImportResultSucceeded>().Count(r => r is { IsManifestUploaded: true, IsContentUploaded: true })}
+                 Total video updated: {results.OfType<VideoImportResultSucceeded>().Count(r => r is { IsManifestUploaded: true, IsContentUploaded: false })}
+                 Total video skipped (already present): {results.OfType<VideoImportResultSucceeded>().Count(r => r is { IsManifestUploaded: false, IsContentUploaded: false })}
+                 Total video with errors: {results.OfType<VideoImportResultFailed>().Count()}
+                 Total video deleted for missing in source: {importSummaryModelView.TotDeletedRemovedFromSource}
+                 Total video deleted because not from this tool: {importSummaryModelView.TotDeletedExogenous}
+                 """);
         }
 
         // Helpers.

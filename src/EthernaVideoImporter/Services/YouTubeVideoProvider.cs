@@ -33,14 +33,17 @@ namespace Etherna.VideoImporter.Services
     internal sealed class YouTubeVideoProvider : IVideoProvider
     {
         // Fields.
+        private readonly IIoService ioService;
         private readonly YouTubeVideoProviderOptions options;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public YouTubeVideoProvider(
+            IIoService ioService,
             IOptions<YouTubeVideoProviderOptions> options,
             IYoutubeDownloader youtubeDownloader)
         {
+            this.ioService = ioService;
             this.options = options.Value;
             this.youtubeDownloader = youtubeDownloader;
         }
@@ -93,7 +96,7 @@ namespace Etherna.VideoImporter.Services
             //remove duplicates by video Id
             var distinctMetadata = videosMetadata.DistinctBy(m => m.Id).ToArray();
             
-            Console.WriteLine($"Found {distinctMetadata.Length} distinct videos");
+            ioService.WriteLine($"Found {distinctMetadata.Length} distinct videos");
 
             return distinctMetadata;
         }
@@ -105,7 +108,7 @@ namespace Etherna.VideoImporter.Services
         {
             var youtubeVideos = await youtubeDownloader.YoutubeClient.Channels.GetUploadsAsync(youtubeChannel.Url);
                 
-            Console.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl} channel");
+            ioService.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl} channel");
                 
             return youtubeVideos.Select(v => new YouTubeVideoMetadata(
                 youtubeDownloader,
@@ -118,7 +121,7 @@ namespace Etherna.VideoImporter.Services
         {
             var youtubeVideos = await youtubeDownloader.YoutubeClient.Playlists.GetVideosAsync(youtubePlaylist.Url);
 
-            Console.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl} playlist");
+            ioService.WriteLine($"Found {youtubeVideos.Count} videos on {sourceUrl} playlist");
 
             return youtubeVideos.Select(v => new YouTubeVideoMetadata(
                 youtubeDownloader,
@@ -129,7 +132,7 @@ namespace Etherna.VideoImporter.Services
         private Task<YouTubeVideoMetadata> GetVideoMetadataFromSingleVideoAsync(
             string sourceUrl)
         {
-            Console.WriteLine($"Found video on {sourceUrl}");
+            ioService.WriteLine($"Found video on {sourceUrl}");
 
             return Task.FromResult(new YouTubeVideoMetadata(
                 youtubeDownloader,

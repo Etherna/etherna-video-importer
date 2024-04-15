@@ -18,11 +18,24 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IIoService
     {
+        // Events.
+        event ConsoleCancelEventHandler? CancelKeyPress;
+        
+        // Properties.
+        int BufferWidth { get; }
+        int CursorTop { get; set; }
+
+        // Methods.
+        void PrintException(Exception exception);
+        void PrintTimeStamp();
         ConsoleKeyInfo ReadKey();
         string? ReadLine();
+        void SetCursorPosition(int left, int top);
         void Write(string? value);
         void WriteError(string value);
         void WriteErrorLine(string value, bool addTimeStamp = true);
         void WriteLine(string? value = null, bool addTimeStamp = true);
+        void WriteSuccess(string value);
+        void WriteSuccessLine(string value, bool addTimeStamp = true);
     }
 }
