@@ -273,13 +273,6 @@ namespace Etherna.VideoImporter
             }
 
             // Input validation.
-            //offer video
-            if (offerVideos && useBeeNativeNode)
-            {
-                Console.WriteLine($"Only Etherna Gateway supports offering video downloads to everyone");
-                return;
-            }
-
             //bee node api port
             int beeNodeApiPort = CommonConsts.BeeApiPort;
             if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&

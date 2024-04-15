@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 // limitations under the License.
 
 using Etherna.BeeNet.Clients.GatewayApi;
-using System;
+using Etherna.Sdk.Users;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -22,14 +22,17 @@ namespace Etherna.VideoImporter.Core.Services
     public class BeeGatewayService : GatewayServiceBase
     {
         // Fields.
+        private readonly IEthernaUserGatewayClient ethernaUserGatewayClient;
         private readonly IIoService ioService;
 
         // Constructor.
         public BeeGatewayService(
             IBeeGatewayClient beeGatewayClient,
+            IEthernaUserGatewayClient ethernaUserGatewayClient,
             IIoService ioService)
             : base(beeGatewayClient, ioService)
         {
+            this.ethernaUserGatewayClient = ethernaUserGatewayClient;
             this.ioService = ioService;
         }
 
@@ -58,7 +61,7 @@ namespace Etherna.VideoImporter.Core.Services
         public override async Task<bool> IsBatchUsableAsync(string batchId) =>
             (await beeGatewayClient.GetPostageBatchAsync(batchId)).Usable;
 
-        public override Task OfferContentAsync(string hash) =>
-            throw new InvalidOperationException();
+        public override async Task OfferContentAsync(string hash) =>
+            await ethernaUserGatewayClient.ResourcesClient.OffersPostAsync(hash);
     }
 }
