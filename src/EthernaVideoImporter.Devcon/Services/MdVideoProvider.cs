@@ -1,18 +1,17 @@
-﻿//   Copyright 2022-present Etherna SA
+﻿// Copyright 2022-present Etherna SA
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -24,24 +23,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using YoutubeExplode.Exceptions;
-using YoutubeExplode.Videos.Streams;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
     internal sealed partial class MdVideoProvider : IVideoProvider
     {
         // Consts.
-        private const string EthernaIndexPrefix = "ethernaIndex:";
-        private const string EthernaPermalinkPrefix = "ethernaPermalink:";
-
         [GeneratedRegex("(?<!\\\\)\"")]
         private static partial Regex UnescapedQuotesCounterRegex();
 
@@ -51,10 +44,12 @@ namespace Etherna.VideoImporter.Devcon.Services
         // Fields.
         private readonly IDeserializer deserializer;
         private readonly MdVideoProviderOptions options;
+        private readonly IIoService ioService;
         private readonly IYoutubeDownloader youtubeDownloader;
 
         // Constructor.
         public MdVideoProvider(
+            IIoService ioService,
             IOptions<MdVideoProviderOptions> options,
             IYoutubeDownloader youtubeDownloader)
         {
@@ -63,6 +58,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 .IgnoreUnmatchedProperties()
                 .Build();
             this.options = options.Value;
+            this.ioService = ioService;
             this.youtubeDownloader = youtubeDownloader;
         }
 
@@ -77,121 +73,43 @@ namespace Etherna.VideoImporter.Devcon.Services
         {
             var mdFilesPaths = Directory.GetFiles(options.MdSourceFolderPath, "*.md", SearchOption.AllDirectories);
 
-            Console.WriteLine($"Found {mdFilesPaths.Length} videos");
+            ioService.WriteLine($"Found {mdFilesPaths.Length} videos");
 
-            var videosMetadata = new List<(ArchiveMdFileDto mdDto, YoutubeExplode.Videos.Video ytVideo, VideoOnlyStreamInfo ytBestStreamInfo, string mdRelativePath)>();
+            var videosMetadata = new List<(ArchiveMdFileDto mdDto, string mdRelativePath)>();
             foreach (var (mdFilePath, i) in mdFilesPaths.Select((f, i) => (f, i)))
             {
                 var mdFileRelativePath = Path.GetRelativePath(options.MdSourceFolderPath, mdFilePath);
 
-                Console.WriteLine($"File #{i + 1} of {mdFilesPaths.Length}: {mdFileRelativePath}");
+                ioService.WriteLine($"File #{i + 1} of {mdFilesPaths.Length}: {mdFileRelativePath}");
 
                 ArchiveMdFileDto videoDataInfoDto;
                 try
                 {
-                    string content = File.ReadAllText(mdFilePath);
+                    var content = await File.ReadAllTextAsync(mdFilePath);
                     videoDataInfoDto = DeserializeYamlContent(content);
 
-                    Console.Write("\tparsed md file...");
+                    ioService.WriteLine("\tParsed md file");
                 }
                 catch (Exception ex) when (ex is InvalidDataException or YamlException)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error parsing metadata from md file \"{mdFilePath}\"");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
+                    ioService.WriteErrorLine($"Error parsing metadata from md file \"{mdFilePath}\"");
+                    ioService.PrintException(ex);
 
                     continue;
                 }
-
-                // Get from youtube.
-                try
-                {
-                    var youtubeVideo =
-                        await youtubeDownloader.YoutubeClient.Videos.GetAsync(videoDataInfoDto.YoutubeUrl);
-                    var youtubeBestStreamInfo =
-                        (await youtubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(youtubeVideo.Id))
-                        .GetVideoOnlyStreams()
-                        .OrderByDescending(s => s.VideoResolution.Area)
-                        .First();
-
-                    Console.WriteLine(" and downloaded YouTube metadata.");
-
-                    videosMetadata.Add((videoDataInfoDto, youtubeVideo, youtubeBestStreamInfo, mdFileRelativePath));
-                }
-                catch (HttpRequestException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Error retrieving video from YouTube. Try again later");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (TimeoutException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Time out retrieving video from YouTube. Try again later");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (VideoUnplayableException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Unplayable video from YouTube");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
-                catch (YoutubeExplodeException ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine("Can't read information from YouTube");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
-                }
+                
+                videosMetadata.Add((videoDataInfoDto, mdFileRelativePath));
             }
 
             return videosMetadata.Select(
                 p => new MdFileVideoMetadata(
                     p.mdDto.Title,
                     p.mdDto.Description,
-                    p.ytVideo.Duration ?? throw new InvalidOperationException("Live streams are not supported"),
-                    p.ytBestStreamInfo.VideoQuality.Label,
-                    p.ytVideo.Thumbnails.OrderByDescending(t => t.Resolution.Area).FirstOrDefault(),
                     p.mdRelativePath,
+                    youtubeDownloader,
                     p.mdDto.YoutubeUrl,
                     p.mdDto.EthernaIndex,
                     p.mdDto.EthernaPermalink));
-        }
-
-        public async Task ReportEthernaReferencesAsync(
-            string sourceVideoId,
-            string ethernaIndexId,
-            string ethernaPermalinkHash)
-        {
-            var filePath = Path.Combine(options.MdSourceFolderPath, sourceVideoId);
-            var ethernaIndexUrl = CommonConsts.EthernaIndexContentUrlPrefix + ethernaIndexId;
-            var ethernaPermalinkUrl = CommonConsts.EthernaPermalinkContentUrlPrefix + ethernaPermalinkHash;
-
-            // Reaad all line.
-            var lines = File.ReadLines(filePath).ToList();
-
-            // Set ethernaIndex.
-            var index = GetLineNumber(lines, EthernaIndexPrefix);
-            var ethernaIndexLine = $"{EthernaIndexPrefix} \"{ethernaIndexUrl}\"";
-            if (index >= 0)
-                lines[index] = ethernaIndexLine;
-            else
-                lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaIndexLine);
-
-            // Set ethernaPermalink.
-            index = GetLineNumber(lines, EthernaPermalinkPrefix);
-            var ethernaPermalinkLine = $"{EthernaPermalinkPrefix} \"{ethernaPermalinkUrl}\"";
-            if (index >= 0)
-                lines[index] = ethernaPermalinkLine;
-            else
-                lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaPermalinkLine);
-
-            // Save file.
-            await File.WriteAllLinesAsync(filePath, lines);
         }
 
         // Helpers.
@@ -213,7 +131,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                 bool isInString = false;
                 foreach (var line in lines)
                 {
-                    //add an empty line if necessary. Deserializator only read "folded" scalar type and not "literal"
+                    //add an empty line if necessary. Deserializer only read "folded" scalar type and not "literal"
                     if (isInString)
                         fixedYamlBuilder.AppendLine();
 
@@ -235,25 +153,6 @@ namespace Etherna.VideoImporter.Devcon.Services
             //deserialize
             return deserializer.Deserialize<ArchiveMdFileDto>(fixedYaml) ??
                 throw new InvalidDataException("Can't parse valid YAML metadata");
-        }
-
-        private int GetLineNumber(List<string> lines, string prefix)
-        {
-            var lineIndex = 0;
-            foreach (var line in lines)
-            {
-                if (line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    return lineIndex;
-
-                lineIndex++;
-            }
-            return -1;
-        }
-
-        private int GetIndexOfInsertLine(int lines)
-        {
-            // Last position. (Exclueded final ---)
-            return lines - 2;
         }
     }
 }
