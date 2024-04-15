@@ -1,20 +1,20 @@
-﻿//   Copyright 2022-present Etherna SA
+﻿// Copyright 2022-present Etherna SA
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using Etherna.BeeNet.Clients.GatewayApi;
-using Etherna.ServicesClient.GeneratedClients.Gateway;
-using Etherna.ServicesClient.Users;
+using Etherna.Sdk.GeneratedClients.Gateway;
+using Etherna.Sdk.Users;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -28,14 +28,17 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Fields.
         private readonly IEthernaUserGatewayClient ethernaGatewayClient;
+        private readonly IIoService ioService;
 
         // Constructor.
         public EthernaGatewayService(
             IBeeGatewayClient beeGatewayClient,
-            IEthernaUserGatewayClient ethernaGatewayClient)
-            : base(beeGatewayClient)
+            IEthernaUserGatewayClient ethernaGatewayClient,
+            IIoService ioService)
+            : base(beeGatewayClient, ioService)
         {
             this.ethernaGatewayClient = ethernaGatewayClient;
+            this.ioService = ioService;
         }
 
         // Methods.
@@ -44,7 +47,8 @@ namespace Etherna.VideoImporter.Core.Services
             var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDepth, amount);
 
             // Wait until created batch is avaiable.
-            Console.Write("Waiting for batch created... (it may take a while)");
+            ioService.PrintTimeStamp();
+            ioService.Write("Waiting for batch created... (it may take a while)");
 
             var batchStartWait = DateTime.UtcNow;
             string? batchId = null;
@@ -69,7 +73,7 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             } while (string.IsNullOrWhiteSpace(batchId));
 
-            Console.WriteLine(". Done");
+            ioService.WriteLine(". Done", false);
 
             await WaitForBatchUsableAsync(batchId);
 

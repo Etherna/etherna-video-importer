@@ -1,16 +1,16 @@
-﻿//   Copyright 2022-present Etherna SA
+﻿// Copyright 2022-present Etherna SA
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
@@ -35,14 +35,14 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         // Builders.
-        public static async Task<ManifestDto> BuildNewAsync(
+        internal static async Task<ManifestDto> BuildNewAsync(
             Video video,
             string batchId,
             string ownerAddress,
+            Version? appCurrentVersion,
             bool allowFakeReferences = false)
         {
-            if (video is null)
-                throw new ArgumentNullException(nameof(video));
+            ArgumentNullException.ThrowIfNull(video, nameof(video));
 
             var sources = new List<ManifestVideoSourceDto>();
             foreach (var videoFile in video.EncodedFiles.OfType<IVideoFile>())
@@ -62,7 +62,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 UpdatedAt = null,
                 BatchId = batchId,
-                PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id))
+                PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id, appCurrentVersion ?? new Version()))
             };
         }
 

@@ -1,19 +1,19 @@
-﻿//   Copyright 2022-present Etherna SA
+﻿// Copyright 2022-present Etherna SA
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.FFmpegDto;
+using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
 using Microsoft.Extensions.Options;
@@ -31,14 +31,18 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Fields.
         private readonly List<Command> activedCommands = new();
+        private readonly IIoService ioService;
+        private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly FFmpegServiceOptions options;
         private string? ffMpegBinaryPath;
         private string? ffProbeBinaryPath;
 
         // Constructor.
         public FFmpegService(
+            IIoService ioService,
             IOptions<FFmpegServiceOptions> options)
         {
+            this.ioService = ioService;
             this.options = options.Value;
         }
 
@@ -53,13 +57,13 @@ namespace Etherna.VideoImporter.Core.Services
                 outputHeights,
                 out IEnumerable<(string filePath, int height, int width)> outputs);
 
-            Console.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
+            ioService.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
 
             // Run FFmpeg command.
             var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
 
             activedCommands.Add(command);
-            Console.CancelKeyPress += new ConsoleCancelEventHandler(ManageInterrupted);
+            ioService.CancelKeyPress += ManageInterrupted;
 
             // Print filtered console output.
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -72,7 +76,7 @@ namespace Etherna.VideoImporter.Core.Services
                 foreach (var line in command.GetOutputAndErrorLines())
                 {
                     if (line.StartsWith("frame=", StringComparison.InvariantCulture))
-                        Console.Write(line + '\r');
+                        ioService.Write(line + '\r');
                 }
             });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -80,14 +84,41 @@ namespace Etherna.VideoImporter.Core.Services
             // Waiting until end and stop console output.
             var result = await command.Task;
 
-            Console.Write(new string(' ', Console.BufferWidth));
-            Console.SetCursorPosition(0, Console.CursorTop - 1);
-            Console.WriteLine();
+            ioService.Write(new string(' ', ioService.BufferWidth));
+            ioService.SetCursorPosition(0, ioService.CursorTop - 1);
+            ioService.WriteLine(null, false);
 
             // Inspect and print result.
             if (!result.Success)
                 throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
             return outputs;
+        }
+        
+        public async Task<string> ExtractThumbnailAsync(VideoSourceFile videoSourceFile)
+        {
+            ioService.WriteLine($"Extract random thumbnail");
+
+            // Run FFmpeg command.
+            var outputThumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{Guid.NewGuid()}_thumbnail.jpg");
+            var args = new[] {
+                "-i", videoSourceFile.FileUri.ToAbsoluteUri().Item1,
+                "-vf", "select='eq(pict_type\\,I)',random",
+                "-vframes", "1",
+                outputThumbnailFilePath
+            };
+            var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
+
+            activedCommands.Add(command);
+            ioService.CancelKeyPress += ManageInterrupted;
+
+            // Waiting until end and stop console output.
+            var result = await command.Task;
+
+            // Inspect and print result.
+            if (!result.Success)
+                throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
+
+            return outputThumbnailFilePath;
         }
 
         public async Task<string> GetFFmpegBinaryPathAsync() =>
@@ -127,9 +158,9 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new InvalidOperationException($"ffprobe command failed with exit code {result.ExitCode}: {result.StandardError}");
 
             var ffProbeResult = JsonSerializer.Deserialize<FFProbeResultDto>(
-                result.StandardOutput.Trim(),
-                new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
-                ?? throw new InvalidDataException($"FFProbe result have an invalid json");
+                                    result.StandardOutput.Trim(),
+                                    jsonSerializerOptions)
+                                ?? throw new InvalidDataException($"FFProbe result have an invalid json");
 
             /*
              * ffProbe return even an empty element in Streams
@@ -148,6 +179,9 @@ namespace Etherna.VideoImporter.Core.Services
 
             //video codec
             args.Add("-c:v"); args.Add("libx264");
+
+            //preset
+            args.Add("-preset"); args.Add(options.PresetCodec.ToString().ToLowerInvariant());
 
             //flags
             args.Add("-movflags"); args.Add("faststart");
@@ -177,7 +211,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="sourceVideoFile">Input video file</param>
         /// <param name="outputs">Output video files info</param>
         /// <returns>FFmpeg args list</returns>
-        private IEnumerable<string> BuildFFmpegCommandArgs(
+        private List<string> BuildFFmpegCommandArgs(
             VideoSourceFile sourceVideoFile,
             IEnumerable<int> outputHeights,
             out IEnumerable<(string filePath, int height, int width)> outputs)
@@ -207,7 +241,6 @@ namespace Etherna.VideoImporter.Core.Services
                     case 1: scaledWidth--; break;
                     case 2: scaledWidth += 2; break;
                     case 3: scaledWidth++; break;
-                    default: break;
                 }
 
                 AppendOutputFFmpegCommandArgs(args, height, scaledWidth, outputFilePath);

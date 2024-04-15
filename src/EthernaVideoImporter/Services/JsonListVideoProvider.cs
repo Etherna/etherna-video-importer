@@ -1,22 +1,22 @@
-﻿//   Copyright 2022-present Etherna SA
+﻿// Copyright 2022-present Etherna SA
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
-using Etherna.VideoImporter.Models.SourceVideoDtos;
+using Etherna.VideoImporter.Models.SourceDtos;
 using Etherna.VideoImporter.Options;
 using Microsoft.Extensions.Options;
 using System;
@@ -34,6 +34,7 @@ namespace Etherna.VideoImporter.Services
         private readonly IEncoderService encoderService;
         private readonly IFFmpegService ffMpegService;
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly IIoService ioService;
         private readonly JsonListVideoProviderOptions options;
 
         // Constructor.
@@ -41,11 +42,13 @@ namespace Etherna.VideoImporter.Services
             IEncoderService encoderService,
             IFFmpegService ffMpegService,
             IHttpClientFactory httpClientFactory,
+            IIoService ioService,
             IOptions<JsonListVideoProviderOptions> options)
         {
             this.encoderService = encoderService;
             this.ffMpegService = ffMpegService;
             this.httpClientFactory = httpClientFactory;
+            this.ioService = ioService;
             this.options = options.Value;
         }
 
@@ -56,8 +59,8 @@ namespace Etherna.VideoImporter.Services
         public async Task<Video> GetVideoAsync(
             VideoMetadataBase videoMetadata)
         {
-            var sourceVideoMetadata = videoMetadata as SourceVideoMetadata 
-                ?? throw new ArgumentException($"Metadata must be of type {nameof(SourceVideoMetadata)}", nameof(videoMetadata));
+            var sourceVideoMetadata = videoMetadata as JsonVideoMetadata 
+                ?? throw new ArgumentException($"Metadata must be of type {nameof(JsonVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
             var encodedFiles = await encoderService.EncodeVideosAsync(
@@ -102,14 +105,15 @@ namespace Etherna.VideoImporter.Services
                         httpClientFactory);
 
                     // Build thumbnail.
-                    var thumbnail = string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ? null :
-                        await ThumbnailSourceFile.BuildNewAsync(
+                    var thumbnail = await ThumbnailSourceFile.BuildNewAsync(
+                        string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ?
+                            new SourceUri(await ffMpegService.ExtractThumbnailAsync(video), SourceUriKind.LocalAbsolute) :
                             new SourceUri(metadataDto.ThumbnailFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
-                            httpClientFactory);
+                        httpClientFactory);
 
                     // Add video metadata.
                     videosMetadataList.Add(
-                        new SourceVideoMetadata(
+                        new JsonVideoMetadata(
                             metadataDto.Id,
                             metadataDto.Title,
                             metadataDto.Description,
@@ -117,21 +121,16 @@ namespace Etherna.VideoImporter.Services
                             video,
                             thumbnail));
 
-                    Console.WriteLine($"Loaded metadata for {metadataDto.Title}");
+                    ioService.WriteLine($"Loaded metadata for {metadataDto.Title}");
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkRed;
-                    Console.WriteLine($"Error importing video Id:{metadataDto.Id}.");
-                    Console.WriteLine(ex.Message);
-                    Console.ResetColor();
+                    ioService.WriteErrorLine($"Error importing video Id:{metadataDto.Id}.");
+                    ioService.PrintException(ex);
                 }
             }
 
             return videosMetadataList;
         }
-
-        public Task ReportEthernaReferencesAsync(string sourceVideoId, string ethernaIndexId, string ethernaPermalinkHash) =>
-            Task.CompletedTask;
     }
 }

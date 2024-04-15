@@ -1,44 +1,52 @@
-﻿//   Copyright 2022-present Etherna SA
+﻿// Copyright 2022-present Etherna SA
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
+using Etherna.VideoImporter.Core.Services;
+using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web;
 using YoutubeExplode.Common;
+using YoutubeExplode.Exceptions;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public abstract class YouTubeVideoMetadataBase : VideoMetadataBase
     {
+        // Consts.
+        private readonly TimeSpan FetchRetryDelay = TimeSpan.FromMinutes(10);
+        private const int FetchRetryMax = 20;
+        
         // Constructor.
         protected YouTubeVideoMetadataBase(
-            string title,
-            string description,
-            TimeSpan duration,
-            string originVideoQualityLabel,
-            Thumbnail? thumbnail,
-            string youtubeUrl)
-            : base(title, description, duration, originVideoQualityLabel)
+            IYoutubeDownloader youtubeDownloader,
+            string youtubeUrl,
+            string? playlistName)
         {
-            Thumbnail = thumbnail;
+            YoutubeDownloader = youtubeDownloader;
             YoutubeUrl = youtubeUrl;
+            PlaylistName = playlistName;
         }
 
         // Properties.
+        public string? ChannelName { get; private set; }
         public override IEnumerable<string> OldIds => Array.Empty<string>();
-        public Thumbnail? Thumbnail { get; }
+        public string? PlaylistName { get; private set; }
+        public Thumbnail? Thumbnail { get; protected set; }
         public string YoutubeId
         {
             get
@@ -53,5 +61,70 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             }
         }
         public string YoutubeUrl { get; }
+        
+        // Protected properties.
+        protected IYoutubeDownloader YoutubeDownloader { get; }
+        
+        // Methods.
+        public override async Task<bool> TryFetchMetadataAsync(
+            IIoService ioService)
+        {
+            ArgumentNullException.ThrowIfNull(ioService, nameof(ioService));
+            
+            /*
+             * YouTube could block fetches to avoid data scrapping.
+             * If this happens, we need to retry with enough delay.
+             */
+            for (int i = 0; i < FetchRetryMax; i++)
+            {
+                try
+                {
+                    var metadata = await YoutubeDownloader.YoutubeClient.Videos.GetAsync(YoutubeUrl);
+                    var bestStreamInfo =
+                        (await YoutubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
+                        .GetVideoOnlyStreams()
+                        .OrderByDescending(s => s.VideoResolution.Area)
+                        .First();
+                    ChannelName = metadata.Author.ChannelTitle;
+                    Description = metadata.Description;
+                    Duration = metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported");
+                    OriginVideoQualityLabel = bestStreamInfo.VideoQuality.Label;
+                    Thumbnail = metadata.Thumbnails.MaxBy(t => t.Resolution.Area);
+                    Title = metadata.Title;
+                    
+                    ioService.WriteLine($"Fetched YouTube metadata for {metadata.Title}");
+
+                    return true;
+                }
+                catch (HttpRequestException ex)
+                {
+                    ioService.WriteErrorLine($"Error retrieving video: {YoutubeUrl}. Try again later");
+                    ioService.PrintException(ex);
+                }
+                catch (TimeoutException ex)
+                {
+                    ioService.WriteErrorLine($"Time out retrieving video: {YoutubeUrl}. Try again later");
+                    ioService.PrintException(ex);
+                }
+                catch (VideoUnplayableException ex)
+                {
+                    ioService.WriteErrorLine($"Unplayable video: {YoutubeUrl}");
+                    ioService.PrintException(ex);
+                }
+                catch (YoutubeExplodeException ex)
+                {
+                    ioService.WriteErrorLine($"Can't read information from YouTube: {YoutubeUrl}");
+                    ioService.PrintException(ex);
+                }
+
+                if (i + 1 < FetchRetryMax)
+                {
+                    ioService.WriteLine($"Retry in {FetchRetryDelay.TotalMinutes} minutes");
+                    await Task.Delay(FetchRetryDelay);
+                }
+            }
+
+            return false;
+        }
     }
 }

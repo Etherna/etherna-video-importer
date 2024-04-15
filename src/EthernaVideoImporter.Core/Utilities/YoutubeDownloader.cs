@@ -1,16 +1,16 @@
-﻿//   Copyright 2022-present Etherna SA
+﻿// Copyright 2022-present Etherna SA
 // 
-//   Licensed under the Apache License, Version 2.0 (the "License");
-//   you may not use this file except in compliance with the License.
-//   You may obtain a copy of the License at
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 // 
-//       http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 // 
-//   Unless required by applicable law or agreed to in writing, software
-//   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//   See the License for the specific language governing permissions and
-//   limitations under the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
@@ -36,17 +36,20 @@ namespace Etherna.VideoImporter.Core.Utilities
         private readonly IEncoderService encoderService;
         private readonly IFFmpegService ffMpegService;
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly IIoService ioService;
 
         // Constructor.
         public YoutubeDownloader(
             IEncoderService encoderService,
             IFFmpegService ffMpegService,
             IHttpClientFactory httpClientFactory,
+            IIoService ioService,
             IYoutubeClient youtubeClient)
         {
             this.encoderService = encoderService;
             this.ffMpegService = ffMpegService;
             this.httpClientFactory = httpClientFactory;
+            this.ioService = ioService;
             YoutubeClient = youtubeClient;
         }
 
@@ -56,8 +59,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         // Methods.
         public async Task<Video> GetVideoAsync(YouTubeVideoMetadataBase videoMetadata)
         {
-            if (videoMetadata is null)
-                throw new ArgumentNullException(nameof(videoMetadata));
+            ArgumentNullException.ThrowIfNull(videoMetadata, nameof(videoMetadata));
 
             // Get manifest data.
             var youtubeStreamsManifest = await YoutubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
@@ -79,16 +81,14 @@ namespace Etherna.VideoImporter.Core.Utilities
             var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
 
             // Get thumbnail.
-            IEnumerable<ThumbnailSourceFile> thumbnailFiles = Array.Empty<ThumbnailSourceFile>();
-            if (videoMetadata.Thumbnail is not null)
-            {
-                var bestResolutionThumbnail = await DownloadThumbnailAsync(
-                    videoMetadata.Thumbnail,
-                    videoMetadata.Title);
+            var bestResolutionThumbnail = videoMetadata.Thumbnail is null ?
+                await ThumbnailSourceFile.BuildNewAsync(
+                    new SourceUri(await ffMpegService.ExtractThumbnailAsync(videoLocalFile), SourceUriKind.LocalAbsolute),
+                    httpClientFactory) :
+                await DownloadThumbnailAsync(videoMetadata.Thumbnail, videoMetadata.Title);
 
-                thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
-            }
-
+            var thumbnailFiles = await bestResolutionThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory);
+            
             return new Video(videoMetadata, encodedFiles, thumbnailFiles);
         }
 
@@ -97,8 +97,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             Thumbnail thumbnail,
             string videoTitle)
         {
-            if (thumbnail is null)
-                throw new ArgumentNullException(nameof(thumbnail));
+            ArgumentNullException.ThrowIfNull(thumbnail, nameof(thumbnail));
 
             string thumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
 
@@ -114,14 +113,14 @@ namespace Etherna.VideoImporter.Core.Utilities
                     using var fileStream = new FileStream(thumbnailFilePath, FileMode.Create, FileAccess.Write);
                     await stream.CopyToAsync(fileStream);
 
-                    Console.WriteLine("Downloaded thumbnail");
+                    ioService.WriteLine("Downloaded thumbnail");
                     break;
                 }
                 catch
                 {
                     if (i + 1 < CommonConsts.DownloadMaxRetry)
                     {
-                        Console.WriteLine("Failed. Retry...");
+                        ioService.WriteLine("Failed. Retry...");
                         await Task.Delay(CommonConsts.DownloadTimespanRetry);
                     }
                 }
@@ -159,15 +158,16 @@ namespace Etherna.VideoImporter.Core.Utilities
                                 progressStatus,
                                 videoOnlyStream.Size.MegaBytes + audioOnlyStream.Size.MegaBytes,
                                 downloadStart)));
-                    Console.WriteLine();
+                    ioService.WriteLine(null, false);
                     break;
                 }
                 catch
                 {
-                    Console.WriteLine();
+                    ioService.WriteLine(null, false);
                     if (i + 1 < CommonConsts.DownloadMaxRetry)
                     {
-                        Console.Write("Failed. Retry...\r");
+                        ioService.PrintTimeStamp();
+                        ioService.Write("Failed. Retry...\r");
                         await Task.Delay(CommonConsts.DownloadTimespanRetry);
                     }
                 }
@@ -179,7 +179,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 httpClientFactory);
         }
 
-        private static void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
+        private void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
         {
             // Calculate ETA.
             var elapsedTime = DateTime.UtcNow - startDateTime;
@@ -201,7 +201,7 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             strBuilder.Append('\r');
 
-            Console.Write(strBuilder.ToString());
+            ioService.Write(strBuilder.ToString());
         }
     }
 }
