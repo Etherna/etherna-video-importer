@@ -13,7 +13,7 @@
 // limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.FFmpegDto;
+using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
 using Microsoft.Extensions.Options;
@@ -179,6 +179,9 @@ namespace Etherna.VideoImporter.Core.Services
 
             //video codec
             args.Add("-c:v"); args.Add("libx264");
+
+            //preset
+            args.Add("-preset"); args.Add(options.PresetCodec.ToString().ToLowerInvariant());
 
             //flags
             args.Add("-movflags"); args.Add("faststart");

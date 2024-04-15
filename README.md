@@ -40,6 +40,7 @@ Video Management Options:
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
+  -c, --preset-codec      Preset of codec used for encoder (see ffmpeg documentation). Default: medium
 
 Bee Node Options:
   --bee-node              Use bee native node
@@ -95,6 +96,7 @@ Video Management Options:
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
+  -c, --preset-codec      Preset of codec used for encoder (ultrafast, superfast, fast, medium, slow, slower) default: medium
 
 Bee Node Options:
   --bee-node              Use bee native node

@@ -16,7 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Etherna.VideoImporter.Core.Models.FFmpegDto
+namespace Etherna.VideoImporter.Core.Models.FFmpeg
 {
     public sealed class FFProbeResultDto
     {

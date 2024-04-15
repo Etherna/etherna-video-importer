@@ -13,7 +13,7 @@
 // limitations under the License.
 
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.FFmpegDto;
+using Etherna.VideoImporter.Core.Models.FFmpeg;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

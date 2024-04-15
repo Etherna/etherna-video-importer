@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.VideoImporter.Core.Services;
-
-namespace Etherna.VideoImporter.Core.Options
+namespace Etherna.VideoImporter.Core.Services
 {
-    public class FFmpegServiceOptions
+    public enum FFmpegH264Preset
     {
-        // Consts.
-        public const FFmpegH264Preset DefaultPresetCodec = FFmpegH264Preset.Medium;
-        
-        // Properties.
-        public string? CustomFFmpegFolderPath { get; set; }
-        public FFmpegH264Preset PresetCodec { get; set; }
+        Ultrafast,
+        Superfast,
+        Veryfast,
+        Faster,
+        Fast,
+        Medium,
+        Slow,
+        Slower,
+        Veryslow,
+        Placebo
     }
 }
