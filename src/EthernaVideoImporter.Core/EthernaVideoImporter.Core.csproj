@@ -5,7 +5,7 @@
     <RootNamespace>Etherna.VideoImporter.Core</RootNamespace>
 
     <Authors>Etherna SA</Authors>
-    <Description>A .Net console for upload video on Etherna</Description>
+    <Description>A .Net console to upload video on Etherna</Description>
 
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
