@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.BeeNet;
-using Etherna.BeeNet.Clients.GatewayApi;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Net.Http;
 
 namespace Etherna.VideoImporter.Core
 {
@@ -29,7 +26,6 @@ namespace Etherna.VideoImporter.Core
             Action<EncoderServiceOptions> configureEncoderOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
             Action<VideoUploaderServiceOptions> configureVideoUploaderOptions,
-            string httpClientName,
             bool useBeeNativeNode)
         {
             // Configure options.
@@ -52,15 +48,6 @@ namespace Etherna.VideoImporter.Core
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             // Add singleton services.
-            //bee.net
-            services.AddSingleton<IBeeGatewayClient>((sp) =>
-            {
-                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-                return new BeeGatewayClient(
-                    httpClientFactory.CreateClient(httpClientName),
-                    new Uri(CommonConsts.EthernaGatewayUrl));
-            });
-            services.AddSingleton<IBeeNodeClient, BeeNodeClient>();
             services.AddSingleton<IFFmpegService, FFmpegService>();
         }
     }

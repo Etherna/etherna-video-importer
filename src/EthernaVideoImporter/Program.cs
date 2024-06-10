@@ -62,8 +62,7 @@ namespace Etherna.VideoImporter
             Bee Node Options:
               --bee-node              Use bee native node
               --bee-url               URL of Bee node (default: {{CommonConsts.BeeNodeUrl}})
-              --bee-api-port          Port used by API (default: {{CommonConsts.BeeApiPort}})
-              --bee-debug-port        Port used by Debug (default: {{CommonConsts.BeeDebugPort}})
+              --bee-api-port          Port used by API (default: {{CommonConsts.BeePort}})
 
             Json videos metadata format:
             To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
@@ -122,7 +121,6 @@ namespace Etherna.VideoImporter
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
             string? beeNodeApiPortStr = null;
-            string? beeNodeDebugPortStr = null;
 
             //print help
             if (args.Length == 0)
@@ -265,13 +263,6 @@ namespace Etherna.VideoImporter
                         useBeeNativeNode = true;
                         break;
 
-                    case "--bee-debug-port":
-                        if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Bee node Debug port missing");
-                        beeNodeDebugPortStr = optArgs[++i];
-                        useBeeNativeNode = true;
-                        break;
-
                     default:
                         if (sourceType == SourceType.JsonList && sourceUrls.Count != 0)
                             throw new ArgumentException("Json import only supports a single url");
@@ -283,20 +274,11 @@ namespace Etherna.VideoImporter
 
             // Input validation.
             //bee node api port
-            int beeNodeApiPort = CommonConsts.BeeApiPort;
+            int beeNodeApiPort = CommonConsts.BeePort;
             if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
                 !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
             {
                 Console.WriteLine($"Invalid value for Gateway API port");
-                return;
-            }
-
-            //bee node debug port
-            int beeNodeDebugPort = CommonConsts.BeeDebugPort;
-            if (!string.IsNullOrEmpty(beeNodeDebugPortStr) &&
-                !int.TryParse(beeNodeDebugPortStr, CultureInfo.InvariantCulture, out beeNodeDebugPort))
-            {
-                Console.WriteLine($"Invalid value for Gateway Debug port");
                 return;
             }
 
@@ -356,7 +338,6 @@ namespace Etherna.VideoImporter
                             throw new ArgumentException($"Invalid value for TTL Postage Stamp");
                     }
                 },
-                HttpClientName,
                 useBeeNativeNode);
 
             //source provider

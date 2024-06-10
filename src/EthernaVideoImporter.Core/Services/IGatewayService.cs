@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -25,38 +26,38 @@ namespace Etherna.VideoImporter.Core.Services
         /// </summary>
         /// <param name="amount">amount</param>
         /// <param name="batchDepth">batch depth</param>
-        Task<string> CreatePostageBatchAsync(long amount, int batchDepth);
+        Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth);
 
         /// <summary>
         /// Delete pin.
         /// </summary>
-        /// <param name="hash">Video data</param>
-        Task DeletePinAsync(string hash);
+        /// <param name="address">Resource address</param>
+        Task DefundResourcePinningAsync(SwarmAddress address);
 
         /// <summary>
         /// Get the current price.
         /// </summary>
-        Task<long> GetCurrentChainPriceAsync();
+        Task<BzzBalance> GetChainPriceAsync();
 
         /// <summary>
         /// Get usable batch.
         /// </summary>
         /// <param name="batchId">batch id</param>
-        Task<bool> IsBatchUsableAsync(string batchId);
+        Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
         /// <summary>
         /// Offer the content to all users.
         /// </summary>
-        /// <param name="hash">hash</param>
-        Task OfferContentAsync(string hash);
+        /// <param name="address">Resource address</param>
+        Task FundResourceDownloadAsync(SwarmAddress address);
 
         /// <summary>
         /// Get all pins.
         /// </summary>
-        Task<IEnumerable<string>> GetPinnedResourcesAsync();
+        Task<IEnumerable<SwarmAddress>> GetPinnedResourcesAsync();
 
-        Task<string> UploadFileAsync(
-            string batchId,
+        Task<SwarmAddress> UploadFileAsync(
+            PostageBatchId batchId,
             Stream content,
             string? name,
             string? contentType,

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.BeeNet.Clients.DebugApi;
-using Etherna.BeeNet.Clients.GatewayApi;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -22,8 +20,7 @@ namespace Etherna.VideoImporter.Core
 {
     public sealed class CommonConsts
     {
-        public const int BeeApiPort = 1633;
-        public const int BeeDebugPort = 1635;
+        public const int BeePort = 1633;
         public const string BeeNodeUrl = "http://localhost/";
         public static readonly string DefaultFFmpegFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FFmpeg");
         public const int DownloadMaxRetry = 3;
