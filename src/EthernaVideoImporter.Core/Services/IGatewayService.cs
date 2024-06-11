@@ -31,8 +31,8 @@ namespace Etherna.VideoImporter.Core.Services
         /// <summary>
         /// Delete pin.
         /// </summary>
-        /// <param name="address">Resource address</param>
-        Task DefundResourcePinningAsync(SwarmAddress address);
+        /// <param name="hash">Resource hash</param>
+        Task DefundResourcePinningAsync(SwarmHash hash);
 
         /// <summary>
         /// Get the current price.
@@ -48,15 +48,15 @@ namespace Etherna.VideoImporter.Core.Services
         /// <summary>
         /// Offer the content to all users.
         /// </summary>
-        /// <param name="address">Resource address</param>
-        Task FundResourceDownloadAsync(SwarmAddress address);
+        /// <param name="hash">Resource hash</param>
+        Task FundResourceDownloadAsync(SwarmHash hash);
 
         /// <summary>
         /// Get all pins.
         /// </summary>
-        Task<IEnumerable<SwarmAddress>> GetPinnedResourcesAsync();
+        Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync();
 
-        Task<SwarmAddress> UploadFileAsync(
+        Task<SwarmHash> UploadFileAsync(
             PostageBatchId batchId,
             Stream content,
             string? name,

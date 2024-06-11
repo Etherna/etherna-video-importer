@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
         // Builders.
         internal static async Task<ManifestDto> BuildNewAsync(
             Video video,
-            string batchId,
+            PostageBatchId batchId,
             string ownerAddress,
             Version? appCurrentVersion,
             bool allowFakeReferences = false)
@@ -48,7 +49,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             foreach (var videoFile in video.EncodedFiles.OfType<IVideoFile>())
                 sources.Add(await ManifestVideoSourceDto.BuildNewAsync(videoFile, allowFakeReferences));
 
-            return new ManifestDto()
+            return new ManifestDto
             {
                 Title = video.Metadata.Title,
                 Description = video.Metadata.Description,
@@ -61,7 +62,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
                     null,
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 UpdatedAt = null,
-                BatchId = batchId,
+                BatchId = batchId.ToString(),
                 PersonalData = JsonSerializer.Serialize(ManifestPersonalDataDto.BuildNew(video.Metadata.Id, appCurrentVersion ?? new Version()))
             };
         }

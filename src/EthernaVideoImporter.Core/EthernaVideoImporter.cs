@@ -14,8 +14,9 @@
 
 using Etherna.Authentication;
 using Etherna.Authentication.Native;
-using Etherna.Sdk.GeneratedClients.Index;
-using Etherna.Sdk.Users;
+using Etherna.BeeNet.Models;
+using Etherna.Sdk.Common.Models;
+using Etherna.Sdk.Users.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
@@ -24,9 +25,9 @@ using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Video = Etherna.VideoImporter.Core.Models.Domain.Video;
 
 namespace Etherna.VideoImporter.Core
 {
@@ -153,7 +154,7 @@ namespace Etherna.VideoImporter.Core
             ioService.WriteLine("Get user's videos on etherna index");
 
             var userVideosOnIndex = await GetUserVideosOnEthernaAsync(userEthAddress);
-            var ethernaIndexParameters = await ethernaIndexClient.SystemClient.ParametersAsync();
+            var ethernaIndexParameters = await ethernaIndexClient.GetIndexParametersAsync();
 
             ioService.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on etherna index");
 
@@ -216,9 +217,9 @@ namespace Etherna.VideoImporter.Core
                                 new ThumbnailSwarmFile(
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
-                                    t.Value,
+                                    t.Address,
                                     0, /*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
-                                    int.Parse(t.Key.Replace("w", "", StringComparison.OrdinalIgnoreCase), CultureInfo.InvariantCulture)));
+                                    t.Width));
 
                             var videoMetadata = new SwarmVideoMetadata(
                                 sourceMetadata.Id,
@@ -227,7 +228,8 @@ namespace Etherna.VideoImporter.Core
                                 TimeSpan.FromSeconds(alreadyPresentVideo.LastValidManifest!.Duration),
                                 sourceMetadata.OriginVideoQualityLabel);
 
-                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(v => new VideoSwarmFile(v.Size, v.Quality, v.Reference));
+                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(
+                                v => new VideoSwarmFile(v.Size, v.Quality!, v.Address));
 
                             var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 
@@ -240,7 +242,7 @@ namespace Etherna.VideoImporter.Core
                             var updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
 
                             // Update on index.
-                            await ethernaIndexClient.VideosClient.VideosPutAsync(
+                            await ethernaIndexClient.UpdateVideoManifestAsync(
                                 alreadyPresentVideo.IndexId,
                                 updatedPermalinkHash);
 
@@ -275,7 +277,7 @@ namespace Etherna.VideoImporter.Core
                         importResult = VideoImportResultSucceeded.FullUploaded(
                             sourceMetadata,
                             video.EthernaIndexId!,
-                            video.EthernaPermalinkHash!);
+                            video.EthernaPermalinkHash!.Value);
                     }
 
                     // Import succeeded.
@@ -324,7 +326,7 @@ namespace Etherna.VideoImporter.Core
             }
 
             // Clean up user channel on etherna index.
-            IEnumerable<string>? gatewayPinnedHashes = null;
+            IEnumerable<SwarmHash>? gatewayPinnedHashes = null;
             if (unpinRemovedVideos)
                 gatewayPinnedHashes = await gatewayService.GetPinnedResourcesAsync();
 
@@ -362,15 +364,15 @@ namespace Etherna.VideoImporter.Core
         // Helpers.
         private async Task<IEnumerable<IndexedVideo>> GetUserVideosOnEthernaAsync(string userAddress)
         {
-            var videos = new List<VideoDto>();
+            var videos = new List<Sdk.Common.Models.Video>();
             const int MaxForPage = 100;
 
-            VideoDtoPaginatedEnumerableDto? page = null;
+            PaginatedResult<Sdk.Common.Models.Video>? page = null;
             do
             {
-                page = await ethernaIndexClient.UsersClient.Videos2Async(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
+                page = await ethernaIndexClient.GetVideosByOwnerAsync(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);
                 videos.AddRange(page.Elements);
-            } while (page.Elements.Count != 0);
+            } while (page.Elements.Any());
 
             return videos.Select(v => new IndexedVideo(v));
         }

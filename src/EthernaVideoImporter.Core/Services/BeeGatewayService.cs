@@ -50,16 +50,16 @@ namespace Etherna.VideoImporter.Core.Services
             return batchId;
         }
 
-        public override Task DefundResourcePinningAsync(SwarmAddress address) =>
-            beeClient.DeletePinAsync(address);
+        public override Task DefundResourcePinningAsync(SwarmHash hash) =>
+            beeClient.DeletePinAsync(hash);
 
-        public override async Task FundResourceDownloadAsync(SwarmAddress address) =>
-            await ethernaGatewayClient.FundResourceDownloadAsync(address);
+        public override async Task FundResourceDownloadAsync(SwarmHash hash) =>
+            await ethernaGatewayClient.FundResourceDownloadAsync(hash);
 
         public override async Task<BzzBalance> GetChainPriceAsync() =>
              (await beeClient.GetChainStateAsync()).CurrentPrice;
 
-        public override Task<IEnumerable<SwarmAddress>> GetPinnedResourcesAsync() =>
+        public override Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync() =>
             beeClient.GetAllPinsAsync();
 
         public override async Task<bool> IsBatchUsableAsync(PostageBatchId batchId) =>

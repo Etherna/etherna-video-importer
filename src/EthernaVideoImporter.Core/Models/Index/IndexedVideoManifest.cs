@@ -28,10 +28,10 @@ namespace Etherna.VideoImporter.Core.Models.Index
         {
             ArgumentNullException.ThrowIfNull(lastValidManifest, nameof(lastValidManifest));
 
-            Address = lastValidManifest.Address;
             BatchId = lastValidManifest.BatchId ?? "";
             Description = lastValidManifest.Description ?? "";
             Duration = lastValidManifest.Duration ?? 0;
+            Hash = lastValidManifest.Hash;
             PersonalData = lastValidManifest.PersonalData is null ? null : JsonSerializer.Deserialize<ManifestPersonalDataDto>(lastValidManifest.PersonalData);
             RawPersonalData = lastValidManifest.PersonalData;
             Sources = lastValidManifest.Sources;
@@ -40,10 +40,10 @@ namespace Etherna.VideoImporter.Core.Models.Index
         }
 
         // Properties.
-        public SwarmAddress Address { get; set; }
         public PostageBatchId BatchId { get; set; }
         public string Description { get; set; }
         public long Duration { get; set; }
+        public SwarmHash Hash { get; set; }
         public ManifestPersonalDataDto? PersonalData { get; set; }
         public string? RawPersonalData { get; set; }
         public IEnumerable<VideoSource> Sources { get; set; }

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 using System.Threading.Tasks;
@@ -35,9 +36,8 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             return new ManifestVideoSourceDto
             {
                 Quality = videoFile.VideoQualityLabel,
-                Reference = videoFile.SwarmHash ?? (allowFakeReference ?
-                    CommonConsts.SwarmNullReference :
-                    throw new InvalidOperationException()),
+                Reference = (videoFile.SwarmAddress ??
+                             (allowFakeReference ? SwarmHash.Zero : throw new InvalidOperationException())).ToString(),
                 Size = await videoFile.GetByteSizeAsync()
             };
         }

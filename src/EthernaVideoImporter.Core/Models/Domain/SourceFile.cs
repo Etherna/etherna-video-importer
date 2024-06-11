@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System;
 using System.IO;
 using System.Linq;
@@ -169,11 +170,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             return encoding.GetString(content);
         }
 
-        public void SetSwarmHash(string swarmHash)
+        public void SetSwarmAddress(SwarmAddress address)
         {
-            if (SwarmHash != null)
-                throw new InvalidOperationException("Swarm hash already set");
-            SwarmHash = swarmHash;
+            if (SwarmAddress != null)
+                throw new InvalidOperationException("Swarm address already set");
+            SwarmAddress = address;
         }
 
         public string? TryGetFileName()

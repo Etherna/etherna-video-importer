@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.Sdk.GeneratedClients.Index;
-using Etherna.Sdk.Users;
+using Etherna.BeeNet.Models;
+using Etherna.Sdk.Users.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
@@ -75,11 +75,11 @@ namespace Etherna.VideoImporter.Core.Services
                 batchDepth++;
 
             //calculate amount
-            var currentPrice = await gatewayService.GetCurrentChainPriceAsync();
-            var amount = (long)(options.TtlPostageStamp.TotalSeconds * currentPrice / CommonConsts.GnosisBlockTime.TotalSeconds);
-            var bzzPrice = amount * Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
+            var currentPrice = await gatewayService.GetChainPriceAsync();
+            var amount = (decimal)options.TtlPostageStamp.TotalSeconds * currentPrice / (decimal)GnosisChain.BlockTime.TotalSeconds;
+            var bzzPrice = amount * (decimal)Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
 
-            ioService.WriteLine($"Creating postage batch... Depth: {batchDepth}, Amount: {amount}, BZZ price: {bzzPrice}");
+            ioService.WriteLine($"Creating postage batch... Depth: {batchDepth}, Amount: {amount.ToPlurString()}, BZZ price: {bzzPrice}");
 
             if (!options.AcceptPurchaseOfAllBatches)
             {
@@ -128,7 +128,7 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        encodedFile.SetSwarmHash(await gatewayService.UploadFileAsync(
+                        encodedFile.SetSwarmAddress(await gatewayService.UploadFileAsync(
                             batchId,
                             (await encodedFile.ReadAsStreamAsync()).Stream,
                             encodedFile.TryGetFileName(),
@@ -151,7 +151,7 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
                 if (offerVideo)
-                    await gatewayService.OfferContentAsync(encodedFile.SwarmHash!);
+                    await gatewayService.FundResourceDownloadAsync(encodedFile.SwarmAddress!.Value.Hash);
             }
 
             // Upload thumbnail.
@@ -159,7 +159,7 @@ namespace Etherna.VideoImporter.Core.Services
             foreach (var thumbnailFile in video.ThumbnailFiles.OfType<SourceFile>())
             {
                 var uploadSucceeded = false;
-                string thumbnailReference = null!;
+                SwarmHash thumbnailReference = default;
                 for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
                 {
                     try
@@ -186,10 +186,10 @@ namespace Etherna.VideoImporter.Core.Services
                 if (!uploadSucceeded)
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
-                thumbnailFile.SetSwarmHash(thumbnailReference);
+                thumbnailFile.SetSwarmAddress(thumbnailReference);
 
                 if (offerVideo)
-                    await gatewayService.OfferContentAsync(thumbnailReference);
+                    await gatewayService.FundResourceDownloadAsync(thumbnailReference);
             }
 
             // Manifest.
@@ -222,18 +222,14 @@ namespace Etherna.VideoImporter.Core.Services
 
             // List on index.
             if (video.EthernaIndexId is null)
-                video.EthernaIndexId = await ethernaIndexClient.VideosClient.VideosPostAsync(
-                    new VideoCreateInput
-                    {
-                        ManifestHash = video.EthernaPermalinkHash!,
-                    });
+                video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(video.EthernaPermalinkHash!.Value);
             else
-                await ethernaIndexClient.VideosClient.VideosPutAsync(video.EthernaIndexId, video.EthernaPermalinkHash!);
+                await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkHash!.Value);
 
             ioService.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }
 
-        public async Task<string> UploadVideoManifestAsync(
+        public async Task<SwarmHash> UploadVideoManifestAsync(
             ManifestDto videoManifest,
             bool pinManifest,
             bool offerManifest)
@@ -242,7 +238,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             // Upload manifest.
             var uploadSucceeded = false;
-            string manifestReference = null!;
+            SwarmHash manifestReference = default;
             for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
             {
                 try
@@ -273,7 +269,7 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
             if (offerManifest)
-                await gatewayService.OfferContentAsync(manifestReference);
+                await gatewayService.FundResourceDownloadAsync(manifestReference);
 
             return manifestReference;
         }

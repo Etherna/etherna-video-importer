@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.Sdk.Users;
+using Etherna.BeeNet.Models;
+using Etherna.Sdk.Users.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
@@ -44,7 +45,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Methods.
         public async Task<int> DeleteExogenousVideosAsync(
             IEnumerable<IndexedVideo> indexedVideos,
-            IEnumerable<string>? gatewayPinnedHashes,
+            IEnumerable<SwarmHash>? gatewayPinnedHashes,
             bool unpinRemovedVideos)
         {
             if (gatewayPinnedHashes is null && unpinRemovedVideos)
@@ -76,7 +77,7 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task<int> DeleteVideosRemovedFromSourceAsync(
             IEnumerable<VideoMetadataBase> videosMetadataFromSource,
             IEnumerable<IndexedVideo> indexedVideos,
-            IEnumerable<string>? gatewayPinnedHashes,
+            IEnumerable<SwarmHash>? gatewayPinnedHashes,
             bool unpinRemovedVideos)
         {
             if (gatewayPinnedHashes is null && unpinRemovedVideos)
@@ -110,14 +111,14 @@ namespace Etherna.VideoImporter.Core.Services
         // Helpers.
         private async Task RemoveFromIndexAsync(
             IndexedVideo indexedVideo,
-            IEnumerable<string>? gatewayPinnedHashes,
+            IEnumerable<SwarmHash>? gatewayPinnedHashes,
             bool unpinRemovedVideos)
         {
             // Remove video.
             bool removeSucceeded = false;
             try
             {
-                await ethernaIndexClient.VideosClient.VideosDeleteAsync(indexedVideo.IndexId);
+                await ethernaIndexClient.OwnerRemoveVideoAsync(indexedVideo.IndexId);
                 removeSucceeded = true;
 
                 ioService.WriteSuccessLine($"Video with index Id {indexedVideo.IndexId} removed");
@@ -135,25 +136,25 @@ namespace Etherna.VideoImporter.Core.Services
             {
                 //videos
                 foreach (var streamSource in indexedVideo.LastValidManifest.Sources)
-                    await UnpinContentAsync(streamSource.Reference, gatewayPinnedHashes!);
+                    await UnpinContentAsync(streamSource.Address.Hash, gatewayPinnedHashes!);
 
                 //thumbnail
                 foreach (var thumbSource in indexedVideo.LastValidManifest.Thumbnail.Sources)
-                    await UnpinContentAsync(thumbSource.Value, gatewayPinnedHashes!);
+                    await UnpinContentAsync(thumbSource.Address.Hash, gatewayPinnedHashes!);
 
                 //manifest
                 await UnpinContentAsync(indexedVideo.LastValidManifest.Hash, gatewayPinnedHashes!);
             }
         }
 
-        private async Task<bool> UnpinContentAsync(string hash, IEnumerable<string> gatewayPinnedHashes)
+        private async Task<bool> UnpinContentAsync(SwarmHash hash, IEnumerable<SwarmHash> gatewayPinnedHashes)
         {
             if (!gatewayPinnedHashes.Contains(hash))
                 return false;
 
             try
             {
-                await gatewayService.DeletePinAsync(hash);
+                await gatewayService.DefundResourcePinningAsync(hash);
 
                 ioService.WriteSuccessLine($"Resource with hash {hash} unpinned from gateway");
                 

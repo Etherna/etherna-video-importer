@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
+
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public class AudioSwarmFile : SwarmFileBase
     {
         // Constructor.
         public AudioSwarmFile(
-            string hash,
+            SwarmAddress address,
             long byteSize)
-            : base(hash, byteSize)
+            : base(address, byteSize)
         {
         }
     }

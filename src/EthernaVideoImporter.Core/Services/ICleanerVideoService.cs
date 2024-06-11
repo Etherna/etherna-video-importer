@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using System.Collections.Generic;
@@ -23,13 +24,13 @@ namespace Etherna.VideoImporter.Core.Services
     {
         Task<int> DeleteExogenousVideosAsync(
             IEnumerable<IndexedVideo> indexedVideos,
-            IEnumerable<string>? gatewayPinnedHashes,
+            IEnumerable<SwarmHash>? gatewayPinnedHashes,
             bool unpinRemovedVideos);
 
         Task<int> DeleteVideosRemovedFromSourceAsync(
             IEnumerable<VideoMetadataBase> videosMetadataFromSource,
             IEnumerable<IndexedVideo> indexedVideos,
-            IEnumerable<string>? gatewayPinnedHashes,
+            IEnumerable<SwarmHash>? gatewayPinnedHashes,
             bool unpinRemovedVideos);
     }
 }

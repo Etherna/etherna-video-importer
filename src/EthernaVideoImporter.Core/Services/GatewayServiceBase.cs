@@ -45,17 +45,17 @@ namespace Etherna.VideoImporter.Core.Services
         // Methods.
         public abstract Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth);
 
-        public abstract Task DefundResourcePinningAsync(SwarmAddress address);
+        public abstract Task DefundResourcePinningAsync(SwarmHash hash);
 
-        public abstract Task FundResourceDownloadAsync(SwarmAddress address);
+        public abstract Task FundResourceDownloadAsync(SwarmHash hash);
 
         public abstract Task<BzzBalance> GetChainPriceAsync();
 
-        public abstract Task<IEnumerable<SwarmAddress>> GetPinnedResourcesAsync();
+        public abstract Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync();
 
         public abstract Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
-        public Task<SwarmAddress> UploadFileAsync(
+        public Task<SwarmHash> UploadFileAsync(
             PostageBatchId batchId,
             Stream content,
             string? name,
