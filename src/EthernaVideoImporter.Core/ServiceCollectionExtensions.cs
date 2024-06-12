@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Services;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,10 +36,10 @@ namespace Etherna.VideoImporter.Core
 
             // Add transient services.
             services.AddTransient<IAppVersionService, AppVersionService>();
-            services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
-
+            services.AddTransient<ICalculatorService, CalculatorService>();
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
             services.AddTransient<IEncoderService, EncoderService>();
+            services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
             if (useBeeNativeNode)
                 services.AddTransient<IGatewayService, BeeGatewayService>();
             else

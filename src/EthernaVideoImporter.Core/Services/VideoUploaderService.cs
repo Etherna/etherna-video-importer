@@ -32,8 +32,12 @@ namespace Etherna.VideoImporter.Core.Services
     internal sealed class VideoUploaderService : IVideoUploaderService
     {
         // Const.
+        private const string ManifestFileName = "metadata.json";
+        private const string ManifestMimeType = "application/json";
+        private const string ThumbnailMimeType = "image/jpeg";
         private const int UploadMaxRetry = 10;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
+        private const string VideoMimeType = "video/mp4";
 
         // Fields.
         private readonly IAppVersionService appVersionService;
@@ -134,7 +138,7 @@ namespace Etherna.VideoImporter.Core.Services
                             batchId,
                             (await encodedFile.ReadToStreamAsync()).Stream,
                             encodedFile.TryGetFileName(),
-                            "video/mp4",
+                            VideoMimeType,
                             pinVideo));
                         uploadSucceeded = true;
                     }
@@ -170,7 +174,7 @@ namespace Etherna.VideoImporter.Core.Services
                             batchId,
                             (await thumbnailFile.ReadToStreamAsync()).Stream,
                             thumbnailFile.TryGetFileName(),
-                            "image/jpeg",
+                            ThumbnailMimeType,
                             pinVideo);
                         uploadSucceeded = true;
                     }
@@ -194,31 +198,9 @@ namespace Etherna.VideoImporter.Core.Services
                     await gatewayService.FundResourceDownloadAsync(thumbnailReference);
             }
 
-            // Manifest.
+            // Upload manifest.
             var metadataVideo = await ManifestDto.BuildNewAsync(video, batchId, userEthAddress, appVersionService.CurrentVersion);
-            {
-                var uploadSucceeded = false;
-                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
-                {
-                    try
-                    {
-                        video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo, offerVideo);
-                        uploadSucceeded = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        ioService.WriteErrorLine("Error uploading manifest file");
-                        ioService.PrintException(ex);
-                        if (i + 1 < UploadMaxRetry)
-                        {
-                            ioService.WriteLine("Retry...");
-                            await Task.Delay(UploadRetryTimeSpan);
-                        }
-                    }
-                }
-                if (!uploadSucceeded)
-                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
-            }
+            video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo, offerVideo);
 
             ioService.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
 
@@ -251,8 +233,8 @@ namespace Etherna.VideoImporter.Core.Services
                     manifestReference = await gatewayService.UploadFileAsync(
                         videoManifest.BatchId,
                         manifestStream,
-                        "metadata.json",
-                        "application/json",
+                        ManifestFileName,
+                        ManifestMimeType,
                         pinManifest);
                     uploadSucceeded = true;
                 }
@@ -281,8 +263,6 @@ namespace Etherna.VideoImporter.Core.Services
             Video video,
             string userEthAddress)
         {
-            ioService.Write("Calculating required postage batch depth... ");
-            
             var buckets = new uint[PostageStampIssuer.BucketsSize];
             var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance, buckets);
             
@@ -292,7 +272,7 @@ namespace Etherna.VideoImporter.Core.Services
                 var (stream, _) = await encodedFile.ReadToStreamAsync();
                 await calculatorService.EvaluateFileUploadAsync(
                     stream,
-                    "video/mp4",
+                    VideoMimeType,
                     encodedFile.TryGetFileName(),
                     postageStampIssuer: stampIssuer);
                 await stream.DisposeAsync();
@@ -304,7 +284,7 @@ namespace Etherna.VideoImporter.Core.Services
                 var (stream, _) = await thumbnailFile.ReadToStreamAsync();
                 await calculatorService.EvaluateFileUploadAsync(
                     stream,
-                    "image/jpeg",
+                    ThumbnailMimeType,
                     thumbnailFile.TryGetFileName(),
                     postageStampIssuer: stampIssuer);
                 await stream.DisposeAsync();
@@ -315,14 +295,15 @@ namespace Etherna.VideoImporter.Core.Services
                 video,
                 PostageBatchId.Zero,
                 userEthAddress,
-                appVersionService.CurrentVersion);
+                appVersionService.CurrentVersion,
+                allowFakeReferences: true);
             var serializedManifest = JsonSerializer.Serialize(manifest, jsonSerializerOptions);
             using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
-            
+
             var result = await calculatorService.EvaluateFileUploadAsync(
                 manifestStream,
-                "application/json",
-                "metadata.json",
+                ManifestMimeType,
+                ManifestFileName,
                 postageStampIssuer: stampIssuer);
 
             return result.RequiredPostageBatchDepth;
