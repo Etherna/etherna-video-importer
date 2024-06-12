@@ -134,7 +134,7 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        encodedFile.SetSwarmAddress(await gatewayService.UploadFileAsync(
+                        encodedFile.SetSwarmHash(await gatewayService.UploadFileAsync(
                             batchId,
                             (await encodedFile.ReadToStreamAsync()).Stream,
                             encodedFile.TryGetFileName(),
@@ -157,7 +157,7 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
                 if (offerVideo)
-                    await gatewayService.FundResourceDownloadAsync(encodedFile.SwarmAddress!.Value.Hash);
+                    await gatewayService.FundResourceDownloadAsync(encodedFile.SwarmHash!.Value);
             }
 
             // Upload thumbnail.
@@ -192,7 +192,7 @@ namespace Etherna.VideoImporter.Core.Services
                 if (!uploadSucceeded)
                     throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
-                thumbnailFile.SetSwarmAddress(thumbnailReference);
+                thumbnailFile.SetSwarmHash(thumbnailReference);
 
                 if (offerVideo)
                     await gatewayService.FundResourceDownloadAsync(thumbnailReference);

@@ -19,10 +19,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public sealed class ThumbnailSwarmFile(
         float aspectRatio,
         string blurhash,
-        SwarmAddress address,
+        SwarmHash hash,
         long byteSize,
         int width)
-        : SwarmFileBase(address, byteSize), IThumbnailFile
+        : SwarmFileBase(hash, byteSize), IThumbnailFile
     {
         // Constructor.
 

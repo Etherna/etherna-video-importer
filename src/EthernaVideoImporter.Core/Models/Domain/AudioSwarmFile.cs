@@ -20,9 +20,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     {
         // Constructor.
         public AudioSwarmFile(
-            SwarmAddress address,
+            SwarmHash hash,
             long byteSize)
-            : base(address, byteSize)
+            : base(hash, byteSize)
         {
         }
     }

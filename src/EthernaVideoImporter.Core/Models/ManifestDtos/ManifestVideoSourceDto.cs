@@ -36,7 +36,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             return new ManifestVideoSourceDto
             {
                 Quality = videoFile.VideoQualityLabel,
-                Reference = (videoFile.SwarmAddress ??
+                Reference = (videoFile.SwarmHash ??
                              (allowFakeReference ? SwarmHash.Zero : throw new InvalidOperationException())).ToString(),
                 Size = await videoFile.GetByteSizeAsync()
             };

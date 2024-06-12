@@ -24,10 +24,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Constructor.
         protected SwarmFileBase(
-            SwarmAddress address,
+            SwarmHash hash,
             long byteSize)
         {
-            SwarmAddress = address;
+            SwarmHash = hash;
             this.byteSize = byteSize;
         }
 

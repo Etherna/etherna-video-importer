@@ -35,7 +35,7 @@ namespace Etherna.VideoImporter.Core.Models.ManifestDtos
             Blurhash = maxQualityThumb.Blurhash;
             Sources = thumbnailFiles.ToDictionary(
                 t => $"{t.Width}w",
-                t => t.SwarmAddress.ToString()!);
+                t => t.SwarmHash.ToString()!);
         }
 
         // Properties.

@@ -217,7 +217,7 @@ namespace Etherna.VideoImporter.Core
                                 new ThumbnailSwarmFile(
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.AspectRatio,
                                     alreadyPresentVideo.LastValidManifest.Thumbnail.Blurhash,
-                                    t.Address,
+                                    t.Address.Hash,
                                     0, /*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
                                     t.Width));
 
@@ -229,7 +229,7 @@ namespace Etherna.VideoImporter.Core
                                 sourceMetadata.OriginVideoQualityLabel);
 
                             var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Sources.Select(
-                                v => new VideoSwarmFile(v.Size, v.Quality!, v.Address));
+                                v => new VideoSwarmFile(v.Size, v.Quality!, v.Address.Hash));
 
                             var video = new Video(videoMetadata, videoSwarmFile, thumbnailFiles);
 

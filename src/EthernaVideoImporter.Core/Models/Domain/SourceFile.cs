@@ -170,11 +170,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             return encoding.GetString(content);
         }
 
-        public void SetSwarmAddress(SwarmAddress address)
+        public void SetSwarmHash(SwarmHash hash)
         {
-            if (SwarmAddress != null)
-                throw new InvalidOperationException("Swarm address already set");
-            SwarmAddress = address;
+            if (SwarmHash != null)
+                throw new InvalidOperationException("Swarm hash already set");
+            SwarmHash = hash;
         }
 
         public string? TryGetFileName()

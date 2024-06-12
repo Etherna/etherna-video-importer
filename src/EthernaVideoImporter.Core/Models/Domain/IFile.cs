@@ -20,7 +20,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public interface IFile
     {
         // Properties.
-        SwarmAddress? SwarmAddress { get; }
+        SwarmHash? SwarmHash { get; }
 
         // Methods.
         Task<long> GetByteSizeAsync();
