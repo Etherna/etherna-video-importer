@@ -114,7 +114,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             }
         }
 
-        public async Task<(byte[] ByteArray, Encoding? Encoding)> ReadAsByteArrayAsync(
+        public async Task<(byte[] ByteArray, Encoding? Encoding)> ReadToByteArrayAsync(
             bool useCacheIfOnline = false,
             SourceUriKind allowedUriKinds = SourceUriKind.All,
             string? baseDirectory = null)
@@ -143,7 +143,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             }
         }
 
-        public async Task<(Stream Stream, Encoding? Encoding)> ReadAsStreamAsync(
+        public async Task<(Stream Stream, Encoding? Encoding)> ReadToStreamAsync(
             SourceUriKind allowedUriKinds = SourceUriKind.All,
             string? baseDirectory = null)
         {
@@ -160,12 +160,12 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             };
         }
 
-        public async Task<string> ReadAsStringAsync(
+        public async Task<string> ReadToStringAsync(
             bool useCacheIfOnline = false,
             SourceUriKind allowedUriKinds = SourceUriKind.All,
             string? baseDirectory = null)
         {
-            var (content, encoding) = await ReadAsByteArrayAsync(useCacheIfOnline, allowedUriKinds, baseDirectory);
+            var (content, encoding) = await ReadToByteArrayAsync(useCacheIfOnline, allowedUriKinds, baseDirectory);
             encoding ??= Encoding.UTF8;
             return encoding.GetString(content);
         }

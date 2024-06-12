@@ -108,13 +108,13 @@ namespace Etherna.VideoImporter
             bool autoPurchaseBatches = false;
             string? outputFile = null;
 
-            string? ttlPostageStampStr = null;
-            bool offerVideos = false;
-            bool pinVideos = true;
+            string? ttlPostageBatchStr = null;
+            bool fundVideosDownload = false;
+            bool fundVideosPin = true;
             bool forceVideoUpload = false;
             bool removeMissingVideosFromSource = false;
             bool removeUnrecognizedVideos = false;
-            bool unpinRemovedVideos = false;
+            bool defundRemovedVideosPin = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             FFmpegH264Preset presetCodec = FFmpegServiceOptions.DefaultPresetCodec;
 
@@ -201,12 +201,12 @@ namespace Etherna.VideoImporter
                     case "--ttl":
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("TTL value is missing");
-                        ttlPostageStampStr = optArgs[++i];
+                        ttlPostageBatchStr = optArgs[++i];
                         break;
 
                     case "-o":
                     case "--offer":
-                        offerVideos = true;
+                        fundVideosDownload = true;
                         break;
 
                     // case "-p":
@@ -214,7 +214,7 @@ namespace Etherna.VideoImporter
                     //     pinVideos = true;
                     //     break;
                     case "--no-pin":
-                        pinVideos = false;
+                        fundVideosPin = false;
                         break;
 
                     case "--force":
@@ -232,7 +232,7 @@ namespace Etherna.VideoImporter
 
                     case "-u":
                     case "--unpin":
-                        unpinRemovedVideos = true;
+                        defundRemovedVideosPin = true;
                         break;
 
                     case "-c":
@@ -330,9 +330,9 @@ namespace Etherna.VideoImporter
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = autoPurchaseBatches;
 
-                    if (!string.IsNullOrEmpty(ttlPostageStampStr))
+                    if (!string.IsNullOrEmpty(ttlPostageBatchStr))
                     {
-                        if (int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out var ttlPostageStamp))
+                        if (int.TryParse(ttlPostageBatchStr, CultureInfo.InvariantCulture, out var ttlPostageStamp))
                             uploaderOptions.TtlPostageStamp = TimeSpan.FromDays(ttlPostageStamp);
                         else
                             throw new ArgumentException($"Invalid value for TTL Postage Stamp");
@@ -386,9 +386,9 @@ namespace Etherna.VideoImporter
                 removeUnrecognizedVideos,
                 removeMissingVideosFromSource,
                 forceVideoUpload,
-                offerVideos,
-                pinVideos,
-                unpinRemovedVideos,
+                fundVideosDownload,
+                fundVideosPin,
+                defundRemovedVideosPin,
                 ignoreUpdate);
         }
     }

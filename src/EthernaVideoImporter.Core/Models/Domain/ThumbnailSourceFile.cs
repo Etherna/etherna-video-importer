@@ -41,7 +41,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         {
             var thumbnail = new ThumbnailSourceFile(fileUri, httpClientFactory);
 
-            using var thumbFileStream = (await thumbnail.ReadAsStreamAsync()).Stream;
+            using var thumbFileStream = (await thumbnail.ReadToStreamAsync()).Stream;
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
 
@@ -80,7 +80,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
             List<ThumbnailSourceFile> thumbnails = new();
 
-            using var thumbFileStream = (await ReadAsStreamAsync()).Stream;
+            using var thumbFileStream = (await ReadToStreamAsync()).Stream;
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
 

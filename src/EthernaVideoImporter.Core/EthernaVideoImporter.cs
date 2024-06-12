@@ -148,7 +148,7 @@ namespace Etherna.VideoImporter.Core
             var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync();
             var totalSourceVideo = sourceVideosMetadata.Count();
 
-            ioService.WriteLine($"Found {totalSourceVideo} valid videos from source");
+            ioService.WriteLine($"Found {totalSourceVideo} valid distinct videos from source");
 
             // Get information from etherna index.
             ioService.WriteLine("Get user's videos on etherna index");

@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Hasher.Postage;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Services;
 using Etherna.Sdk.Users.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
@@ -30,13 +32,12 @@ namespace Etherna.VideoImporter.Core.Services
     internal sealed class VideoUploaderService : IVideoUploaderService
     {
         // Const.
-        private readonly long BzzDecimalPlacesToUnit = (long)Math.Pow(10, 16);
-        private const int ChunkByteSize = 4096;
         private const int UploadMaxRetry = 10;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
         private readonly IAppVersionService appVersionService;
+        private readonly ICalculatorService calculatorService;
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
         private readonly IIoService ioService;
@@ -46,12 +47,14 @@ namespace Etherna.VideoImporter.Core.Services
         // Constructor.
         public VideoUploaderService(
             IAppVersionService appVersionService,
+            ICalculatorService calculatorService,
             IEthernaUserIndexClient ethernaIndexClient,
             IGatewayService gatewayService,
             IIoService ioService,
             IOptions<VideoUploaderServiceOptions> options)
         {
             this.appVersionService = appVersionService;
+            this.calculatorService = calculatorService;
             this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
             this.ioService = ioService;
@@ -68,19 +71,19 @@ namespace Etherna.VideoImporter.Core.Services
             ArgumentNullException.ThrowIfNull(video, nameof(video));
 
             // Create new batch.
-            //calculate batch depth
-            var totalSize = await video.GetTotalByteSizeAsync();
-            var batchDepth = 17;
-            while (Math.Pow(2, batchDepth) * ChunkByteSize < totalSize * 1.2) //keep 20% of tollerance
-                batchDepth++;
+            //calculate batch depth and amount
+            ioService.Write("Calculating required postage batch depth... ");
+            var batchDepth = await GetMinBatchDepthAsync(video, userEthAddress);
+            ioService.WriteLine("Done");
 
-            //calculate amount
             var currentPrice = await gatewayService.GetChainPriceAsync();
-            var amount = (decimal)options.TtlPostageStamp.TotalSeconds * currentPrice / (decimal)GnosisChain.BlockTime.TotalSeconds;
-            var bzzPrice = amount * (decimal)Math.Pow(2, batchDepth) / BzzDecimalPlacesToUnit;
+            ioService.WriteLine($"Current chain price: {currentPrice.ToPlurString()}");
+            
+            var amount = PostageBatch.CalculateAmount(currentPrice, options.TtlPostageStamp);
+            var bzzPrice = PostageBatch.CalculatePrice(amount, batchDepth);
 
+            //user confirmation
             ioService.WriteLine($"Creating postage batch... Depth: {batchDepth}, Amount: {amount.ToPlurString()}, BZZ price: {bzzPrice}");
-
             if (!options.AcceptPurchaseOfAllBatches)
             {
                 bool validSelection = false;
@@ -110,7 +113,6 @@ namespace Etherna.VideoImporter.Core.Services
 
             //create batch
             var batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
-
             ioService.WriteLine($"Postage batch: {batchId}");
 
             // Upload video files.
@@ -130,7 +132,7 @@ namespace Etherna.VideoImporter.Core.Services
                     {
                         encodedFile.SetSwarmAddress(await gatewayService.UploadFileAsync(
                             batchId,
-                            (await encodedFile.ReadAsStreamAsync()).Stream,
+                            (await encodedFile.ReadToStreamAsync()).Stream,
                             encodedFile.TryGetFileName(),
                             "video/mp4",
                             pinVideo));
@@ -166,7 +168,7 @@ namespace Etherna.VideoImporter.Core.Services
                     {
                         thumbnailReference = await gatewayService.UploadFileAsync(
                             batchId,
-                            (await thumbnailFile.ReadAsStreamAsync()).Stream,
+                            (await thumbnailFile.ReadToStreamAsync()).Stream,
                             thumbnailFile.TryGetFileName(),
                             "image/jpeg",
                             pinVideo);
@@ -272,6 +274,58 @@ namespace Etherna.VideoImporter.Core.Services
                 await gatewayService.FundResourceDownloadAsync(manifestReference);
 
             return manifestReference;
+        }
+        
+        // Helpers.
+        private async Task<int> GetMinBatchDepthAsync(
+            Video video,
+            string userEthAddress)
+        {
+            ioService.Write("Calculating required postage batch depth... ");
+            
+            var buckets = new uint[PostageStampIssuer.BucketsSize];
+            var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance, buckets);
+            
+            //evaluate video encoded files
+            foreach (var encodedFile in video.EncodedFiles.OfType<SourceFile>())
+            {
+                var (stream, _) = await encodedFile.ReadToStreamAsync();
+                await calculatorService.EvaluateFileUploadAsync(
+                    stream,
+                    "video/mp4",
+                    encodedFile.TryGetFileName(),
+                    postageStampIssuer: stampIssuer);
+                await stream.DisposeAsync();
+            }
+            
+            //evaluate thumbnail files
+            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<SourceFile>())
+            {
+                var (stream, _) = await thumbnailFile.ReadToStreamAsync();
+                await calculatorService.EvaluateFileUploadAsync(
+                    stream,
+                    "image/jpeg",
+                    thumbnailFile.TryGetFileName(),
+                    postageStampIssuer: stampIssuer);
+                await stream.DisposeAsync();
+            }
+            
+            //evaluate manifest
+            var manifest = await ManifestDto.BuildNewAsync(
+                video,
+                PostageBatchId.Zero,
+                userEthAddress,
+                appVersionService.CurrentVersion);
+            var serializedManifest = JsonSerializer.Serialize(manifest, jsonSerializerOptions);
+            using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
+            
+            var result = await calculatorService.EvaluateFileUploadAsync(
+                manifestStream,
+                "application/json",
+                "metadata.json",
+                postageStampIssuer: stampIssuer);
+
+            return result.RequiredPostageBatchDepth;
         }
     }
 }

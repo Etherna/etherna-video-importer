@@ -25,7 +25,6 @@ namespace Etherna.VideoImporter.Core
         public static readonly string DefaultFFmpegFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FFmpeg");
         public const int DownloadMaxRetry = 3;
         public static readonly TimeSpan DownloadTimespanRetry = TimeSpan.FromMilliseconds(3500);
-        public const string EthereumNullAddress = "0x0000000000000000000000000000000000000000";
         public const string EthernaIndexUrl = "https://index.etherna.io/";
         public const string EthernaGatewayUrl = "https://gateway.etherna.io/";
         public const string EthernaSsoUrl = "https://sso.etherna.io/";
