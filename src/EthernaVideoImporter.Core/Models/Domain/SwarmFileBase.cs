@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
@@ -23,7 +24,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Constructor.
         protected SwarmFileBase(
-            string hash,
+            SwarmHash hash,
             long byteSize)
         {
             SwarmHash = hash;

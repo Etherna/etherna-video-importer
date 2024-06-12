@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System.Threading.Tasks;
@@ -42,7 +43,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="pinManifest">True if need to pin manifest</param>
         /// <param name="offerManifest">Offer manifest for free</param>
         /// <returns>The new manifest hash</returns>
-        Task<string> UploadVideoManifestAsync(
+        Task<SwarmHash> UploadVideoManifestAsync(
             ManifestDto videoManifest,
             bool pinManifest,
             bool offerManifest);

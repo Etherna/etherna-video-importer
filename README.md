@@ -46,7 +46,6 @@ Bee Node Options:
   --bee-node              Use bee native node
   --bee-url               URL of Bee node (default: http://localhost/)
   --bee-api-port          Port used by API (default: 1633)
-  --bee-debug-port        Port used by Debug (default: 1635)
 
 Json videos metadata format:
 To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
@@ -102,7 +101,6 @@ Bee Node Options:
   --bee-node              Use bee native node
   --bee-url               URL of Bee node (default: http://localhost/)
   --bee-api-port          Port used by API (default: 1633)
-  --bee-debug-port        Port used by Debug (default: 1635)
 
 Run 'evid -h' or 'evid --help' to print help.
 ```

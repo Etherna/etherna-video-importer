@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Etherna.VideoImporter.Core.Utilities
@@ -25,8 +26,8 @@ namespace Etherna.VideoImporter.Core.Utilities
         
         // Static methods.
         public static string BuildEmbeddedIndexUrl(string indexId) => EmbeddedUrlPrefix + indexId;
-        public static string BuildEmbeddedPermalinkUrl(string referenceHash) => EmbeddedUrlPrefix + referenceHash;
+        public static string BuildEmbeddedPermalinkUrl(SwarmHash referenceHash) => EmbeddedUrlPrefix + referenceHash;
         public static string BuildNormalIndexUrl(string indexId) => NormalUrlPrefix + indexId;
-        public static string BuildNormalPermalinkUrl(string referenceHash) => NormalUrlPrefix + referenceHash;
+        public static string BuildNormalPermalinkUrl(SwarmHash referenceHash) => NormalUrlPrefix + referenceHash;
     }
 }

@@ -40,7 +40,7 @@ namespace Etherna.VideoImporter.Models.ResultDtos
                 case VideoImportResultSucceeded succeededResult:
                     IndexId = succeededResult.IndexId;
                     Succeeded = true;
-                    SwarmHash = succeededResult.ReferenceHash;
+                    SwarmHash = succeededResult.ReferenceHash.ToString();
                     break;
                 default: throw new InvalidOperationException();
             }

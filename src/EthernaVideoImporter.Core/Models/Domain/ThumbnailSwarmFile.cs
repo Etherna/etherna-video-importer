@@ -12,28 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
+
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public sealed class ThumbnailSwarmFile : SwarmFileBase, IThumbnailFile
+    public sealed class ThumbnailSwarmFile(
+        float aspectRatio,
+        string blurhash,
+        SwarmHash hash,
+        long byteSize,
+        int width)
+        : SwarmFileBase(hash, byteSize), IThumbnailFile
     {
         // Constructor.
-        public ThumbnailSwarmFile(
-            float aspectRatio,
-            string blurhash,
-            string hash,
-            long byteSize,
-            int width)
-            : base(hash, byteSize)
-        {
-            AspectRatio = aspectRatio;
-            Blurhash = blurhash;
-            Width = width;
-        }
 
         // Properties.
-        public float AspectRatio { get; }
-        public string Blurhash { get; }
+        public float AspectRatio { get; } = aspectRatio;
+        public string Blurhash { get; } = blurhash;
         public int Height => (int)(Width / AspectRatio);
-        public int Width { get; }
+        public int Width { get; } = width;
     }
 }

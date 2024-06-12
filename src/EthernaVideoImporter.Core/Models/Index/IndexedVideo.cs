@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.Sdk.GeneratedClients.Index;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
+using Video = Etherna.Sdk.Common.Models.Video;
 
 namespace Etherna.VideoImporter.Core.Models.Index
 {
     public sealed class IndexedVideo
     {
         // Constructors.
-        public IndexedVideo(VideoDto video)
+        public IndexedVideo(Video video)
         {
             ArgumentNullException.ThrowIfNull(video, nameof(video));
 

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
@@ -19,7 +20,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public abstract class FileBase : IFile
     {
         // Properties.
-        public string? SwarmHash { get; protected set; }
+        public SwarmHash? SwarmHash { get; protected set; }
 
         // Methods.
         public abstract Task<long> GetByteSizeAsync();

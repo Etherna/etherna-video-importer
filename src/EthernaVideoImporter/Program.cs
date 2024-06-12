@@ -62,8 +62,7 @@ namespace Etherna.VideoImporter
             Bee Node Options:
               --bee-node              Use bee native node
               --bee-url               URL of Bee node (default: {{CommonConsts.BeeNodeUrl}})
-              --bee-api-port          Port used by API (default: {{CommonConsts.BeeApiPort}})
-              --bee-debug-port        Port used by Debug (default: {{CommonConsts.BeeDebugPort}})
+              --bee-api-port          Port used by API (default: {{CommonConsts.BeePort}})
 
             Json videos metadata format:
             To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
@@ -109,20 +108,19 @@ namespace Etherna.VideoImporter
             bool autoPurchaseBatches = false;
             string? outputFile = null;
 
-            string? ttlPostageStampStr = null;
-            bool offerVideos = false;
-            bool pinVideos = true;
+            string? ttlPostageBatchStr = null;
+            bool fundVideosDownload = false;
+            bool fundVideosPin = true;
             bool forceVideoUpload = false;
             bool removeMissingVideosFromSource = false;
             bool removeUnrecognizedVideos = false;
-            bool unpinRemovedVideos = false;
+            bool defundRemovedVideosPin = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             FFmpegH264Preset presetCodec = FFmpegServiceOptions.DefaultPresetCodec;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
             string? beeNodeApiPortStr = null;
-            string? beeNodeDebugPortStr = null;
 
             //print help
             if (args.Length == 0)
@@ -203,12 +201,12 @@ namespace Etherna.VideoImporter
                     case "--ttl":
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("TTL value is missing");
-                        ttlPostageStampStr = optArgs[++i];
+                        ttlPostageBatchStr = optArgs[++i];
                         break;
 
                     case "-o":
                     case "--offer":
-                        offerVideos = true;
+                        fundVideosDownload = true;
                         break;
 
                     // case "-p":
@@ -216,7 +214,7 @@ namespace Etherna.VideoImporter
                     //     pinVideos = true;
                     //     break;
                     case "--no-pin":
-                        pinVideos = false;
+                        fundVideosPin = false;
                         break;
 
                     case "--force":
@@ -234,7 +232,7 @@ namespace Etherna.VideoImporter
 
                     case "-u":
                     case "--unpin":
-                        unpinRemovedVideos = true;
+                        defundRemovedVideosPin = true;
                         break;
 
                     case "-c":
@@ -265,13 +263,6 @@ namespace Etherna.VideoImporter
                         useBeeNativeNode = true;
                         break;
 
-                    case "--bee-debug-port":
-                        if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Bee node Debug port missing");
-                        beeNodeDebugPortStr = optArgs[++i];
-                        useBeeNativeNode = true;
-                        break;
-
                     default:
                         if (sourceType == SourceType.JsonList && sourceUrls.Count != 0)
                             throw new ArgumentException("Json import only supports a single url");
@@ -283,20 +274,11 @@ namespace Etherna.VideoImporter
 
             // Input validation.
             //bee node api port
-            int beeNodeApiPort = CommonConsts.BeeApiPort;
+            int beeNodeApiPort = CommonConsts.BeePort;
             if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
                 !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
             {
                 Console.WriteLine($"Invalid value for Gateway API port");
-                return;
-            }
-
-            //bee node debug port
-            int beeNodeDebugPort = CommonConsts.BeeDebugPort;
-            if (!string.IsNullOrEmpty(beeNodeDebugPortStr) &&
-                !int.TryParse(beeNodeDebugPortStr, CultureInfo.InvariantCulture, out beeNodeDebugPort))
-            {
-                Console.WriteLine($"Invalid value for Gateway Debug port");
                 return;
             }
 
@@ -348,15 +330,14 @@ namespace Etherna.VideoImporter
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = autoPurchaseBatches;
 
-                    if (!string.IsNullOrEmpty(ttlPostageStampStr))
+                    if (!string.IsNullOrEmpty(ttlPostageBatchStr))
                     {
-                        if (int.TryParse(ttlPostageStampStr, CultureInfo.InvariantCulture, out var ttlPostageStamp))
+                        if (int.TryParse(ttlPostageBatchStr, CultureInfo.InvariantCulture, out var ttlPostageStamp))
                             uploaderOptions.TtlPostageStamp = TimeSpan.FromDays(ttlPostageStamp);
                         else
                             throw new ArgumentException($"Invalid value for TTL Postage Stamp");
                     }
                 },
-                HttpClientName,
                 useBeeNativeNode);
 
             //source provider
@@ -405,9 +386,9 @@ namespace Etherna.VideoImporter
                 removeUnrecognizedVideos,
                 removeMissingVideosFromSource,
                 forceVideoUpload,
-                offerVideos,
-                pinVideos,
-                unpinRemovedVideos,
+                fundVideosDownload,
+                fundVideosPin,
+                defundRemovedVideosPin,
                 ignoreUpdate);
         }
     }
