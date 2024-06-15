@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Etherna.BeeNet.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
@@ -40,27 +38,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Properties.
         public IEnumerable<FileBase> EncodedFiles { get; }
         public string? EthernaIndexId { get; set; }
-        public string? EthernaPermalinkHash { get; set; }
+        public SwarmHash? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
         public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }
-
-        // Methods.
-        public async Task<long> GetTotalByteSizeAsync()
-        {
-            long totalByteSize = 0;
-
-            foreach (var file in EncodedFiles)
-                totalByteSize += await file.GetByteSizeAsync();
-            foreach (var file in ThumbnailFiles)
-                totalByteSize += await file.GetByteSizeAsync();
-            totalByteSize += JsonSerializer.Serialize(await ManifestDto.BuildNewAsync(
-                this,
-                CommonConsts.SwarmNullReference,
-                CommonConsts.EthereumNullAddress,
-                null,
-                allowFakeReferences: true)).Length;
-
-            return totalByteSize;
-        }
     }
 }

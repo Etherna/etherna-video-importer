@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.BeeNet.Clients.GatewayApi;
+using Etherna.BeeNet;
+using Etherna.BeeNet.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,48 +29,47 @@ namespace Etherna.VideoImporter.Core.Services
         protected readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
 
         // Fields.
-        protected readonly IBeeGatewayClient beeGatewayClient;
+        protected readonly IBeeClient beeClient;
         private readonly IIoService ioService;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 
         // Constructor.
         protected GatewayServiceBase(
-            IBeeGatewayClient beeGatewayClient,
+            IBeeClient beeClient,
             IIoService ioService)
         {
-            this.beeGatewayClient = beeGatewayClient;
+            this.beeClient = beeClient;
             this.ioService = ioService;
         }
 
         // Methods.
-        public abstract Task<string> CreatePostageBatchAsync(long amount, int batchDepth);
+        public abstract Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth);
 
-        public abstract Task DeletePinAsync(string hash);
+        public abstract Task DefundResourcePinningAsync(SwarmHash hash);
 
-        public abstract Task<long> GetCurrentChainPriceAsync();
+        public abstract Task FundResourceDownloadAsync(SwarmHash hash);
 
-        public abstract Task<IEnumerable<string>> GetPinnedResourcesAsync();
+        public abstract Task<BzzBalance> GetChainPriceAsync();
 
-        public abstract Task<bool> IsBatchUsableAsync(string batchId);
+        public abstract Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync();
 
-        public abstract Task OfferContentAsync(string hash);
+        public abstract Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
-        public Task<string> UploadFileAsync(
-            string batchId,
+        public Task<SwarmHash> UploadFileAsync(
+            PostageBatchId batchId,
             Stream content,
             string? name,
             string? contentType,
             bool swarmPin) =>
-            beeGatewayClient.UploadFileAsync(
+            beeClient.UploadFileAsync(
                 batchId,
                 content,
                 name: name,
                 contentType: contentType,
-                swarmDeferredUpload: true,
                 swarmPin: swarmPin);
 
         // Protected methods.
-        protected async Task WaitForBatchUsableAsync(string batchId)
+        protected async Task WaitForBatchUsableAsync(PostageBatchId batchId)
         {
             // Wait until created batch is usable.
             ioService.PrintTimeStamp();

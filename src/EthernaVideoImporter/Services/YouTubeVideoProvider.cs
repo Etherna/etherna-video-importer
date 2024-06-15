@@ -94,11 +94,7 @@ namespace Etherna.VideoImporter.Services
             }
             
             //remove duplicates by video Id
-            var distinctMetadata = videosMetadata.DistinctBy(m => m.Id).ToArray();
-            
-            ioService.WriteLine($"Found {distinctMetadata.Length} distinct videos");
-
-            return distinctMetadata;
+            return videosMetadata.DistinctBy(m => m.Id);
         }
         
         // Helpers.

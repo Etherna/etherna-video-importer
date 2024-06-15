@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.Sdk.GeneratedClients.Index;
+using Etherna.BeeNet.Models;
+using Etherna.Sdk.Common.Models;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
 using System.Collections.Generic;
@@ -23,7 +24,7 @@ namespace Etherna.VideoImporter.Core.Models.Index
     public sealed class IndexedVideoManifest
     {
         // Constructors.
-        public IndexedVideoManifest(VideoManifestDto lastValidManifest)
+        public IndexedVideoManifest(VideoManifest lastValidManifest)
         {
             ArgumentNullException.ThrowIfNull(lastValidManifest, nameof(lastValidManifest));
 
@@ -31,7 +32,6 @@ namespace Etherna.VideoImporter.Core.Models.Index
             Description = lastValidManifest.Description ?? "";
             Duration = lastValidManifest.Duration ?? 0;
             Hash = lastValidManifest.Hash;
-            OriginalQuality = lastValidManifest.OriginalQuality ?? "";
             PersonalData = lastValidManifest.PersonalData is null ? null : JsonSerializer.Deserialize<ManifestPersonalDataDto>(lastValidManifest.PersonalData);
             RawPersonalData = lastValidManifest.PersonalData;
             Sources = lastValidManifest.Sources;
@@ -40,15 +40,14 @@ namespace Etherna.VideoImporter.Core.Models.Index
         }
 
         // Properties.
-        public string BatchId { get; set; }
+        public PostageBatchId BatchId { get; set; }
         public string Description { get; set; }
         public long Duration { get; set; }
-        public string Hash { get; set; }
-        public string OriginalQuality { get; set; }
+        public SwarmHash Hash { get; set; }
         public ManifestPersonalDataDto? PersonalData { get; set; }
         public string? RawPersonalData { get; set; }
-        public IEnumerable<SourceDto> Sources { get; set; }
-        public ImageDto Thumbnail { get; set; }
+        public IEnumerable<VideoSource> Sources { get; set; }
+        public Image Thumbnail { get; set; }
         public string Title { get; set; }
     }
 }

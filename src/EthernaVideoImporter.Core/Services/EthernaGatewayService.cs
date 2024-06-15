@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.BeeNet.Clients.GatewayApi;
-using Etherna.Sdk.GeneratedClients.Gateway;
-using Etherna.Sdk.Users;
+using Etherna.BeeNet.Models;
+using Etherna.Sdk.Common.GenClients.Gateway;
+using Etherna.Sdk.Users.Clients;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -31,68 +32,68 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly IIoService ioService;
 
         // Constructor.
+        [SuppressMessage("Design", "CA1062:Validate arguments of public methods")]
         public EthernaGatewayService(
-            IBeeGatewayClient beeGatewayClient,
             IEthernaUserGatewayClient ethernaGatewayClient,
             IIoService ioService)
-            : base(beeGatewayClient, ioService)
+            : base(ethernaGatewayClient.BeeClient, ioService)
         {
             this.ethernaGatewayClient = ethernaGatewayClient;
             this.ioService = ioService;
         }
 
         // Methods.
-        public override async Task<string> CreatePostageBatchAsync(long amount, int batchDepth)
+        public override async Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth)
         {
-            var batchReferenceId = await ethernaGatewayClient.UsersClient.BatchesPostAsync(batchDepth, amount);
+            var batchReferenceId = await ethernaGatewayClient.BuyPostageBatchAsync(amount, batchDepth);
 
-            // Wait until created batch is avaiable.
+            // Wait until created batch is available.
             ioService.PrintTimeStamp();
             ioService.Write("Waiting for batch created... (it may take a while)");
 
             var batchStartWait = DateTime.UtcNow;
-            string? batchId = null;
+            PostageBatchId? batchId = null;
             do
             {
                 //timeout throw exception
                 if (DateTime.UtcNow - batchStartWait >= BatchCreationTimeout)
                 {
-                    var ex = new InvalidOperationException("Batch not avaiable after timeout");
+                    var ex = new InvalidOperationException("Batch not available after timeout");
                     ex.Data.Add("BatchReferenceId", batchReferenceId);
                     throw ex;
                 }
 
                 try
                 {
-                    batchId = await ethernaGatewayClient.SystemClient.PostageBatchRefAsync(batchReferenceId);
+                    batchId = await ethernaGatewayClient.TryGetNewPostageBatchIdFromPostageRefAsync(batchReferenceId);
                 }
                 catch (EthernaGatewayApiException)
                 {
                     //waiting for batchId available
                     await Task.Delay(BatchCheckTimeSpan);
                 }
-            } while (string.IsNullOrWhiteSpace(batchId));
+            } while (batchId is null);
 
             ioService.WriteLine(". Done", false);
 
-            await WaitForBatchUsableAsync(batchId);
+            await WaitForBatchUsableAsync(batchId.Value);
 
-            return batchId;
+            return batchId.Value;
         }
 
-        public override Task DeletePinAsync(string hash) =>
-            ethernaGatewayClient.ResourcesClient.PinDeleteAsync(hash);
+        public override Task DefundResourcePinningAsync(SwarmHash hash) =>
+            ethernaGatewayClient.DefundResourcePinningAsync(hash);
 
-        public override async Task<long> GetCurrentChainPriceAsync() =>
-            (await ethernaGatewayClient.SystemClient.ChainstateAsync()).CurrentPrice;
+        public override Task FundResourceDownloadAsync(SwarmHash hash) =>
+            ethernaGatewayClient.FundResourceDownloadAsync(hash);
 
-        public override async Task<IEnumerable<string>> GetPinnedResourcesAsync() =>
-            await ethernaGatewayClient.UsersClient.PinnedResourcesAsync();
+        public override async Task<BzzBalance> GetChainPriceAsync() =>
+            (await ethernaGatewayClient.GetChainStateAsync()).CurrentPrice;
 
-        public override async Task<bool> IsBatchUsableAsync(string batchId) =>
-            (await ethernaGatewayClient.UsersClient.BatchesGetAsync(batchId)).Usable;
+        public override async Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync() =>
+            await ethernaGatewayClient.GetPinFundedResourcesAsync();
 
-        public override Task OfferContentAsync(string hash) =>
-            ethernaGatewayClient.ResourcesClient.OffersPostAsync(hash);
+        public override async Task<bool> IsBatchUsableAsync(PostageBatchId batchId) =>
+            (await ethernaGatewayClient.GetPostageBatchAsync(batchId)).IsUsable;
     }
 }
