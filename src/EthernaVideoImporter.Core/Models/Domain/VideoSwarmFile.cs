@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
 using System;
 using System.Text.RegularExpressions;
 
@@ -27,7 +28,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public VideoSwarmFile(
             long byteSize,
             string videoQualityLabel,
-            string hash)
+            SwarmHash hash)
             : base(hash, byteSize)
         {
             var originVideoQualityLabelMatch = QualityLabelRegex().Match(videoQualityLabel);

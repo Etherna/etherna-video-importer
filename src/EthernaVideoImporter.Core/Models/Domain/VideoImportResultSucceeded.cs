@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Etherna.BeeNet.Models;
+
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public class VideoImportResultSucceeded : VideoImportResultBase
@@ -22,7 +24,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             bool isManifestUploaded,
             bool isContentUploaded,
             string indexId,
-            string referenceHash) : base(sourceMetadata)
+            SwarmHash referenceHash) : base(sourceMetadata)
         {
             IndexId = indexId;
             IsManifestUploaded = isManifestUploaded;
@@ -34,25 +36,25 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public static VideoImportResultSucceeded FullUploaded(
             VideoMetadataBase sourceMetadata,
             string indexId,
-            string referenceHash) =>
+            SwarmHash referenceHash) =>
             new(sourceMetadata, true, true, indexId, referenceHash);
         
         public static VideoImportResultSucceeded ManifestUpdated(
             VideoMetadataBase sourceMetadata,
             string indexId,
-            string referenceHash) =>
+            SwarmHash referenceHash) =>
             new(sourceMetadata, true, false, indexId, referenceHash);
         
         public static VideoImportResultSucceeded Skipped(
             VideoMetadataBase sourceMetadata,
             string indexId,
-            string referenceHash) =>
+            SwarmHash referenceHash) =>
             new(sourceMetadata, false, false, indexId, referenceHash);
 
         // Properties.
         public string IndexId { get; }
         public bool IsManifestUploaded { get; }
         public bool IsContentUploaded { get; }
-        public string ReferenceHash { get; }
+        public SwarmHash ReferenceHash { get; }
     }
 }

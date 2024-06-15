@@ -77,7 +77,7 @@ namespace Etherna.VideoImporter.Services
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             // Read json list.
-            string jsonData = await new SourceFile(options.JsonMetadataUri, httpClientFactory).ReadAsStringAsync();
+            string jsonData = await new SourceFile(options.JsonMetadataUri, httpClientFactory).ReadToStringAsync();
             string jsonMetadataDirectoryAbsoluteUri = (options.JsonMetadataUri.TryGetParentDirectoryAsAbsoluteUri() ??
                 throw new InvalidOperationException("Must exist a parent directory")).Item1;
 

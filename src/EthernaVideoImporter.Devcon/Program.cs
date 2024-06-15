@@ -55,8 +55,7 @@ namespace Etherna.VideoImporter.Devcon
             Bee Node Options:
               --bee-node              Use bee native node
               --bee-url               URL of Bee node (default: {CommonConsts.BeeNodeUrl})
-              --bee-api-port          Port used by API (default: {CommonConsts.BeeApiPort})
-              --bee-debug-port        Port used by Debug (default: {CommonConsts.BeeDebugPort})
+              --bee-api-port          Port used by API (default: {CommonConsts.BeePort})
 
             Run 'evid -h' or 'evid --help' to print help.
             """;
@@ -86,7 +85,6 @@ namespace Etherna.VideoImporter.Devcon
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
             string? beeNodeApiPortStr = null;
-            string? beeNodeDebugPortStr = null;
 
             //print help
             if (args.Length == 0)
@@ -211,13 +209,6 @@ namespace Etherna.VideoImporter.Devcon
                         useBeeNativeNode = true;
                         break;
 
-                    case "--bee-debug-port":
-                        if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Bee node Debug port missing");
-                        beeNodeDebugPortStr = optArgs[++i];
-                        useBeeNativeNode = true;
-                        break;
-
                     default:
                         throw new ArgumentException(optArgs[i] + " is not a valid option");
                 }
@@ -225,20 +216,11 @@ namespace Etherna.VideoImporter.Devcon
 
             // Input validation.
             //bee node api port
-            int beeNodeApiPort = CommonConsts.BeeApiPort;
+            int beeNodeApiPort = CommonConsts.BeePort;
             if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
                 !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
             {
                 Console.WriteLine($"Invalid value for Gateway API port");
-                return;
-            }
-
-            //bee node debug port
-            int beeNodeDebugPort = CommonConsts.BeeDebugPort;
-            if (!string.IsNullOrEmpty(beeNodeDebugPortStr) &&
-                !int.TryParse(beeNodeDebugPortStr, CultureInfo.InvariantCulture, out beeNodeDebugPort))
-            {
-                Console.WriteLine($"Invalid value for Gateway Debug port");
                 return;
             }
 
@@ -298,7 +280,6 @@ namespace Etherna.VideoImporter.Devcon
                             throw new ArgumentException($"Invalid value for TTL Postage Stamp");
                     }
                 },
-                HttpClientName,
                 useBeeNativeNode);
             
             //source provider
