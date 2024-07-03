@@ -44,6 +44,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\COPYING">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="..\..\README.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
