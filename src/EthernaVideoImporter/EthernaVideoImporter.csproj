@@ -44,5 +44,10 @@
   <ItemGroup>
     <ProjectReference Include="..\EthernaVideoImporter.Core\EthernaVideoImporter.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\COPYING" />
+    <None Include="..\..\README.md" />
+  </ItemGroup>
   
 </Project>

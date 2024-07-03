@@ -6,7 +6,7 @@ Tool to import videos on Etherna from different sources.
 ## Instructions
 Download and extract binaries from [release page](https://github.com/Etherna/etherna-video-importer/releases).
 
-Currently exists two versions:
+Currently, exists two versions:
 * `EthernaVideoImporter` for a generic use
 * `EthernaVideoImporter.Devcon` to import specifically Devcon Archive's videos
 
@@ -105,10 +105,17 @@ Bee Node Options:
 Run 'evid -h' or 'evid --help' to print help.
 ```
 
-# Issue reports
+## Issue reports
 If you've discovered a bug, or have an idea for a new feature, please report it to our issue manager based on Jira https://etherna.atlassian.net/projects/EVI.
 
 Detailed reports with stack traces, actual and expected behaviours are welcome.
 
-# Questions? Problems?
+## Questions? Problems?
 For questions or problems please write an email to [info@etherna.io](mailto:info@etherna.io).
+
+## License
+
+![AGPL Logo](https://www.gnu.org/graphics/agplv3-with-text-162x68.png)
+
+We use the GNU Affero General Public License v3 (AGPL-3.0) for this project.
+If you require a custom license, you can contact us at [license@etherna.io](mailto:license@etherna.io).
