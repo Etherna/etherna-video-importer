@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Etherna.Sdk.Users.Native;
+using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
@@ -230,13 +230,12 @@ namespace Etherna.VideoImporter.Devcon
             if (apiKey is null) //"code" grant flow
             {
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithCodeAuth(
-                    CommonConsts.EthernaSsoUrl,
                     CommonConsts.EthernaVideoImporterClientId,
                     null,
                     11420,
                     ApiScopes,
-                    HttpClientName,
-                    c =>
+                    httpClientName: HttpClientName,
+                    configureHttpClient: c =>
                     {
                         c.Timeout = TimeSpan.FromMinutes(30);
                     });
@@ -244,17 +243,16 @@ namespace Etherna.VideoImporter.Devcon
             else //"password" grant flow
             {
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
-                    CommonConsts.EthernaSsoUrl,
                     apiKey,
                     ApiScopes,
-                    HttpClientName,
-                    c =>
+                    httpClientName: HttpClientName,
+                    configureHttpClient: c =>
                     {
                         c.Timeout = TimeSpan.FromMinutes(30);
                     });
             }
-            ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
-                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
+            ethernaClientsBuilder.AddEthernaGatewayClient()
+                                 .AddEthernaIndexClient();
 
             // Setup DI.
             //core

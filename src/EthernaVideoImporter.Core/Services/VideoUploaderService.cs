@@ -15,7 +15,7 @@
 using Etherna.BeeNet.Hasher.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
-using Etherna.Sdk.Users.Clients;
+using Etherna.Sdk.Users.Index.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
@@ -263,8 +263,7 @@ namespace Etherna.VideoImporter.Core.Services
             Video video,
             string userEthAddress)
         {
-            var buckets = new uint[PostageStampIssuer.BucketsSize];
-            var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance, buckets);
+            var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
             
             //evaluate video encoded files
             foreach (var encodedFile in video.EncodedFiles.OfType<SourceFile>())

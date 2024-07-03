@@ -15,7 +15,7 @@
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System;
-using Video = Etherna.Sdk.Common.Models.Video;
+using Video = Etherna.Sdk.Users.Index.Models.Video;
 
 namespace Etherna.VideoImporter.Core.Models.Index
 {

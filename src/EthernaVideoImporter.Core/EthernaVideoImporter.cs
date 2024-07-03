@@ -15,8 +15,8 @@
 using Etherna.Authentication;
 using Etherna.Authentication.Native;
 using Etherna.BeeNet.Models;
-using Etherna.Sdk.Common.Models;
-using Etherna.Sdk.Users.Clients;
+using Etherna.Sdk.Users.Index.Clients;
+using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Index;
 using Etherna.VideoImporter.Core.Models.ManifestDtos;
@@ -364,10 +364,10 @@ namespace Etherna.VideoImporter.Core
         // Helpers.
         private async Task<IEnumerable<IndexedVideo>> GetUserVideosOnEthernaAsync(string userAddress)
         {
-            var videos = new List<Sdk.Common.Models.Video>();
+            var videos = new List<Sdk.Users.Index.Models.Video>();
             const int MaxForPage = 100;
 
-            PaginatedResult<Sdk.Common.Models.Video>? page = null;
+            PaginatedResult<Sdk.Users.Index.Models.Video>? page = null;
             do
             {
                 page = await ethernaIndexClient.GetVideosByOwnerAsync(userAddress, page is null ? 0 : page.CurrentPage + 1, MaxForPage);

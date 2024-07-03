@@ -13,7 +13,7 @@
 // limitations under the License.
 
 using Etherna.BeeNet.Models;
-using Etherna.Sdk.Users.Clients;
+using Etherna.Sdk.Users.Gateway.Clients;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;

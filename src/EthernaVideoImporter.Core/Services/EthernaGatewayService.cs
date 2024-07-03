@@ -13,8 +13,8 @@
 // limitations under the License.
 
 using Etherna.BeeNet.Models;
-using Etherna.Sdk.Common.GenClients.Gateway;
-using Etherna.Sdk.Users.Clients;
+using Etherna.Sdk.Gateway.GenClients;
+using Etherna.Sdk.Users.Gateway.Clients;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
