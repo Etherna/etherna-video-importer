@@ -26,13 +26,13 @@ namespace Etherna.VideoImporter.Models.ResultDtos
         {
             ArgumentNullException.ThrowIfNull(sourceMetadata, nameof(sourceMetadata));
             
-            Id = sourceMetadata.Id;
+            SourceId = sourceMetadata.SourceId;
             Duration = sourceMetadata.Duration;
             Title = sourceMetadata.Title;
         }
         
         // Properties.
-        public string Id { get; }
+        public string SourceId { get; }
         public TimeSpan Duration { get; }
         public string Title { get; }
     }

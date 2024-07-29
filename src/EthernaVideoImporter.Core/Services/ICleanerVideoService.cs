@@ -12,9 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
+using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.Index;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -24,13 +23,12 @@ namespace Etherna.VideoImporter.Core.Services
     {
         Task<int> DeleteExogenousVideosAsync(
             IEnumerable<IndexedVideo> indexedVideos,
-            IEnumerable<SwarmHash>? gatewayPinnedHashes,
             bool unpinRemovedVideos);
 
         Task<int> DeleteVideosRemovedFromSourceAsync(
             IEnumerable<VideoMetadataBase> videosMetadataFromSource,
             IEnumerable<IndexedVideo> indexedVideos,
-            IEnumerable<SwarmHash>? gatewayPinnedHashes,
-            bool unpinRemovedVideos);
+            bool unpinRemovedVideos,
+            string sourceProviderName);
     }
 }

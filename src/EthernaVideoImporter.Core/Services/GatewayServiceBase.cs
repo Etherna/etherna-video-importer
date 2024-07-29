@@ -55,18 +55,29 @@ namespace Etherna.VideoImporter.Core.Services
 
         public abstract Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
+        public async Task<SwarmHash> ResolveSwarmAddressToHashAsync(SwarmAddress address) =>
+            (await beeClient.ResolveAddressToChunkReferenceAsync(address)).Hash;
+
+        public async Task UploadChunkAsync(PostageBatchId batchId, SwarmChunk chunk, bool fundPinning = false)
+        {
+            ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
+            
+            using var dataStream = new MemoryStream(chunk.Data.ToArray());
+            await beeClient.UploadChunkAsync(batchId, dataStream, fundPinning);
+        }
+
         public Task<SwarmHash> UploadFileAsync(
             PostageBatchId batchId,
             Stream content,
             string? name,
             string? contentType,
-            bool swarmPin) =>
+            bool fundPinning) =>
             beeClient.UploadFileAsync(
                 batchId,
                 content,
                 name: name,
                 contentType: contentType,
-                swarmPin: swarmPin);
+                swarmPin: fundPinning);
 
         // Protected methods.
         protected async Task WaitForBatchUsableAsync(PostageBatchId batchId)

@@ -94,7 +94,7 @@ namespace Etherna.VideoImporter.Services
             }
             
             //remove duplicates by video Id
-            return videosMetadata.DistinctBy(m => m.Id);
+            return videosMetadata.DistinctBy(m => m.SourceId);
         }
         
         // Helpers.

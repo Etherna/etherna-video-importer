@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
@@ -69,6 +70,7 @@ namespace Etherna.VideoImporter.Core.Services
                 var outputFileSize = new FileInfo(outputFilePath).Length;
                 videoEncodedFiles.Add(await VideoSourceFile.BuildNewAsync(
                     new SourceUri(outputFilePath, SourceUriKind.Local),
+                    VideoSourceType.Mp4,
                     ffMpegService,
                     httpClientFactory));
 

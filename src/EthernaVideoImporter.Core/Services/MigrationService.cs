@@ -12,22 +12,23 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Etherna.Sdk.Users.Index.Models;
 using System;
 
 namespace Etherna.VideoImporter.Core.Services
 {
     public class MigrationService : IMigrationService
     {
-        public OperationType DecideOperation(ManifestPersonalDataDto? manifestPersonalDataDto)
+        public OperationType DecideOperation(VideoManifestPersonalData? personalData)
         {
             // If client version is missing (0.1.x or 0.2.x).
-            if (string.IsNullOrWhiteSpace(manifestPersonalDataDto?.ClientVersion))
+            if (string.IsNullOrWhiteSpace(personalData?.ClientVersion))
                 return OperationType.ImportAll;
 
-            return new Version(manifestPersonalDataDto.ClientVersion) switch
+            return new Version(personalData.ClientVersion) switch
             {
                 { Major: 0, Minor: <= 2 } => OperationType.ImportAll,
+                { Major: 0, Minor: 3, Revision: <= 9} => OperationType.ImportAll,
                 _ => OperationType.Skip
             };
         }

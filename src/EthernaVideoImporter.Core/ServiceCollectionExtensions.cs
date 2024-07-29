@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Services;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
@@ -36,7 +37,7 @@ namespace Etherna.VideoImporter.Core
 
             // Add transient services.
             services.AddTransient<IAppVersionService, AppVersionService>();
-            services.AddTransient<ICalculatorService, CalculatorService>();
+            services.AddTransient<IChunkService, ChunkService>();
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
             services.AddTransient<IEncoderService, EncoderService>();
             services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
@@ -44,6 +45,7 @@ namespace Etherna.VideoImporter.Core
                 services.AddTransient<IGatewayService, BeeGatewayService>();
             else
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
+            services.AddTransient<IHasher, Hasher>();
             services.AddTransient<IMigrationService, MigrationService>();
             services.AddTransient<IIoService, ConsoleIoService>();
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();

@@ -22,26 +22,27 @@ namespace Etherna.VideoImporter.Models.Domain
     {
         // Constructors.
         internal JsonVideoMetadata(
-            string id,
+            string sourceId,
             string title,
             string description,
             IEnumerable<string>? oldIds,
             VideoSourceFile sourceVideo,
             ThumbnailSourceFile? sourceThumbnail)
         {
-            Id = id;
             Description = description;
             Duration = sourceVideo.Duration;
-            OldIds = oldIds ?? Array.Empty<string>();
-            OriginVideoQualityLabel = sourceVideo.VideoQualityLabel;
+            SourceId = sourceId;
+            SourceOldIds = oldIds ?? Array.Empty<string>();
+            OriginVideoQualityLabel = sourceVideo.QualityLabel;
             SourceThumbnail = sourceThumbnail;
             SourceVideo = sourceVideo;
             Title = title;
         }
 
         // Properties.
-        public override string Id { get; }
-        public override IEnumerable<string> OldIds { get; }
+        public override string SourceId { get; }
+        public override string SourceName => "json";
+        public override IEnumerable<string> SourceOldIds { get; }
         public ThumbnailSourceFile? SourceThumbnail { get; }
         public VideoSourceFile SourceVideo { get; }
     }

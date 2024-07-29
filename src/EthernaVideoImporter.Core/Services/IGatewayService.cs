@@ -35,9 +35,20 @@ namespace Etherna.VideoImporter.Core.Services
         Task DefundResourcePinningAsync(SwarmHash hash);
 
         /// <summary>
+        /// Offer the content to all users.
+        /// </summary>
+        /// <param name="hash">Resource hash</param>
+        Task FundResourceDownloadAsync(SwarmHash hash);
+
+        /// <summary>
         /// Get the current price.
         /// </summary>
         Task<BzzBalance> GetChainPriceAsync();
+
+        /// <summary>
+        /// Get all pins.
+        /// </summary>
+        Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync();
 
         /// <summary>
         /// Get usable batch.
@@ -45,22 +56,18 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="batchId">batch id</param>
         Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
-        /// <summary>
-        /// Offer the content to all users.
-        /// </summary>
-        /// <param name="hash">Resource hash</param>
-        Task FundResourceDownloadAsync(SwarmHash hash);
+        Task<SwarmHash> ResolveSwarmAddressToHashAsync(SwarmAddress address);
 
-        /// <summary>
-        /// Get all pins.
-        /// </summary>
-        Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync();
+        Task UploadChunkAsync(
+            PostageBatchId batchId,
+            SwarmChunk chunk,
+            bool fundPinning = false);
 
         Task<SwarmHash> UploadFileAsync(
             PostageBatchId batchId,
             Stream content,
             string? name,
             string? contentType,
-            bool swarmPin);
+            bool fundPinning);
     }
 }

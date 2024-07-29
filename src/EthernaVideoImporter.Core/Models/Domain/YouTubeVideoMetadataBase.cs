@@ -44,8 +44,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Properties.
         public string? ChannelName { get; private set; }
-        public override IEnumerable<string> OldIds => Array.Empty<string>();
         public string? PlaylistName { get; private set; }
+        public override string SourceName => "youtube";
+        public override IEnumerable<string> SourceOldIds => Array.Empty<string>();
         public Thumbnail? Thumbnail { get; protected set; }
         public string YoutubeId
         {

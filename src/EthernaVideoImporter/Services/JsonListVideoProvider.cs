@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
@@ -63,15 +64,14 @@ namespace Etherna.VideoImporter.Services
                 ?? throw new ArgumentException($"Metadata must be of type {nameof(JsonVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(
-                sourceVideoMetadata.SourceVideo);
+            var encodedVideos = await encoderService.EncodeVideosAsync(sourceVideoMetadata.SourceVideo);
 
             // Transcode thumbnail resolutions.
             var thumbnailFiles = sourceVideoMetadata.SourceThumbnail is not null ?
                 await sourceVideoMetadata.SourceThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory) :
                 Array.Empty<ThumbnailSourceFile>();
 
-            return new Video(videoMetadata, encodedFiles, thumbnailFiles);
+            return new Video(videoMetadata, encodedVideos, thumbnailFiles);
         }
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
@@ -101,6 +101,7 @@ namespace Etherna.VideoImporter.Services
                     // Build video.
                     var video = await VideoSourceFile.BuildNewAsync(
                         new SourceUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
+                        VideoSourceType.Unknown,
                         ffMpegService,
                         httpClientFactory);
 

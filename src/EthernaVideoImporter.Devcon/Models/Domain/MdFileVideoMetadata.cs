@@ -40,8 +40,8 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(mdFileRelativePath));
             
             // Generate Id and old Ids.
-            Id = mdFileRelativePath.Replace('\\', '/'); //use unix-like path
-            OldIds = new[] { mdFileRelativePath.Replace('/', '\\') }; //migrate from windows-like path
+            SourceId = mdFileRelativePath.Replace('\\', '/'); //use unix-like path
+            SourceOldIds = new[] { mdFileRelativePath.Replace('/', '\\') }; //migrate from windows-like path
 
             descriptionOverride = description;
             EthernaIndexUrl = ethernaIndexUrl;
@@ -51,7 +51,6 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
         }
 
         // Properties.
-        public override string Id { get; }
         public override string Description
         {
             get => descriptionOverride;
@@ -60,7 +59,8 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
         public string? EthernaIndexUrl { get; }
         public string? EthernaPermalinkUrl { get; }
         public string MdFileRelativePath { get; }
-        public override IEnumerable<string> OldIds { get; }
+        public override string SourceId { get; }
+        public override IEnumerable<string> SourceOldIds { get; }
         public override string Title
         {
             get => titleOverride;

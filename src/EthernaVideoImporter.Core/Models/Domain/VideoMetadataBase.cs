@@ -15,6 +15,7 @@
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -32,7 +33,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         private static partial Regex QualityLabelRegex();
 
         // Properties.
-        public abstract string Id { get; }
+        public IEnumerable<string> AllSourceIds => SourceOldIds.Prepend(SourceId);
         public bool IsDataFetched => _description is not null &&
                                      _duration is not null &&
                                      _originVideoQualityLabel is not null &&
@@ -47,7 +48,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             get => _duration ?? throw new InvalidOperationException("Duration is not fetched");
             protected set => _duration = value;
         }
-        public abstract IEnumerable<string> OldIds { get; }
         public string OriginVideoQualityLabel
         {
             get => _originVideoQualityLabel ?? throw new InvalidOperationException("Origin video quality is not fetched");
@@ -60,6 +60,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                     throw new InvalidOperationException("Invalid quality label");
             }
         }
+        public abstract string SourceId { get; }
+        public abstract string SourceName { get; }
+        public abstract IEnumerable<string> SourceOldIds { get; }
         public virtual string Title
         {
             get => _title ?? throw new InvalidOperationException("Title is not fetched");

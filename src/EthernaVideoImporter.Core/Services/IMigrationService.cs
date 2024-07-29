@@ -12,12 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Etherna.Sdk.Users.Index.Models;
 
 namespace Etherna.VideoImporter.Core.Services
 {
     public interface IMigrationService
     {
-        OperationType DecideOperation(ManifestPersonalDataDto? manifestPersonalDataDto);
+        OperationType DecideOperation(VideoManifestPersonalData? personalData);
     }
 }

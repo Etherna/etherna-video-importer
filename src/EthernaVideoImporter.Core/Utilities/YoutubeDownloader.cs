@@ -12,11 +12,11 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -152,7 +152,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                     await YoutubeClient.Videos.DownloadAsync(
                         new IStreamInfo[] { audioOnlyStream, videoOnlyStream },
                         new ConversionRequestBuilder(videoFilePath).SetFFmpegPath(await ffMpegService.GetFFmpegBinaryPathAsync()).Build(),
-                        new Progress<double>((progressStatus) =>
+                        new Progress<double>(progressStatus =>
                             PrintProgressLine(
                                 $"Downloading and mux {videoQualityLabel}",
                                 progressStatus,
@@ -175,6 +175,7 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             return await VideoSourceFile.BuildNewAsync(
                 new SourceUri(videoFilePath, SourceUriKind.Local),
+                VideoSourceType.Unknown,
                 ffMpegService,
                 httpClientFactory);
         }
