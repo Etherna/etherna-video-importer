@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Sdk.Users.Index.Models;
+using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
@@ -23,35 +24,22 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Services
 {
-    internal sealed class JsonListVideoProvider : IVideoProvider
+    internal sealed class JsonListVideoProvider(
+        IEncoderService encoderService,
+        IFFmpegService ffMpegService,
+        IIoService ioService,
+        IOptions<JsonListVideoProviderOptions> options,
+        IUniversalFileProvider universalFileProvider)
+        : IVideoProvider
     {
         // Fields.
-        private readonly IEncoderService encoderService;
-        private readonly IFFmpegService ffMpegService;
-        private readonly IHttpClientFactory httpClientFactory;
-        private readonly IIoService ioService;
-        private readonly JsonListVideoProviderOptions options;
-
-        // Constructor.
-        public JsonListVideoProvider(
-            IEncoderService encoderService,
-            IFFmpegService ffMpegService,
-            IHttpClientFactory httpClientFactory,
-            IIoService ioService,
-            IOptions<JsonListVideoProviderOptions> options)
-        {
-            this.encoderService = encoderService;
-            this.ffMpegService = ffMpegService;
-            this.httpClientFactory = httpClientFactory;
-            this.ioService = ioService;
-            this.options = options.Value;
-        }
+        private readonly JsonListVideoProviderOptions options = options.Value;
 
         // Properties.
         public string SourceName => options.JsonMetadataUri.OriginalUri;
@@ -64,20 +52,20 @@ namespace Etherna.VideoImporter.Services
                 ?? throw new ArgumentException($"Metadata must be of type {nameof(JsonVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
-            var encodedVideos = await encoderService.EncodeVideosAsync(sourceVideoMetadata.SourceVideo);
+            var encodedVideoFiles = await encoderService.EncodeVideosAsync(sourceVideoMetadata.SourceVideo);
 
             // Transcode thumbnail resolutions.
-            var thumbnailFiles = sourceVideoMetadata.SourceThumbnail is not null ?
-                await sourceVideoMetadata.SourceThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory) :
-                Array.Empty<ThumbnailSourceFile>();
+            var thumbnailFiles = await encoderService.EncodeThumbnailsAsync(sourceVideoMetadata.SourceThumbnail, CommonConsts.TempDirectory);
 
-            return new Video(videoMetadata, encodedVideos, thumbnailFiles);
+            return new Video(
+                videoMetadata,
+                thumbnailFiles.Select(f => (IThumbnailFile)f).ToArray(), encodedVideoFiles.Select(f => (IVideoFile)f).ToArray());
         }
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
         {
             // Read json list.
-            string jsonData = await new SourceFile(options.JsonMetadataUri, httpClientFactory).ReadToStringAsync();
+            string jsonData = await new SourceFile(universalFileProvider.GetNewFile(options.JsonMetadataUri)).ReadToStringAsync();
             string jsonMetadataDirectoryAbsoluteUri = (options.JsonMetadataUri.TryGetParentDirectoryAsAbsoluteUri() ??
                 throw new InvalidOperationException("Must exist a parent directory")).Item1;
 
@@ -100,17 +88,17 @@ namespace Etherna.VideoImporter.Services
                 {
                     // Build video.
                     var video = await VideoSourceFile.BuildNewAsync(
-                        new SourceUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
+                        universalFileProvider.GetNewFile(
+                            new UniversalUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri)),
                         VideoSourceType.Unknown,
-                        ffMpegService,
-                        httpClientFactory);
+                        ffMpegService);
 
                     // Build thumbnail.
                     var thumbnail = await ThumbnailSourceFile.BuildNewAsync(
-                        string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ?
-                            new SourceUri(await ffMpegService.ExtractThumbnailAsync(video), SourceUriKind.LocalAbsolute) :
-                            new SourceUri(metadataDto.ThumbnailFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
-                        httpClientFactory);
+                        universalFileProvider.GetNewFile(
+                            string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ?
+                                new UniversalUri(await ffMpegService.ExtractThumbnailAsync(video), UniversalUriKind.LocalAbsolute) :
+                                new UniversalUri(metadataDto.ThumbnailFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri)));
 
                     // Add video metadata.
                     videosMetadataList.Add(

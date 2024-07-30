@@ -13,16 +13,17 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Sdk.Users.Index.Models;
+using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -30,12 +31,13 @@ namespace Etherna.VideoImporter.Core.Services
     internal sealed class EncoderService : IEncoderService
     {
         // Consts.
-        private readonly IEnumerable<int> SupportedHeightResolutions = new[] { 360, 480, 720, 1080, 1440 };
+        private static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
+        private static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440];
 
         // Fields.
         private readonly IFFmpegService ffMpegService;
-        private readonly IHttpClientFactory httpClientFactory;
         private readonly IIoService ioService;
+        private readonly IUniversalFileProvider universalFileProvider;
 
         [SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used")]
         private readonly EncoderServiceOptions options;
@@ -43,18 +45,53 @@ namespace Etherna.VideoImporter.Core.Services
         // Constructor.
         public EncoderService(
             IFFmpegService ffMpegService,
-            IHttpClientFactory httpClientFactory,
             IIoService ioService,
-            IOptions<EncoderServiceOptions> options)
+            IOptions<EncoderServiceOptions> options,
+            IUniversalFileProvider universalFileProvider)
         {
             this.options = options.Value;
             this.ffMpegService = ffMpegService;
-            this.httpClientFactory = httpClientFactory;
             this.ioService = ioService;
+            this.universalFileProvider = universalFileProvider;
         }
 
         // Methods.
-        public async Task<IEnumerable<VideoSourceFile>> EncodeVideosAsync(
+        public async Task<ThumbnailSourceFile[]> EncodeThumbnailsAsync(
+            ThumbnailSourceFile sourceThumbnailFile,
+            DirectoryInfo tmpDirectory)
+        {
+            ArgumentNullException.ThrowIfNull(tmpDirectory, nameof(tmpDirectory));
+            ArgumentNullException.ThrowIfNull(sourceThumbnailFile, nameof(sourceThumbnailFile));
+            ArgumentNullException.ThrowIfNull(universalFileProvider, nameof(universalFileProvider));
+
+            List<ThumbnailSourceFile> thumbnails = [];
+
+            using var thumbFileStream = await sourceThumbnailFile.ReadToStreamAsync();
+            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+
+            foreach (var responsiveWidthSize in ThumbnailHeightResolutions)
+            {
+                var responsiveHeightSize = (int)(responsiveWidthSize / sourceThumbnailFile.AspectRatio);
+                var thumbnailResizedPath = Path.Combine(tmpDirectory.FullName, $"thumb_{responsiveHeightSize}.jpg");
+
+                using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium))
+                using (SKImage scaledImage = SKImage.FromBitmap(scaledBitmap))
+                using (SKData data = scaledImage.Encode())
+                using (FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew))
+                {
+                    await data.AsStream().CopyToAsync(outputFileStream);
+                }
+
+                thumbnails.Add(await ThumbnailSourceFile.BuildNewAsync(
+                    universalFileProvider.GetNewFile(
+                        new UniversalUri(thumbnailResizedPath, UniversalUriKind.Local))));
+            }
+
+            return thumbnails.ToArray();
+        }
+
+        public async Task<VideoSourceFile[]> EncodeVideosAsync(
             VideoSourceFile sourceVideoFile)
         {
             ArgumentNullException.ThrowIfNull(sourceVideoFile, nameof(sourceVideoFile));
@@ -62,17 +99,16 @@ namespace Etherna.VideoImporter.Core.Services
             var videoEncodedFiles = new List<VideoSourceFile>();
             var outputs = await ffMpegService.EncodeVideosAsync(
                 sourceVideoFile,
-                SupportedHeightResolutions.Union(new List<int> { sourceVideoFile.Height })
+                VideoHeightResolutions.Union(new List<int> { sourceVideoFile.Height })
                                           .OrderDescending());
 
             foreach (var (outputFilePath, outputHeight, outputWidth) in outputs)
             {
                 var outputFileSize = new FileInfo(outputFilePath).Length;
                 videoEncodedFiles.Add(await VideoSourceFile.BuildNewAsync(
-                    new SourceUri(outputFilePath, SourceUriKind.Local),
+                    universalFileProvider.GetNewFile(new UniversalUri(outputFilePath, UniversalUriKind.Local)),
                     VideoSourceType.Mp4,
-                    ffMpegService,
-                    httpClientFactory));
+                    ffMpegService));
 
                 ioService.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }
@@ -83,7 +119,7 @@ namespace Etherna.VideoImporter.Core.Services
             ioService.WriteLine($"Keep [{videoEncodedFiles.Select(vf => vf.Height.ToString(CultureInfo.InvariantCulture))
                                                         .Aggregate((r, h) => $"{r}, {h}")}] as valid resolutions to upload");
 
-            return videoEncodedFiles;
+            return videoEncodedFiles.ToArray();
         }
 
         // Helpers.

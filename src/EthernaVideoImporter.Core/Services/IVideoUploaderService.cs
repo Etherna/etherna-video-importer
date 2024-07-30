@@ -31,13 +31,11 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="fundPinning">Pin video</param>
         /// <param name="fundDownload">Offer video contents for free</param>
         /// <param name="ownerEthAddress">Owner eth address</param>
-        /// <param name="tmpDirectoryPath">Temp directory path</param>
         public Task UploadVideoAsync(
             Video video,
             bool fundPinning,
             bool fundDownload,
-            string ownerEthAddress,
-            string tmpDirectoryPath);
+            string ownerEthAddress);
 
         /// <summary>
         /// Upload a new video manifest
@@ -45,12 +43,10 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="videoManifest">The video manifest</param>
         /// <param name="fundPinning">True if need to pin manifest</param>
         /// <param name="fundDownload">Offer manifest for free</param>
-        /// <param name="tmpDirectoryPath">Temp directory path</param>
         /// <returns>The new manifest hash</returns>
         Task<SwarmHash> UploadVideoManifestAsync(
             VideoManifest videoManifest,
             bool fundPinning,
-            bool fundDownload,
-            string tmpDirectoryPath);
+            bool fundDownload);
     }
 }

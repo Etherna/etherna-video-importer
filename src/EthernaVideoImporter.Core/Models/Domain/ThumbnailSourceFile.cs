@@ -13,35 +13,26 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Blurhash.SkiaSharp;
+using Etherna.UniversalFiles;
 using SkiaSharp;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public sealed class ThumbnailSourceFile : SourceFile, IThumbnailFile
     {
-        // Consts.
-        public static readonly int[] ThumbnailResponsiveSizes = { 480, 960, 1280 };
-
         // Constructor.
-        private ThumbnailSourceFile(
-            SourceUri fileUri,
-            IHttpClientFactory httpClientFactory)
-            : base(fileUri, httpClientFactory)
+        private ThumbnailSourceFile(UniversalFile universalFile)
+            : base(universalFile)
         { }
 
         // Static builders.
         public static async Task<ThumbnailSourceFile> BuildNewAsync(
-            SourceUri fileUri,
-            IHttpClientFactory httpClientFactory)
+            UniversalFile universalFile)
         {
-            var thumbnail = new ThumbnailSourceFile(fileUri, httpClientFactory);
+            var thumbnail = new ThumbnailSourceFile(universalFile);
 
-            using var thumbFileStream = (await thumbnail.ReadToStreamAsync()).Stream;
+            using var thumbFileStream = await thumbnail.ReadToStreamAsync();
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
 
@@ -65,44 +56,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         /// <summary>
         /// Canvas height (in pixels).
         /// </summary>
-        public int Height { get; private set; } = default!;
+        public int Height { get; private set; }
 
         /// <summary>
         /// Canvas width (in pixels).
         /// </summary>
-        public int Width { get; private set; } = default!;
-
-        // Methods.
-        public async Task<IEnumerable<ThumbnailSourceFile>> GetScaledThumbnailsAsync(
-            DirectoryInfo importerTempDirectoryInfo)
-        {
-            ArgumentNullException.ThrowIfNull(importerTempDirectoryInfo, nameof(importerTempDirectoryInfo));
-
-            List<ThumbnailSourceFile> thumbnails = new();
-
-            using var thumbFileStream = (await ReadToStreamAsync()).Stream;
-            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
-            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
-
-            foreach (var responsiveWidthSize in ThumbnailResponsiveSizes)
-            {
-                var responsiveHeightSize = (int)(responsiveWidthSize / AspectRatio);
-                var thumbnailResizedPath = Path.Combine(importerTempDirectoryInfo.FullName, $"thumb_{responsiveWidthSize}_{responsiveHeightSize}_{Guid.NewGuid()}.jpg");
-
-                using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium))
-                using (SKImage scaledImage = SKImage.FromBitmap(scaledBitmap))
-                using (SKData data = scaledImage.Encode())
-                using (FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew))
-                {
-                    await data.AsStream().CopyToAsync(outputFileStream);
-                }
-
-                thumbnails.Add(await BuildNewAsync(
-                    new SourceUri(thumbnailResizedPath, SourceUriKind.Local),
-                    HttpClientFactory));
-            }
-
-            return thumbnails;
-        }
+        public int Width { get; private set; }
     }
 }

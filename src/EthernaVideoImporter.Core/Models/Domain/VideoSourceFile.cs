@@ -12,10 +12,11 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Users.Index.Models;
+using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
@@ -24,23 +25,25 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     {
         // Constructor.
         private VideoSourceFile(
-            SourceUri fileUri,
-            IHttpClientFactory httpClientFactory)
-            : base(fileUri, httpClientFactory)
-        { }
+            UniversalFile universalFile,
+            VideoSourceType videoType)
+            : base(universalFile)
+        {
+            VideoType = videoType;
+        }
 
         // Static builders.
         public static async Task<VideoSourceFile> BuildNewAsync(
-            SourceUri fileUri,
-            IFFmpegService ffMpegService,
-            IHttpClientFactory httpClientFactory)
+            UniversalFile universalFile,
+            VideoSourceType videoType,
+            IFFmpegService ffMpegService)
         {
-            ArgumentNullException.ThrowIfNull(fileUri, nameof(fileUri));
             ArgumentNullException.ThrowIfNull(ffMpegService, nameof(ffMpegService));
+            ArgumentNullException.ThrowIfNull(universalFile, nameof(universalFile));
 
-            var video = new VideoSourceFile(fileUri, httpClientFactory);
+            var video = new VideoSourceFile(universalFile, videoType);
 
-            var (absoluteFileUri, _) = fileUri.ToAbsoluteUri();
+            var (absoluteFileUri, _) = universalFile.FileUri.ToAbsoluteUri();
             var ffProbeResult = await ffMpegService.GetVideoInfoAsync(absoluteFileUri);
 
             video.Duration = ffProbeResult.Format.Duration;
@@ -53,7 +56,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Properties.
         public TimeSpan Duration { get; private set; }
         public int Height { get; private set; }
-        public string VideoQualityLabel => $"{Height}p";
+        public string QualityLabel => $"{Height}p";
+        public VideoSourceType VideoType { get; }
         public int Width { get; private set; }
     }
 }

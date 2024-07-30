@@ -225,7 +225,7 @@ namespace Etherna.VideoImporter.Core
                             var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Manifest.VideoSources.Select(
                                 v => new VideoSwarmFile(v.Size, v.Quality!, v.Address.Hash));
 
-                            var video = new Video(sourceMetadata, videoSwarmFile, thumbnailFiles);
+                            var video = new Video(sourceMetadata, thumbnailFiles, videoSwarmFile);
 
                             // Upload new manifest.
                             var metadataVideo = await ManifestDto.BuildNewAsync(
@@ -262,7 +262,7 @@ namespace Etherna.VideoImporter.Core
                         var video = await videoProvider.GetVideoAsync(sourceMetadata);
                         video.EthernaIndexId = alreadyPresentVideo?.Id;
 
-                        if (!video.EncodedVideoFiles.Any())
+                        if (!video.VideoFiles.Any())
                             throw new InvalidOperationException("Error: can't get valid stream from source");
 
                         // Upload video and all related data.

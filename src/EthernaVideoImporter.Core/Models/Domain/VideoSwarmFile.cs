@@ -33,12 +33,12 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         {
             var originVideoQualityLabelMatch = QualityLabelRegex().Match(videoQualityLabel);
             if (originVideoQualityLabelMatch.Success)
-                VideoQualityLabel = originVideoQualityLabelMatch.Groups["label"].Value;
+                QualityLabel = originVideoQualityLabelMatch.Groups["label"].Value;
             else
                 throw new ArgumentException("Invalid quality label", nameof(videoQualityLabel));
         }
 
         // Properties.
-        public string VideoQualityLabel { get; }
+        public string QualityLabel { get; }
     }
 }

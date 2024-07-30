@@ -27,7 +27,7 @@ namespace Etherna.VideoImporter.Models.Domain
             string description,
             IEnumerable<string>? oldIds,
             VideoSourceFile sourceVideo,
-            ThumbnailSourceFile? sourceThumbnail)
+            ThumbnailSourceFile sourceThumbnail)
         {
             Description = description;
             Duration = sourceVideo.Duration;
@@ -43,7 +43,7 @@ namespace Etherna.VideoImporter.Models.Domain
         public override string SourceId { get; }
         public override string SourceName => "json";
         public override IEnumerable<string> SourceOldIds { get; }
-        public ThumbnailSourceFile? SourceThumbnail { get; }
+        public ThumbnailSourceFile SourceThumbnail { get; }
         public VideoSourceFile SourceVideo { get; }
     }
 }

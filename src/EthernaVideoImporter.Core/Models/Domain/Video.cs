@@ -22,24 +22,37 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public class Video
     {
         // Constructor.
-        public Video(
-            VideoMetadataBase metadata,
-            IEnumerable<FileBase> encodedFiles,
-            IEnumerable<IThumbnailFile> thumbnailFiles)
+        public Video(VideoMetadataBase metadata,
+            IThumbnailFile[] thumbnailFiles,
+            IVideoFile[] videoFiles)
         {
-            if (!encodedFiles.Any())
+            ArgumentNullException.ThrowIfNull(videoFiles, nameof(videoFiles));
+            ArgumentNullException.ThrowIfNull(thumbnailFiles, nameof(thumbnailFiles));
+            
+            if (videoFiles.Length == 0)
                 throw new ArgumentException("Must exist at least a stream");
+            if (thumbnailFiles.Length == 0)
+                throw new ArgumentException("Must exist at least a thumbnail");
 
-            EncodedFiles = encodedFiles;
             Metadata = metadata;
             ThumbnailFiles = thumbnailFiles;
+            VideoFiles = videoFiles;
         }
 
         // Properties.
-        public IEnumerable<FileBase> EncodedFiles { get; }
+        public float AspectRatio
+        {
+            get
+            {
+                var largerVideo = VideoFiles.MaxBy(v => v.Width) ?? throw new InvalidOperationException();
+                return (float)largerVideo.Width / largerVideo.Height;
+            }
+        }
         public string? EthernaIndexId { get; set; }
         public SwarmHash? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
+        public string ThumbnailBlurhash => ThumbnailFiles.First().Blurhash;
         public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }
+        public IEnumerable<IVideoFile> VideoFiles { get; }
     }
 }

@@ -69,21 +69,20 @@ namespace Etherna.VideoImporter.Core.Services
             Video video,
             bool fundPinning,
             bool fundDownload,
-            string ownerEthAddress,
-            string tmpDirectoryPath)
+            string ownerEthAddress)
         {
             ArgumentNullException.ThrowIfNull(video, nameof(video));
             
             // Create chunks. Do as first thing, also to evaluate required postage batch depth.
-            var chunksDirectory = Directory.CreateDirectory(Path.Combine(tmpDirectoryPath, ChunksSubDirectoryName));
+            var chunksDirectory = Directory.CreateDirectory(Path.Combine(CommonConsts.TempDirectory.FullName, ChunksSubDirectoryName));
             var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
             
             //video source files, exclude already uploaded Swarm files 
-            foreach (var videoFile in video.EncodedVideoFiles.OfType<VideoSourceFile>())
+            foreach (var videoFile in video.VideoFiles.OfType<VideoSourceFile>())
             {
                 ioService.WriteLine($"Creating chunks of video stream {videoFile.QualityLabel} in progress...");
                 
-                using var stream = (await videoFile.ReadToStreamAsync()).Stream;
+                using var stream = await videoFile.ReadToStreamAsync();
                 var streamHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
@@ -95,7 +94,7 @@ namespace Etherna.VideoImporter.Core.Services
             ioService.WriteLine($"Creating chunks of thumbnail in progress...");
             foreach (var thumbnailFile in video.ThumbnailFiles.OfType<ThumbnailSourceFile>())
             {
-                using var stream = (await thumbnailFile.ReadToStreamAsync()).Stream;
+                using var stream = await thumbnailFile.ReadToStreamAsync();
                 var streamHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
@@ -131,9 +130,13 @@ namespace Etherna.VideoImporter.Core.Services
             // }),
             
             //video manifest thumbnail
-            VideoManifestImage manifestThumbnail = default!;
-            //TODO
-            //new VideoManifestImage(video.AspectRatio, blurhash, video.ThumbnailFiles.Select(t => new VideoManifestImageSource(t.SwarmHash, "jpeg", t.Width))),
+            var manifestThumbnail = new VideoManifestImage(
+                video.AspectRatio,
+                video.ThumbnailBlurhash,
+                video.ThumbnailFiles.Select(t => new VideoManifestImageSource(
+                    $"thumb/{t.FileName}",
+                    ImageSourceType.Jpeg,
+                    t.Width)));
             
             //video manifest
             var videoManifest = new VideoManifest(
@@ -231,8 +234,7 @@ namespace Etherna.VideoImporter.Core.Services
         public Task<SwarmHash> UploadVideoManifestAsync(
             VideoManifest videoManifest,
             bool fundPinning,
-            bool fundDownload,
-            string tmpDirectoryPath)
+            bool fundDownload)
         {
             //evaluate to remove this
             throw new NotImplementedException();

@@ -12,17 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.Net.Http;
+using Etherna.UniversalFiles;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public sealed class AudioSourceFile : SourceFile
+    public sealed class AudioSourceFile(UniversalFile universalFile)
+        : SourceFile(universalFile)
     {
-        // Constructors.
-        public AudioSourceFile(
-            SourceUri fileUri,
-            IHttpClientFactory httpClientFactory)
-            : base(fileUri, httpClientFactory)
-        { }
+        
     }
 }

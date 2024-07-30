@@ -13,8 +13,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Sdk.Users;
+using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core;
-using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -345,7 +345,7 @@ namespace Etherna.VideoImporter
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {
-                        options.JsonMetadataUri = new SourceUri(sourceUrls.First(), SourceUriKind.Local | SourceUriKind.OnlineAbsolute);
+                        options.JsonMetadataUri = new UniversalUri(sourceUrls.First(), UniversalUriKind.Local | UniversalUriKind.OnlineAbsolute);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 
