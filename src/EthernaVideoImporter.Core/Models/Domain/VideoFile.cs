@@ -21,43 +21,58 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public sealed class VideoSourceFile : SourceFile, IVideoFile
+    public sealed class VideoFile : FileBase, IVideoFile
     {
         // Constructor.
-        private VideoSourceFile(
+        private VideoFile(
+            long byteSize,
+            string fileName,
+            TimeSpan duration,
+            int height,
+            int width,
             UniversalFile universalFile,
-            VideoSourceType videoType)
-            : base(universalFile)
+            VideoType videoType)
+            : base(byteSize, fileName, universalFile)
         {
+            Duration = duration;
+            Height = height;
+            Width = width;
             VideoType = videoType;
         }
 
         // Static builders.
-        public static async Task<VideoSourceFile> BuildNewAsync(
-            UniversalFile universalFile,
-            VideoSourceType videoType,
-            IFFmpegService ffMpegService)
+        public static async Task<VideoFile> BuildNewAsync(
+            IFFmpegService ffMpegService,
+            UniversalUri universalUri,
+            VideoType videoType)
         {
             ArgumentNullException.ThrowIfNull(ffMpegService, nameof(ffMpegService));
-            ArgumentNullException.ThrowIfNull(universalFile, nameof(universalFile));
+            ArgumentNullException.ThrowIfNull(universalUri, nameof(universalUri));
+            
+            var universalFile = new UniversalFile(universalUri);
 
-            var video = new VideoSourceFile(universalFile, videoType);
+            var byteSize = await universalFile.GetByteSizeAsync();
+            var fileName = await universalFile.TryGetFileNameAsync() ??
+                           throw new InvalidOperationException($"Can't get file name from {universalUri.OriginalUri}");
 
-            var (absoluteFileUri, _) = universalFile.FileUri.ToAbsoluteUri();
+            var (absoluteFileUri, _) = universalUri.ToAbsoluteUri();
             var ffProbeResult = await ffMpegService.GetVideoInfoAsync(absoluteFileUri);
 
-            video.Duration = ffProbeResult.Format.Duration;
-            video.Height = ffProbeResult.Streams.First().Height;
-            video.Width = ffProbeResult.Streams.First().Width;
-
-            return video;
+            return new VideoFile(
+                byteSize,
+                fileName,
+                ffProbeResult.Format.Duration,
+                ffProbeResult.Streams.First().Height,
+                ffProbeResult.Streams.First().Width,
+                universalFile,
+                videoType);
         }
 
         // Properties.
         public TimeSpan Duration { get; private set; }
-        public int Height { get; private set; }
+        public int Height { get; }
         public string QualityLabel => $"{Height}p";
-        public VideoSourceType VideoType { get; }
-        public int Width { get; private set; }
+        public VideoType VideoType { get; }
+        public int Width { get; }
     }
 }

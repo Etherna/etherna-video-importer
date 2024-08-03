@@ -20,10 +20,10 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IEncoderService
     {
-        Task<ThumbnailSourceFile[]> EncodeThumbnailsAsync(
-            ThumbnailSourceFile sourceThumbnailFile,
+        Task<ThumbnailFile[]> EncodeThumbnailsAsync(
+            ThumbnailFile sourceThumbnailFile,
             DirectoryInfo tmpDirectory);
         
-        Task<VideoSourceFile[]> EncodeVideosAsync(VideoSourceFile sourceVideoFile);
+        Task<VideoFile[]> EncodeVideosAsync(VideoFile videoFile);
     }
 }

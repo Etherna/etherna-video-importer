@@ -121,32 +121,11 @@ namespace Etherna.VideoImporter.Core.Services
                 ioService.PrintException(ex);
             }
 
-            // Unpin contents.
+            // Unpin manifest.
             if (removeSucceeded &&
                 unpinRemovedVideos &&
                 indexedVideo.LastValidManifest is not null)
-            {
-                //videos
-                foreach (var streamSource in indexedVideo.LastValidManifest.Manifest.VideoSources
-                             .Where(s => s.ManifestUri.UriKind == UriKind.Absolute))
-                {
-                    var sourceAddress = streamSource.ManifestUri.ToSwarmAddress();
-                    var sourceHash = await gatewayService.ResolveSwarmAddressToHashAsync(sourceAddress);
-                    await TryDefundPinningAsync(sourceHash);
-                }
-
-                //thumbnail
-                foreach (var thumbSource in indexedVideo.LastValidManifest.Manifest.Thumbnail.Sources
-                             .Where(s => s.ManifestUri.UriKind == UriKind.Absolute))
-                {
-                    var sourceAddress = thumbSource.ManifestUri.ToSwarmAddress();
-                    var sourceHash = await gatewayService.ResolveSwarmAddressToHashAsync(sourceAddress);
-                    await TryDefundPinningAsync(sourceHash);
-                }
-
-                //manifest
                 await TryDefundPinningAsync(indexedVideo.LastValidManifest.Hash);
-            }
         }
 
         private async Task TryDefundPinningAsync(SwarmHash hash)

@@ -22,7 +22,6 @@ using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -78,7 +77,7 @@ namespace Etherna.VideoImporter.Core.Services
             var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
             
             //video source files, exclude already uploaded Swarm files 
-            foreach (var videoFile in video.VideoFiles.OfType<VideoSourceFile>())
+            foreach (var videoFile in video.VideoFiles.OfType<VideoFile>())
             {
                 ioService.WriteLine($"Creating chunks of video stream {videoFile.QualityLabel} in progress...");
                 
@@ -87,19 +86,19 @@ namespace Etherna.VideoImporter.Core.Services
                     stream,
                     chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
-                videoFile.SetSwarmHash(streamHash);
+                videoFile.SwarmHash = streamHash;
             }
             
             //thumbnail source files, exclude already uploaded Swarm files 
             ioService.WriteLine($"Creating chunks of thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<ThumbnailSourceFile>())
+            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<ThumbnailFile>())
             {
                 using var stream = await thumbnailFile.ReadToStreamAsync();
                 var streamHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
-                thumbnailFile.SetSwarmHash(streamHash);
+                thumbnailFile.SwarmHash = streamHash;
             }
             
             //new video manifest (at first without batchId. See: https://etherna.atlassian.net/browse/EVMS-8).
@@ -111,31 +110,21 @@ namespace Etherna.VideoImporter.Core.Services
                 video.Metadata.SourceId);
             
             //video manifest video sources
-            IEnumerable<VideoManifestVideoSource> manifestVideoSources = default!;
-            //TODO
-            // video.EncodedVideoFiles.Select(f =>
-            // {
-            //     var uri = new SwarmUri(
-            //         $"sources/{f.VideoType.ToStringInvariant().ToLowerInvariant()}/{f.FileName}",
-            //         UriKind.Relative);
-            //         
-            //     return new VideoManifestVideoSource(
-            //         uri,
-            //         f.VideoType,
-            //         f.QualityLabel,
-            //         await f.GetByteSizeAsync())
-            //     {
-            //         AbsoluteHash = f.SwarmHash
-            //     };
-            // }),
+            var manifestVideoSources = video.VideoFiles.Select(v =>new VideoManifestVideoSource(
+                v.FileName,
+                v.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
+                v.VideoType,
+                v.QualityLabel,
+                v.ByteSize));
             
             //video manifest thumbnail
             var manifestThumbnail = new VideoManifestImage(
                 video.AspectRatio,
                 video.ThumbnailBlurhash,
                 video.ThumbnailFiles.Select(t => new VideoManifestImageSource(
-                    $"thumb/{t.FileName}",
-                    ImageSourceType.Jpeg,
+                    t.FileName,
+                    t.ImageType,
+                    t.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
                     t.Width)));
             
             //video manifest

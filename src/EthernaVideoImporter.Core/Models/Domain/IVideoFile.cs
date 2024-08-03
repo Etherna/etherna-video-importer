@@ -12,10 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Users.Index.Models;
+
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public interface IVideoFile : IFile
     {
+        int Height { get; }
         string QualityLabel { get; }
+        VideoType VideoType { get; }
+        int Width { get; }
     }
 }
