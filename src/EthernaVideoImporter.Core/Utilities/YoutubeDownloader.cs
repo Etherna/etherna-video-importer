@@ -65,12 +65,11 @@ namespace Etherna.VideoImporter.Core.Utilities
                 videoMetadata.Title);
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
+            var videoFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
 
             // Get thumbnail.
             var bestResolutionThumbnail = videoMetadata.Thumbnail is null ?
                 await ThumbnailFile.BuildNewAsync(
-                    ImageType.Unknown,
                     universalUriProvider.GetNewUri(
                         await ffMpegService.ExtractThumbnailAsync(videoLocalFile), UniversalUriKind.LocalAbsolute)) :
                 await DownloadThumbnailAsync(videoMetadata.Thumbnail, videoMetadata.Title);
@@ -79,7 +78,8 @@ namespace Etherna.VideoImporter.Core.Utilities
             
             return new Video(
                 videoMetadata,
-                thumbnailFiles.Select(f => (IThumbnailFile)f).ToArray(), encodedFiles.Select(f => (IVideoFile)f).ToArray());
+                thumbnailFiles,
+                videoFiles);
         }
 
         // Helpers.
@@ -117,7 +117,6 @@ namespace Etherna.VideoImporter.Core.Utilities
             }
 
             return await ThumbnailFile.BuildNewAsync(
-                ImageType.Jpeg,
                 universalUriProvider.GetNewUri(thumbnailFilePath, UniversalUriKind.Local));
         }
 
@@ -165,8 +164,7 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             return await VideoFile.BuildNewAsync(
                 ffMpegService,
-                universalUriProvider.GetNewUri(videoFilePath, UniversalUriKind.Local),
-                VideoType.Mp4);
+                universalUriProvider.GetNewUri(videoFilePath, UniversalUriKind.Local));
         }
 
         private void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)

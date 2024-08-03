@@ -55,11 +55,13 @@ namespace Etherna.VideoImporter.Services
             var encodedVideoFiles = await encoderService.EncodeVideosAsync(sourceVideoMetadata.Video);
 
             // Transcode thumbnail resolutions.
-            var thumbnailFiles = await encoderService.EncodeThumbnailsAsync(sourceVideoMetadata.SourceThumbnail, CommonConsts.TempDirectory);
+            var thumbnailFiles = await encoderService.EncodeThumbnailsAsync(
+                sourceVideoMetadata.SourceThumbnail, CommonConsts.TempDirectory);
 
             return new Video(
                 videoMetadata,
-                thumbnailFiles.Select(f => (IThumbnailFile)f).ToArray(), encodedVideoFiles.Select(f => (IVideoFile)f).ToArray());
+                thumbnailFiles.ToArray(),
+                encodedVideoFiles.ToArray());
         }
 
         public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
@@ -89,15 +91,13 @@ namespace Etherna.VideoImporter.Services
                     // Build video.
                     var video = await VideoFile.BuildNewAsync(
                         ffMpegService,
-                        universalUriProvider.GetNewUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
-                        VideoType.Unknown);
+                        universalUriProvider.GetNewUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri));
 
                     // Build thumbnail.
                     ThumbnailFile thumbnail;
                     if (string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
                     {
                         thumbnail = await ThumbnailFile.BuildNewAsync(
-                            ImageType.Jpeg,
                             universalUriProvider.GetNewUri(
                                 await ffMpegService.ExtractThumbnailAsync(video),
                                 UniversalUriKind.LocalAbsolute));
@@ -105,7 +105,6 @@ namespace Etherna.VideoImporter.Services
                     else
                     {
                         thumbnail = await ThumbnailFile.BuildNewAsync(
-                            ImageType.Unknown,
                             universalUriProvider.GetNewUri(
                                 metadataDto.ThumbnailFilePath,
                                 defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri));

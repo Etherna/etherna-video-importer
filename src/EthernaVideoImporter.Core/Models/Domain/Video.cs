@@ -23,8 +23,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     {
         // Constructor.
         public Video(VideoMetadataBase metadata,
-            IThumbnailFile[] thumbnailFiles,
-            IVideoFile[] videoFiles)
+            ThumbnailFile[] thumbnailFiles,
+            VideoFile[] videoFiles)
         {
             ArgumentNullException.ThrowIfNull(videoFiles, nameof(videoFiles));
             ArgumentNullException.ThrowIfNull(thumbnailFiles, nameof(thumbnailFiles));
@@ -52,7 +52,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public SwarmHash? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
         public string ThumbnailBlurhash => ThumbnailFiles.First().Blurhash;
-        public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }
-        public IEnumerable<IVideoFile> VideoFiles { get; }
+        public IEnumerable<ThumbnailFile> ThumbnailFiles { get; }
+        public IEnumerable<VideoFile> VideoFiles { get; }
     }
 }

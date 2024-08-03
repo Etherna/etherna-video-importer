@@ -141,7 +141,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         public async Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri)
         {
-            var args = new string[] {
+            var args = new[] {
                 $"-v", "error",
                 "-show_entries", "format=duration,size",
                 "-show_entries", "stream=width,height",

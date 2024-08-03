@@ -84,7 +84,6 @@ namespace Etherna.VideoImporter.Core.Services
                 }
 
                 thumbnails.Add(await ThumbnailFile.BuildNewAsync(
-                    ImageType.Jpeg,
                     universalUriProvider.GetNewUri(thumbnailResizedPath, UniversalUriKind.Local)));
             }
 
@@ -107,8 +106,7 @@ namespace Etherna.VideoImporter.Core.Services
                 var outputFileSize = new FileInfo(outputFilePath).Length;
                 videoEncodedFiles.Add(await VideoFile.BuildNewAsync(
                     ffMpegService,
-                    universalUriProvider.GetNewUri(outputFilePath, UniversalUriKind.Local),
-                    VideoType.Mp4));
+                    universalUriProvider.GetNewUri(outputFilePath, UniversalUriKind.Local)));
 
                 ioService.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }

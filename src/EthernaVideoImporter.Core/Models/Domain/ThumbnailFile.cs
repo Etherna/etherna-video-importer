@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public sealed class ThumbnailFile : FileBase, IThumbnailFile
+    public sealed class ThumbnailFile : FileBase
     {
         // Constructor.
         private ThumbnailFile(
@@ -42,20 +42,31 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Static builders.
         public static async Task<ThumbnailFile> BuildNewAsync(
-            ImageType imageType,
             UniversalUri universalUri)
         {
             ArgumentNullException.ThrowIfNull(universalUri, nameof(universalUri));
             
             var universalFile = new UniversalFile(universalUri);
 
+            // Get image info.
             var byteSize = await universalFile.GetByteSizeAsync();
             var fileName = await universalFile.TryGetFileNameAsync() ??
                            throw new InvalidOperationException($"Can't get file name from {universalUri.OriginalUri}");
 
             var (thumbFileStream, _) = await universalFile.ReadToStreamAsync();
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+            
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+            using var codec = SKCodec.Create(thumbManagedStream);
+
+            var imageType = codec.EncodedFormat switch
+            {
+                SKEncodedImageFormat.Jpeg => ImageType.Jpeg,
+                SKEncodedImageFormat.Png => ImageType.Png,
+                SKEncodedImageFormat.Webp => ImageType.Webp,
+                SKEncodedImageFormat.Avif => ImageType.Avif,
+                _ => ImageType.Unknown
+            };
 
             return new ThumbnailFile(
                 Blurhasher.Encode(thumbBitmap, 4, 4),

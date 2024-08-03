@@ -16,12 +16,13 @@ using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Services;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public sealed class VideoFile : FileBase, IVideoFile
+    public sealed class VideoFile : FileBase
     {
         // Constructor.
         private VideoFile(
@@ -43,8 +44,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Static builders.
         public static async Task<VideoFile> BuildNewAsync(
             IFFmpegService ffMpegService,
-            UniversalUri universalUri,
-            VideoType videoType)
+            UniversalUri universalUri)
         {
             ArgumentNullException.ThrowIfNull(ffMpegService, nameof(ffMpegService));
             ArgumentNullException.ThrowIfNull(universalUri, nameof(universalUri));
@@ -57,6 +57,13 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
             var (absoluteFileUri, _) = universalUri.ToAbsoluteUri();
             var ffProbeResult = await ffMpegService.GetVideoInfoAsync(absoluteFileUri);
+            var videoType = Path.GetExtension(fileName) switch
+            {
+                ".mp4" => VideoType.Mp4,
+                ".m3u8" => VideoType.Hls,
+                ".mpd" => VideoType.Dash,
+                _ => VideoType.Unknown
+            };
 
             return new VideoFile(
                 byteSize,

@@ -23,7 +23,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         long byteSize,
         string fileName,
         UniversalFile universalFile)
-        : IFile
     {
         // Properties.
         public long ByteSize { get; } = byteSize;

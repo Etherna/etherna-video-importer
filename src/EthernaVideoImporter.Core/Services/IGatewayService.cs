@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet;
 using Etherna.BeeNet.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -21,6 +22,10 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IGatewayService
     {
+        // Properties.
+        IBeeClient BeeClient { get; }
+        
+        // Methods.
         /// <summary>
         /// Create a new batch.
         /// </summary>

@@ -15,11 +15,14 @@
 using Etherna.Authentication;
 using Etherna.Authentication.Native;
 using Etherna.BeeNet.Hashing;
-using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Clients;
+using Etherna.UniversalFiles;
+using Etherna.UniversalFiles.Extensions;
+using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
+using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -37,11 +40,13 @@ namespace Etherna.VideoImporter.Core
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
         private readonly IEthernaSignInService ethernaSignInService;
+        private readonly IFFmpegService ffmpegService;
         private readonly IGatewayService gatewayService;
         private readonly IHasher hasher;
         private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
         private readonly IResultReporterService resultReporterService;
+        private readonly IUniversalUriProvider universalUriProvider;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -52,11 +57,13 @@ namespace Etherna.VideoImporter.Core
             IEthernaUserIndexClient ethernaIndexClient,
             IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
             IEthernaSignInService ethernaSignInService,
+            IFFmpegService ffmpegService,
             IGatewayService gatewayService,
             IHasher hasher,
             IIoService ioService,
             IMigrationService migrationService,
             IResultReporterService resultReporterService,
+            IUniversalUriProvider universalUriProvider,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
@@ -69,11 +76,13 @@ namespace Etherna.VideoImporter.Core
             this.ethernaIndexClient = ethernaIndexClient;
             this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
             this.ethernaSignInService = ethernaSignInService;
+            this.ffmpegService = ffmpegService;
             this.gatewayService = gatewayService;
             this.hasher = hasher;
             this.ioService = ioService;
             this.migrationService = migrationService;
             this.resultReporterService = resultReporterService;
+            this.universalUriProvider = universalUriProvider;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -180,8 +189,8 @@ namespace Etherna.VideoImporter.Core
                     ioService.WriteLine($"Title: {sourceMetadata.Title}", false);
 
                     // Search already uploaded video. Compare serialized id on manifest personal data with metadata id from source.
-                    var allVideoIdHashes = sourceMetadata.SourceOldIds.Append(sourceMetadata.SourceId)
-                        .Select(id => hasher.ComputeHash(id))
+                    var allVideoIdHashes = sourceMetadata.SourceOldIds.Prepend(sourceMetadata.SourceId)
+                        .Select(id => hasher.ComputeHash(id).ToHex())
                         .ToList();
                     var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
                         v => v.LastValidManifest?.Manifest.PersonalData?.SourceVideoIdHash is not null &&
@@ -199,7 +208,7 @@ namespace Etherna.VideoImporter.Core
 
                         // Verify if manifest needs to be updated with new metadata.
                         //try to skip
-                        if (alreadyPresentVideo.IsEqualTo(sourceMetadata) &&
+                        if (alreadyPresentVideo.HasEqualMetadata(sourceMetadata, hasher) &&
                             minRequiredMigrationOp is OperationType.Skip)
                         {
                             importResult = VideoImportResultSucceeded.Skipped(
@@ -214,23 +223,26 @@ namespace Etherna.VideoImporter.Core
                             ioService.WriteLine($"Metadata has changed, update the video manifest");
 
                             // Create manifest.
-                            var thumbnailFiles = alreadyPresentVideo.LastValidManifest!.Manifest.Thumbnail.Sources.Select(t =>
-                                new ThumbnailSwarmFile(
-                                    alreadyPresentVideo.LastValidManifest.Manifest.Thumbnail.AspectRatio,
-                                    alreadyPresentVideo.LastValidManifest.Manifest.Thumbnail.Blurhash,
-                                    t.Address.Hash,
-                                    0, /*currently we don't have actual size. Acceptable workaround until it is provided in manifest*/
-                                    t.Width));
+                            List<ThumbnailFile> thumbnailFiles = [];
+                            foreach (var thumbSource in alreadyPresentVideo.LastValidManifest!.Manifest.Thumbnail.Sources)
+                                thumbnailFiles.Add(await ThumbnailFile.BuildNewAsync(
+                                    universalUriProvider.GetNewUri(thumbSource.Uri, gatewayService.BeeClient)));
 
-                            var videoSwarmFile = alreadyPresentVideo.LastValidManifest.Manifest.VideoSources.Select(
-                                v => new VideoSwarmFile(v.Size, v.Quality!, v.Address.Hash));
+                            List<VideoFile> videoFiles = [];
+                            foreach (var videoSource in alreadyPresentVideo.LastValidManifest.Manifest.VideoSources)
+                                videoFiles.Add(await VideoFile.BuildNewAsync(
+                                    ffmpegService,
+                                    universalUriProvider.GetNewUri(videoSource.Uri, gatewayService.BeeClient)));
 
-                            var video = new Video(sourceMetadata, thumbnailFiles, videoSwarmFile);
+                            var video = new Video(
+                                sourceMetadata,
+                                thumbnailFiles.ToArray(),
+                                videoFiles.ToArray());
 
                             // Upload new manifest.
                             var metadataVideo = await ManifestDto.BuildNewAsync(
                                 video,
-                                alreadyPresentVideo.LastValidManifest.BatchId,
+                                alreadyPresentVideo.LastValidManifest.Manifest.BatchId,
                                 userEthAddress,
                                 appVersionService.CurrentVersion);
                             var updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
@@ -324,7 +336,8 @@ namespace Etherna.VideoImporter.Core
                 importSummaryModelView.TotDeletedRemovedFromSource = await cleanerVideoService.DeleteVideosRemovedFromSourceAsync(
                     sourceVideosMetadata,
                     userVideosOnIndex,
-                    unpinRemovedVideos);
+                    unpinRemovedVideos,
+                    videoProvider.SourceName);
 
             if (removeUnrecognizedVideos)
                 importSummaryModelView.TotDeletedExogenous = await cleanerVideoService.DeleteExogenousVideosAsync(
