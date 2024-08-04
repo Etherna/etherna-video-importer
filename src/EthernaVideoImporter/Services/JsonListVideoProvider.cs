@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
@@ -22,35 +23,22 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Services
 {
-    internal sealed class JsonListVideoProvider : IVideoProvider
+    internal sealed class JsonListVideoProvider(
+        IEncoderService encoderService,
+        IFFmpegService ffMpegService,
+        IIoService ioService,
+        IOptions<JsonListVideoProviderOptions> options,
+        IUFileProvider uFileProvider)
+        : IVideoProvider
     {
         // Fields.
-        private readonly IEncoderService encoderService;
-        private readonly IFFmpegService ffMpegService;
-        private readonly IHttpClientFactory httpClientFactory;
-        private readonly IIoService ioService;
-        private readonly JsonListVideoProviderOptions options;
-
-        // Constructor.
-        public JsonListVideoProvider(
-            IEncoderService encoderService,
-            IFFmpegService ffMpegService,
-            IHttpClientFactory httpClientFactory,
-            IIoService ioService,
-            IOptions<JsonListVideoProviderOptions> options)
-        {
-            this.encoderService = encoderService;
-            this.ffMpegService = ffMpegService;
-            this.httpClientFactory = httpClientFactory;
-            this.ioService = ioService;
-            this.options = options.Value;
-        }
+        private readonly JsonListVideoProviderOptions options = options.Value;
 
         // Properties.
         public string SourceName => options.JsonMetadataUri.OriginalUri;
@@ -63,21 +51,22 @@ namespace Etherna.VideoImporter.Services
                 ?? throw new ArgumentException($"Metadata must be of type {nameof(JsonVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
-            var encodedFiles = await encoderService.EncodeVideosAsync(
-                sourceVideoMetadata.SourceVideo);
+            var encodedVideoFiles = await encoderService.EncodeVideosAsync(sourceVideoMetadata.Video);
 
             // Transcode thumbnail resolutions.
-            var thumbnailFiles = sourceVideoMetadata.SourceThumbnail is not null ?
-                await sourceVideoMetadata.SourceThumbnail.GetScaledThumbnailsAsync(CommonConsts.TempDirectory) :
-                Array.Empty<ThumbnailSourceFile>();
+            var thumbnailFiles = await encoderService.EncodeThumbnailsAsync(
+                sourceVideoMetadata.SourceThumbnail, CommonConsts.TempDirectory);
 
-            return new Video(videoMetadata, encodedFiles, thumbnailFiles);
+            return new Video(
+                videoMetadata,
+                thumbnailFiles.ToArray(),
+                encodedVideoFiles.ToArray());
         }
 
-        public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
+        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()
         {
             // Read json list.
-            string jsonData = await new SourceFile(options.JsonMetadataUri, httpClientFactory).ReadToStringAsync();
+            string jsonData = await uFileProvider.BuildNewUFile(options.JsonMetadataUri).ReadToStringAsync();
             string jsonMetadataDirectoryAbsoluteUri = (options.JsonMetadataUri.TryGetParentDirectoryAsAbsoluteUri() ??
                 throw new InvalidOperationException("Must exist a parent directory")).Item1;
 
@@ -99,17 +88,28 @@ namespace Etherna.VideoImporter.Services
                 try
                 {
                     // Build video.
-                    var video = await VideoSourceFile.BuildNewAsync(
-                        new SourceUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
+                    var video = await VideoFile.BuildNewAsync(
                         ffMpegService,
-                        httpClientFactory);
+                        uFileProvider.BuildNewUFile(new BasicUUri(
+                            metadataDto.VideoFilePath,
+                            defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri)));
 
                     // Build thumbnail.
-                    var thumbnail = await ThumbnailSourceFile.BuildNewAsync(
-                        string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath) ?
-                            new SourceUri(await ffMpegService.ExtractThumbnailAsync(video), SourceUriKind.LocalAbsolute) :
-                            new SourceUri(metadataDto.ThumbnailFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri),
-                        httpClientFactory);
+                    ThumbnailFile thumbnail;
+                    if (string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
+                    {
+                        thumbnail = await ThumbnailFile.BuildNewAsync(
+                            uFileProvider.BuildNewUFile(new BasicUUri(
+                                await ffMpegService.ExtractThumbnailAsync(video),
+                                UUriKind.LocalAbsolute)));
+                    }
+                    else
+                    {
+                        thumbnail = await ThumbnailFile.BuildNewAsync(
+                            uFileProvider.BuildNewUFile(new BasicUUri(
+                                metadataDto.ThumbnailFilePath,
+                                defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri)));
+                    }
 
                     // Add video metadata.
                     videosMetadataList.Add(
@@ -130,7 +130,7 @@ namespace Etherna.VideoImporter.Services
                 }
             }
 
-            return videosMetadataList;
+            return videosMetadataList.ToArray();
         }
     }
 }

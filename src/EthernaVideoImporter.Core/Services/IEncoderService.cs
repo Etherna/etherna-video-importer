@@ -13,14 +13,17 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.VideoImporter.Core.Models.Domain;
-using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
     public interface IEncoderService
     {
-        Task<IEnumerable<VideoSourceFile>> EncodeVideosAsync(
-            VideoSourceFile sourceVideoFile);
+        Task<ThumbnailFile[]> EncodeThumbnailsAsync(
+            ThumbnailFile sourceThumbnailFile,
+            DirectoryInfo tmpDirectory);
+        
+        Task<VideoFile[]> EncodeVideosAsync(VideoFile videoFile);
     }
 }

@@ -21,7 +21,10 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public abstract class GatewayServiceBase : IGatewayService
+    public abstract class GatewayServiceBase(
+        IBeeClient beeClient,
+        IIoService ioService)
+        : IGatewayService
     {
 #pragma warning disable CA1051 // Do not declare visible instance fields
         // Consts.
@@ -29,18 +32,12 @@ namespace Etherna.VideoImporter.Core.Services
         protected readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
 
         // Fields.
-        protected readonly IBeeClient beeClient;
-        private readonly IIoService ioService;
 #pragma warning restore CA1051 // Do not declare visible instance fields
 
         // Constructor.
-        protected GatewayServiceBase(
-            IBeeClient beeClient,
-            IIoService ioService)
-        {
-            this.beeClient = beeClient;
-            this.ioService = ioService;
-        }
+
+        // Properties.
+        public IBeeClient BeeClient { get; } = beeClient;
 
         // Methods.
         public abstract Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth);
@@ -55,18 +52,29 @@ namespace Etherna.VideoImporter.Core.Services
 
         public abstract Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
+        public async Task<SwarmHash> ResolveSwarmAddressToHashAsync(SwarmAddress address) =>
+            (await BeeClient.ResolveAddressToChunkReferenceAsync(address)).Hash;
+
+        public async Task UploadChunkAsync(PostageBatchId batchId, SwarmChunk chunk, bool fundPinning = false)
+        {
+            ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
+            
+            using var dataStream = new MemoryStream(chunk.Data.ToArray());
+            await BeeClient.UploadChunkAsync(batchId, dataStream, fundPinning);
+        }
+
         public Task<SwarmHash> UploadFileAsync(
             PostageBatchId batchId,
             Stream content,
             string? name,
             string? contentType,
-            bool swarmPin) =>
-            beeClient.UploadFileAsync(
+            bool fundPinning) =>
+            BeeClient.UploadFileAsync(
                 batchId,
                 content,
                 name: name,
                 contentType: contentType,
-                swarmPin: swarmPin);
+                swarmPin: fundPinning);
 
         // Protected methods.
         protected async Task WaitForBatchUsableAsync(PostageBatchId batchId)

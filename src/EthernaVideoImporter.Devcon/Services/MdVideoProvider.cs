@@ -32,7 +32,11 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
-    internal sealed partial class MdVideoProvider : IVideoProvider
+    internal sealed partial class MdVideoProvider(
+        IIoService ioService,
+        IOptions<MdVideoProviderOptions> options,
+        IYoutubeDownloader youtubeDownloader)
+        : IVideoProvider
     {
         // Consts.
         [GeneratedRegex("(?<!\\\\)\"")]
@@ -42,34 +46,22 @@ namespace Etherna.VideoImporter.Devcon.Services
         private static partial Regex YamlBodyRegex();
 
         // Fields.
-        private readonly IDeserializer deserializer;
-        private readonly MdVideoProviderOptions options;
-        private readonly IIoService ioService;
-        private readonly IYoutubeDownloader youtubeDownloader;
+        private readonly IDeserializer deserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
+        private readonly MdVideoProviderOptions options = options.Value;
 
         // Constructor.
-        public MdVideoProvider(
-            IIoService ioService,
-            IOptions<MdVideoProviderOptions> options,
-            IYoutubeDownloader youtubeDownloader)
-        {
-            deserializer = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .IgnoreUnmatchedProperties()
-                .Build();
-            this.options = options.Value;
-            this.ioService = ioService;
-            this.youtubeDownloader = youtubeDownloader;
-        }
 
         // Properties.
-        public string SourceName => options.MdSourceFolderPath;
+        public string SourceName => "devconFolder";
 
         // Methods.
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
             videoMetadata as MdFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(MdFileVideoMetadata)}", nameof(videoMetadata)));
 
-        public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
+        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()
         {
             var mdFilesPaths = Directory.GetFiles(options.MdSourceFolderPath, "*.md", SearchOption.AllDirectories);
 
@@ -109,7 +101,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     youtubeDownloader,
                     p.mdDto.YoutubeUrl,
                     p.mdDto.EthernaIndex,
-                    p.mdDto.EthernaPermalink));
+                    p.mdDto.EthernaPermalink)).Cast<VideoMetadataBase>().ToArray();
         }
 
         // Helpers.

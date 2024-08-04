@@ -14,7 +14,6 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -25,27 +24,18 @@ namespace Etherna.VideoImporter.Core.Services
     public interface IVideoUploaderService
     {
         /// <summary>
-        /// Start to upload all video data (manifest, video with all avaiable resolutions, thumbnail, index).
+        /// Start to upload all video data (manifest, video with all available resolutions, thumbnail, index).
         /// </summary>
         /// <param name="video">Video data</param>
-        /// <param name="pinVideo">Pin video</param>
-        /// <param name="offerVideo">Offer video contents for free</param>
+        /// <param name="fundPinning">Pin video</param>
+        /// <param name="fundDownload">Offer video contents for free</param>
+        /// <param name="ownerEthAddress">Owner eth address</param>
+        /// <param name="batchId">Use existing batch id</param>
         public Task UploadVideoAsync(
             Video video,
-            bool pinVideo,
-            bool offerVideo,
-            string userEthAddress);
-
-        /// <summary>
-        /// Upload a new video manifest
-        /// </summary>
-        /// <param name="videoManifest">The video manifest</param>
-        /// <param name="pinManifest">True if need to pin manifest</param>
-        /// <param name="offerManifest">Offer manifest for free</param>
-        /// <returns>The new manifest hash</returns>
-        Task<SwarmHash> UploadVideoManifestAsync(
-            ManifestDto videoManifest,
-            bool pinManifest,
-            bool offerManifest);
+            bool fundPinning,
+            bool fundDownload,
+            string ownerEthAddress,
+            PostageBatchId? batchId = null);
     }
 }

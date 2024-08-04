@@ -48,12 +48,12 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Methods.
         public async Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
-            VideoSourceFile sourceVideoFile,
+            VideoFile videoFile,
             IEnumerable<int> outputHeights)
         {
             // Compose FFmpeg command args.
             var args = BuildFFmpegCommandArgs(
-                sourceVideoFile,
+                videoFile,
                 outputHeights,
                 out IEnumerable<(string filePath, int height, int width)> outputs);
 
@@ -94,14 +94,14 @@ namespace Etherna.VideoImporter.Core.Services
             return outputs;
         }
         
-        public async Task<string> ExtractThumbnailAsync(VideoSourceFile videoSourceFile)
+        public async Task<string> ExtractThumbnailAsync(VideoFile videoFile)
         {
             ioService.WriteLine($"Extract random thumbnail");
 
             // Run FFmpeg command.
             var outputThumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{Guid.NewGuid()}_thumbnail.jpg");
             var args = new[] {
-                "-i", videoSourceFile.FileUri.ToAbsoluteUri().Item1,
+                "-i", videoFile.FileUri.ToAbsoluteUri().Item1,
                 "-vf", "select='eq(pict_type\\,I)',random",
                 "-vframes", "1",
                 outputThumbnailFilePath
@@ -141,7 +141,7 @@ namespace Etherna.VideoImporter.Core.Services
 
         public async Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri)
         {
-            var args = new string[] {
+            var args = new[] {
                 $"-v", "error",
                 "-show_entries", "format=duration,size",
                 "-show_entries", "stream=width,height",
@@ -208,28 +208,28 @@ namespace Etherna.VideoImporter.Core.Services
         /// <summary>
         /// Build FFmpeg command args to encode current source video
         /// </summary>
-        /// <param name="sourceVideoFile">Input video file</param>
+        /// <param name="videoFile">Input video file</param>
         /// <param name="outputs">Output video files info</param>
         /// <returns>FFmpeg args list</returns>
         private List<string> BuildFFmpegCommandArgs(
-            VideoSourceFile sourceVideoFile,
+            VideoFile videoFile,
             IEnumerable<int> outputHeights,
             out IEnumerable<(string filePath, int height, int width)> outputs)
         {
             // Build FFmpeg args.
             var args = new List<string>();
             var fileNameGuid = Guid.NewGuid();
-            var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
+            var resolutionRatio = (decimal)videoFile.Width / videoFile.Height;
             var outputsList = new List<(string filePath, int height, int width)>();
 
             //input
-            args.Add("-i"); args.Add(sourceVideoFile.FileUri.ToAbsoluteUri().Item1);
+            args.Add("-i"); args.Add(videoFile.FileUri.ToAbsoluteUri().Item1);
 
             //all output streams
             foreach (var height in outputHeights)
             {
                 // Don't upscale, skip in case.
-                if (sourceVideoFile.Height < height)
+                if (videoFile.Height < height)
                     continue;
 
                 // Build output stream args.

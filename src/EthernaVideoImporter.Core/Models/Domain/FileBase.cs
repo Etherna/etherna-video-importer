@@ -13,16 +13,27 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Etherna.UniversalFiles;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract class FileBase : IFile
+    public abstract class FileBase(
+        long byteSize,
+        string fileName,
+        UFile universalFile,
+        SwarmHash? swarmHash)
     {
         // Properties.
-        public SwarmHash? SwarmHash { get; protected set; }
-
+        public long ByteSize { get; } = byteSize;
+        public string FileName { get; } = fileName;
+        public UUri FileUri => universalFile.FileUri;
+        public SwarmHash? SwarmHash { get; set; } = swarmHash;
+        
         // Methods.
-        public abstract Task<long> GetByteSizeAsync();
+        public async Task<Stream> ReadToStreamAsync() => (await universalFile.ReadToStreamAsync()).Stream;
+
+        public Task<string> ReadToStringAsync() => universalFile.ReadToStringAsync();
     }
 }

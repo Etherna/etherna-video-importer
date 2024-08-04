@@ -12,12 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.UniversalFiles;
 
 namespace Etherna.VideoImporter.Options
 {
     internal sealed class JsonListVideoProviderOptions
     {
-        public SourceUri JsonMetadataUri { get; set; } = default!;
+        public UUri JsonMetadataUri { get; set; } = default!;
     }
 }

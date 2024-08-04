@@ -12,11 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Clients;
+using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.Index;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
+using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,49 +25,35 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public sealed class CleanerVideoService : ICleanerVideoService
+    public sealed class CleanerVideoService(
+        IEthernaUserIndexClient ethernaIndexClient,
+        IGatewayService gatewayService,
+        IHasher hasher,
+        IIoService ioService)
+        : ICleanerVideoService
     {
-        // Fields.
-        private readonly IEthernaUserIndexClient ethernaIndexClient;
-        private readonly IGatewayService gatewayService;
-        private readonly IIoService ioService;
-
-        // Constructor.
-        public CleanerVideoService(
-            IEthernaUserIndexClient ethernaIndexClient,
-            IGatewayService gatewayService,
-            IIoService ioService)
-        {
-            this.ethernaIndexClient = ethernaIndexClient;
-            this.gatewayService = gatewayService;
-            this.ioService = ioService;
-        }
-
         // Methods.
         public async Task<int> DeleteExogenousVideosAsync(
             IEnumerable<IndexedVideo> indexedVideos,
-            IEnumerable<SwarmHash>? gatewayPinnedHashes,
             bool unpinRemovedVideos)
         {
-            if (gatewayPinnedHashes is null && unpinRemovedVideos)
-                throw new ArgumentNullException(nameof(gatewayPinnedHashes), "gatewayPinnedHashes can't be null if needs to unpin removed video");
             ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
 
             ioService.WriteLine($"Start removing videos not generated with this tool");
 
-            var exogenousVideos = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName != CommonConsts.ImporterIdentifier);
+            var exogenousVideos = indexedVideos.Where(v => v.LastValidManifest?.Manifest.PersonalData?.ClientName != CommonConsts.ImporterIdentifier);
 
             var deindexedVideos = 0;
             foreach (var video in exogenousVideos)
             {
                 try
                 {
-                    await RemoveFromIndexAsync(video, gatewayPinnedHashes, unpinRemovedVideos);
+                    await RemoveFromIndexAsync(video, unpinRemovedVideos);
                     deindexedVideos++;
                 }
                 catch (Exception ex)
                 {
-                    ioService.WriteErrorLine($"Impossible to remove from index video {video.IndexId}");
+                    ioService.WriteErrorLine($"Impossible to remove from index video {video.Id}");
                     ioService.PrintException(ex);
                 }
             }
@@ -77,30 +64,36 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task<int> DeleteVideosRemovedFromSourceAsync(
             IEnumerable<VideoMetadataBase> videosMetadataFromSource,
             IEnumerable<IndexedVideo> indexedVideos,
-            IEnumerable<SwarmHash>? gatewayPinnedHashes,
-            bool unpinRemovedVideos)
+            bool unpinRemovedVideos,
+            string sourceProviderName)
         {
-            if (gatewayPinnedHashes is null && unpinRemovedVideos)
-                throw new ArgumentNullException(nameof(gatewayPinnedHashes), "gatewayPinnedHashes can't be null if needs to unpin removed video");
             ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
 
             ioService.WriteLine($"Start removing videos deleted from source");
 
-            var indexedVideosFromImporter = indexedVideos.Where(v => v.LastValidManifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier);
-            var sourceRemovedVideos = indexedVideos.Where(
-                v => videosMetadataFromSource.All(metadata => ManifestPersonalDataDto.HashVideoId(metadata.Id) != v.LastValidManifest?.PersonalData?.VideoIdHash));
+            // From all indexed videos, select only videos where:
+            // - Importer was this same client                                            (not remove videos from other importers)
+            // - Video source was this same current one                                   (not remove videos from other sources)
+            // - The indexed source id is not listed into any current imported source id  (has been removed from source)
+            var sourceRemovedVideos = indexedVideos
+                .Where(indexedVideo =>
+                    indexedVideo.LastValidManifest?.Manifest.PersonalData?.ClientName == CommonConsts.ImporterIdentifier &&
+                    indexedVideo.LastValidManifest?.Manifest.PersonalData?.SourceProviderName == sourceProviderName &&
+                    !videosMetadataFromSource.Any(sourceMeta => sourceMeta.AllSourceIds
+                        .Select(id => hasher.ComputeHash(id).ToHex()) //get hashed version of all source Ids
+                        .Contains(indexedVideo.LastValidManifest!.Manifest.PersonalData!.SourceVideoIdHash)));
 
             var deindexedVideos = 0;
             foreach (var sourceRemovedVideo in sourceRemovedVideos)
             {
                 try
                 {
-                    await RemoveFromIndexAsync(sourceRemovedVideo, gatewayPinnedHashes, unpinRemovedVideos);
+                    await RemoveFromIndexAsync(sourceRemovedVideo, unpinRemovedVideos);
                     deindexedVideos++;
                 }
                 catch (Exception ex)
                 {
-                    ioService.WriteErrorLine($"Impossible to remove from index video {sourceRemovedVideo.IndexId}");
+                    ioService.WriteErrorLine($"Impossible to remove from index video {sourceRemovedVideo.Id}");
                     ioService.PrintException(ex);
                 }
             }
@@ -111,61 +104,41 @@ namespace Etherna.VideoImporter.Core.Services
         // Helpers.
         private async Task RemoveFromIndexAsync(
             IndexedVideo indexedVideo,
-            IEnumerable<SwarmHash>? gatewayPinnedHashes,
             bool unpinRemovedVideos)
         {
             // Remove video.
             bool removeSucceeded = false;
             try
             {
-                await ethernaIndexClient.OwnerRemoveVideoAsync(indexedVideo.IndexId);
+                await ethernaIndexClient.OwnerRemoveVideoAsync(indexedVideo.Id);
                 removeSucceeded = true;
 
-                ioService.WriteSuccessLine($"Video with index Id {indexedVideo.IndexId} removed");
+                ioService.WriteSuccessLine($"Video with index Id {indexedVideo.Id} removed");
             }
             catch (Exception ex)
             {
-                ioService.WriteErrorLine($"Unable to remove video with index Id {indexedVideo.IndexId}");
+                ioService.WriteErrorLine($"Unable to remove video with index Id {indexedVideo.Id}");
                 ioService.PrintException(ex);
             }
 
-            // Unpin contents.
+            // Unpin manifest.
             if (removeSucceeded &&
                 unpinRemovedVideos &&
                 indexedVideo.LastValidManifest is not null)
-            {
-                //videos
-                foreach (var streamSource in indexedVideo.LastValidManifest.Sources)
-                    await UnpinContentAsync(streamSource.Address.Hash, gatewayPinnedHashes!);
-
-                //thumbnail
-                foreach (var thumbSource in indexedVideo.LastValidManifest.Thumbnail.Sources)
-                    await UnpinContentAsync(thumbSource.Address.Hash, gatewayPinnedHashes!);
-
-                //manifest
-                await UnpinContentAsync(indexedVideo.LastValidManifest.Hash, gatewayPinnedHashes!);
-            }
+                await TryDefundPinningAsync(indexedVideo.LastValidManifest.Hash);
         }
 
-        private async Task<bool> UnpinContentAsync(SwarmHash hash, IEnumerable<SwarmHash> gatewayPinnedHashes)
+        private async Task TryDefundPinningAsync(SwarmHash hash)
         {
-            if (!gatewayPinnedHashes.Contains(hash))
-                return false;
-
             try
             {
                 await gatewayService.DefundResourcePinningAsync(hash);
-
                 ioService.WriteSuccessLine($"Resource with hash {hash} unpinned from gateway");
-                
-                return true;
             }
             catch (Exception ex)
             {
                 ioService.WriteErrorLine($"Unable to unpin resource with hash {hash} from gateway");
                 ioService.PrintException(ex);
-
-                return false;
             }
         }
     }

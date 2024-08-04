@@ -51,7 +51,7 @@ namespace Etherna.VideoImporter.Devcon.Services
             if (importResult is not VideoImportResultSucceeded succededResult)
                 return;
             
-            var filePath = Path.Combine(options.MdResultFolderPath, succededResult.SourceMetadata.Id);
+            var filePath = Path.Combine(options.MdResultFolderPath, succededResult.SourceMetadata.SourceId);
             var ethernaIndexUrl = UrlBuilder.BuildEmbeddedIndexUrl(succededResult.IndexId);
             var ethernaPermalinkUrl = UrlBuilder.BuildEmbeddedPermalinkUrl(succededResult.ReferenceHash);
 
