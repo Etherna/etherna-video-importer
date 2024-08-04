@@ -48,6 +48,7 @@ namespace Etherna.VideoImporter
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
               -w, --write-file        Write published videos result to a JSON file
+              --dry                   Run in dry mode. Any action on swarm gateway is performed read-only
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
@@ -107,6 +108,7 @@ namespace Etherna.VideoImporter
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
             string? outputFile = null;
+            bool isDryRun = false;
 
             string? ttlPostageBatchStr = null;
             bool fundVideosDownload = false;
@@ -194,6 +196,10 @@ namespace Etherna.VideoImporter
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("Output file path is missing");
                         outputFile = optArgs[++i];
+                        break;
+                    
+                    case "--dry":
+                        isDryRun = true;
                         break;
 
                     //video management
@@ -323,6 +329,10 @@ namespace Etherna.VideoImporter
                 {
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                     ffMpegOptions.PresetCodec = presetCodec;
+                },
+                gatewayOptions =>
+                {
+                    gatewayOptions.IsDryRun = isDryRun;
                 },
                 uploaderOptions =>
                 {

@@ -14,6 +14,8 @@
 
 using Etherna.BeeNet;
 using Etherna.BeeNet.Models;
+using Etherna.VideoImporter.Core.Options;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,28 +25,33 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public abstract class GatewayServiceBase(
         IBeeClient beeClient,
-        IIoService ioService)
+        IOptions<GatewayServiceOptions> options)
         : IGatewayService
     {
-#pragma warning disable CA1051 // Do not declare visible instance fields
         // Consts.
+#pragma warning disable CA1051 // Do not declare visible instance fields
         protected readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
         protected readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
-
-        // Fields.
 #pragma warning restore CA1051 // Do not declare visible instance fields
 
-        // Constructor.
+        // Fields.
+        private readonly GatewayServiceOptions options = options.Value;
 
         // Properties.
         public IBeeClient BeeClient { get; } = beeClient;
 
         // Methods.
-        public abstract Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth);
+        public Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth) => options.IsDryRun ?
+            Task.FromResult(PostageBatchId.Zero) :
+            CreatePostageBatchHelperAsync(amount, batchDepth);
 
-        public abstract Task DefundResourcePinningAsync(SwarmHash hash);
+        public Task DefundResourcePinningAsync(SwarmHash hash) => options.IsDryRun ?
+            Task.CompletedTask :
+            DefundResourcePinningHelperAsync(hash);
 
-        public abstract Task FundResourceDownloadAsync(SwarmHash hash);
+        public Task FundResourceDownloadAsync(SwarmHash hash) => options.IsDryRun ?
+            Task.CompletedTask :
+            FundResourceDownloadHelperAsync(hash);
 
         public abstract Task<BzzBalance> GetChainPriceAsync();
 
@@ -58,6 +65,9 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task UploadChunkAsync(PostageBatchId batchId, SwarmChunk chunk, bool fundPinning = false)
         {
             ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
+
+            if (options.IsDryRun)
+                return;
             
             using var dataStream = new MemoryStream(chunk.Data.ToArray());
             await BeeClient.UploadChunkAsync(batchId, dataStream, fundPinning);
@@ -68,7 +78,8 @@ namespace Etherna.VideoImporter.Core.Services
             Stream content,
             string? name,
             string? contentType,
-            bool fundPinning) =>
+            bool fundPinning) => options.IsDryRun ?
+            Task.FromResult(SwarmHash.Zero) :
             BeeClient.UploadFileAsync(
                 batchId,
                 content,
@@ -77,12 +88,14 @@ namespace Etherna.VideoImporter.Core.Services
                 swarmPin: fundPinning);
 
         // Protected methods.
+        protected abstract Task<PostageBatchId> CreatePostageBatchHelperAsync(BzzBalance amount, int batchDepth);
+        
+        protected abstract Task DefundResourcePinningHelperAsync(SwarmHash hash);
+        
+        protected abstract Task FundResourceDownloadHelperAsync(SwarmHash hash);
+        
         protected async Task WaitForBatchUsableAsync(PostageBatchId batchId)
         {
-            // Wait until created batch is usable.
-            ioService.PrintTimeStamp();
-            ioService.Write("Waiting for batch being usable... (it may take a while)");
-
             var batchStartWait = DateTime.UtcNow;
             bool batchIsUsable;
             do
@@ -100,8 +113,6 @@ namespace Etherna.VideoImporter.Core.Services
                 //waiting for batch usable
                 await Task.Delay(BatchCheckTimeSpan);
             } while (!batchIsUsable);
-
-            ioService.WriteLine(". Done", false);
         }
     }
 }
