@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Services;
@@ -31,31 +32,31 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             TimeSpan duration,
             int height,
             int width,
-            UniversalFile universalFile,
-            VideoType videoType)
-            : base(byteSize, fileName, universalFile)
+            UFile universalFile,
+            VideoType videoType,
+            SwarmHash? swarmHash)
+            : base(byteSize, fileName, universalFile, swarmHash)
         {
             Duration = duration;
             Height = height;
-            Width = width;
             VideoType = videoType;
+            Width = width;
         }
 
         // Static builders.
         public static async Task<VideoFile> BuildNewAsync(
             IFFmpegService ffMpegService,
-            UniversalUri universalUri)
+            BasicUFile uFile,
+            SwarmHash? swarmHash = null)
         {
             ArgumentNullException.ThrowIfNull(ffMpegService, nameof(ffMpegService));
-            ArgumentNullException.ThrowIfNull(universalUri, nameof(universalUri));
-            
-            var universalFile = new UniversalFile(universalUri);
+            ArgumentNullException.ThrowIfNull(uFile, nameof(uFile));
 
-            var byteSize = await universalFile.GetByteSizeAsync();
-            var fileName = await universalFile.TryGetFileNameAsync() ??
-                           throw new InvalidOperationException($"Can't get file name from {universalUri.OriginalUri}");
+            var byteSize = await uFile.GetByteSizeAsync();
+            var fileName = await uFile.TryGetFileNameAsync() ??
+                           throw new InvalidOperationException($"Can't get file name from {uFile.FileUri.OriginalUri}");
 
-            var (absoluteFileUri, _) = universalUri.ToAbsoluteUri();
+            var (absoluteFileUri, _) = uFile.FileUri.ToAbsoluteUri();
             var ffProbeResult = await ffMpegService.GetVideoInfoAsync(absoluteFileUri);
             var videoType = Path.GetExtension(fileName) switch
             {
@@ -71,8 +72,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 ffProbeResult.Format.Duration,
                 ffProbeResult.Streams.First().Height,
                 ffProbeResult.Streams.First().Width,
-                universalFile,
-                videoType);
+                uFile,
+                videoType,
+                swarmHash);
         }
 
         // Properties.

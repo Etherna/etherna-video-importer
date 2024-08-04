@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Blurhash.SkiaSharp;
+using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using SkiaSharp;
@@ -31,8 +32,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             ImageType imageType,
             int height,
             int width,
-            UniversalFile universalFile)
-            : base(byteSize, fileName, universalFile)
+            UFile universalFile,
+            SwarmHash? swarmHash)
+            : base(byteSize, fileName, universalFile, swarmHash)
         {
             Blurhash = blurhash;
             Height = height;
@@ -42,18 +44,17 @@ namespace Etherna.VideoImporter.Core.Models.Domain
 
         // Static builders.
         public static async Task<ThumbnailFile> BuildNewAsync(
-            UniversalUri universalUri)
+            BasicUFile uFile,
+            SwarmHash? swarmHash = null)
         {
-            ArgumentNullException.ThrowIfNull(universalUri, nameof(universalUri));
-            
-            var universalFile = new UniversalFile(universalUri);
+            ArgumentNullException.ThrowIfNull(uFile, nameof(uFile));
 
             // Get image info.
-            var byteSize = await universalFile.GetByteSizeAsync();
-            var fileName = await universalFile.TryGetFileNameAsync() ??
-                           throw new InvalidOperationException($"Can't get file name from {universalUri.OriginalUri}");
+            var byteSize = await uFile.GetByteSizeAsync();
+            var fileName = await uFile.TryGetFileNameAsync() ??
+                           throw new InvalidOperationException($"Can't get file name from {uFile.FileUri.OriginalUri}");
 
-            var (thumbFileStream, _) = await universalFile.ReadToStreamAsync();
+            var (thumbFileStream, _) = await uFile.ReadToStreamAsync();
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
             
             using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
@@ -75,7 +76,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 imageType,
                 thumbBitmap.Height,
                 thumbBitmap.Width,
-                universalFile);
+                uFile,
+                swarmHash);
         }
 
         // Properties.

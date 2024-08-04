@@ -22,8 +22,8 @@ namespace Etherna.VideoImporter.Core
             bool removeUnrecognizedVideos,
             bool removeMissingVideosFromSource,
             bool forceVideoUpload,
-            bool offerVideos,
-            bool pinVideos,
+            bool fundDownload,
+            bool fundPinning,
             bool unpinRemovedVideos,
             bool ignoreAppUpdates);
     }

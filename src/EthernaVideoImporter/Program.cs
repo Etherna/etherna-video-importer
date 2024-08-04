@@ -345,7 +345,7 @@ namespace Etherna.VideoImporter
                     //options
                     services.Configure<JsonListVideoProviderOptions>(options =>
                     {
-                        options.JsonMetadataUri = new UniversalUri(sourceUrls.First(), UniversalUriKind.Local | UniversalUriKind.OnlineAbsolute);
+                        options.JsonMetadataUri = new BasicUUri(sourceUrls.First(), UUriKind.Local | UUriKind.OnlineAbsolute);
                     });
                     services.AddSingleton<IValidateOptions<JsonListVideoProviderOptions>, JsonListVideoProviderOptionsValidation>();
 

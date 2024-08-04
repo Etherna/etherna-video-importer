@@ -55,7 +55,7 @@ namespace Etherna.VideoImporter.Services
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
             videoMetadata as YouTubeVideoMetadata ?? throw new ArgumentException($"Metadata must be of type {nameof(YouTubeVideoMetadata)}", nameof(videoMetadata)));
 
-        public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
+        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()
         {
             List<YouTubeVideoMetadata> videosMetadata = new();
             foreach (var sourceUrl in options.SourceUrls)
@@ -93,8 +93,8 @@ namespace Etherna.VideoImporter.Services
                     throw new ArgumentException($"Can't parse YouTube url {sourceUrl}");
             }
             
-            //remove duplicates by video Id
-            return videosMetadata.DistinctBy(m => m.SourceId);
+            //remove duplicates by video id
+            return videosMetadata.DistinctBy(m => m.SourceId).Cast<VideoMetadataBase>().ToArray();
         }
         
         // Helpers.

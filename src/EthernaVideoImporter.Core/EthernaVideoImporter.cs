@@ -15,10 +15,10 @@
 using Etherna.Authentication;
 using Etherna.Authentication.Native;
 using Etherna.BeeNet.Hashing;
+using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Clients;
+using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
-using Etherna.UniversalFiles.Extensions;
-using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
@@ -46,7 +46,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
         private readonly IResultReporterService resultReporterService;
-        private readonly IUniversalUriProvider universalUriProvider;
+        private readonly IUFileProvider uFileProvider;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -63,7 +63,7 @@ namespace Etherna.VideoImporter.Core
             IIoService ioService,
             IMigrationService migrationService,
             IResultReporterService resultReporterService,
-            IUniversalUriProvider universalUriProvider,
+            IUFileProvider uFileProvider,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
@@ -82,7 +82,7 @@ namespace Etherna.VideoImporter.Core
             this.ioService = ioService;
             this.migrationService = migrationService;
             this.resultReporterService = resultReporterService;
-            this.universalUriProvider = universalUriProvider;
+            this.uFileProvider = uFileProvider;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -92,59 +92,19 @@ namespace Etherna.VideoImporter.Core
             bool removeUnrecognizedVideos,
             bool removeMissingVideosFromSource,
             bool forceVideoUpload,
-            bool offerVideos,
-            bool pinVideos,
+            bool fundDownload,
+            bool fundPinning,
             bool unpinRemovedVideos,
             bool ignoreAppUpdates)
         {
-            // Print startup header.
-            ioService.WriteLine(
-                $"""
-                
-                Etherna Video Importer (v{appVersionService.CurrentVersion})
-                
-                """, false);
-
-            // Check for new app versions.
-            try
-            {
-                var (lastVersion, lastVersionUrl) = await appVersionService.GetLastVersionAsync();
-                if (lastVersion > appVersionService.CurrentVersion)
-                {
-                    ioService.WriteLine(
-                        $"""
-                         A new release is available: {lastVersion}
-                         Upgrade now, or check out the release page at:
-                          {lastVersionUrl}
-                         """, false);
-
-                    if (!ignoreAppUpdates)
-                        return;
-                }
-            }
-            catch (Exception e)
-            {
-                ioService.WriteErrorLine("Unable to verify last version on GitHub");
-                ioService.PrintException(e);
-            }
+            // Startup operations.
+            PrintStartupHeader();
             
-            // Signin user.
-            try
-            {
-                await ethernaSignInService.SignInAsync();
-            }
-            catch (InvalidOperationException e)
-            {
-                ioService.WriteErrorLine("Error during authentication");
-                ioService.PrintException(e);
-                throw;
-            }
-            catch (Win32Exception e)
-            {
-                ioService.WriteErrorLine("Error opening browser on local system. Try to authenticate with API key.");
-                ioService.PrintException(e);
-                throw;
-            }
+            var newVersionAvailable = await CheckNewAppVersionsAsync();
+            if (newVersionAvailable && !ignoreAppUpdates)
+                return;
+            
+            await SignInUserAsync();
 
             // Get info from authenticated user.
             var userEthAddress = await ethernaOpenIdConnectClient.GetEtherAddressAsync();
@@ -152,11 +112,11 @@ namespace Etherna.VideoImporter.Core
 
             ioService.WriteLine($"User {userName} authenticated");
 
-            // Get video info.
+            // Get videos info.
             ioService.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
 
             var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync();
-            var totalSourceVideo = sourceVideosMetadata.Count();
+            var totalSourceVideo = sourceVideosMetadata.Length;
 
             ioService.WriteLine($"Found {totalSourceVideo} valid distinct videos from source");
 
@@ -166,7 +126,7 @@ namespace Etherna.VideoImporter.Core
             var userVideosOnIndex = await ethernaIndexClient.GetAllVideosByOwnerAsync(userEthAddress);
             var ethernaIndexParameters = await ethernaIndexClient.GetIndexParametersAsync();
 
-            ioService.WriteLine($"Found {userVideosOnIndex.Count()} videos already published on etherna index");
+            ioService.WriteLine($"Found {userVideosOnIndex.Length} videos already published on etherna index");
 
             // Import each video.
             ioService.WriteLine("Start importing videos");
@@ -175,7 +135,7 @@ namespace Etherna.VideoImporter.Core
             var results = new List<VideoImportResultBase>();
             foreach (var (sourceMetadata, i) in sourceVideosMetadata.Select((m, i) => (m, i)))
             {
-                VideoImportResultBase importResult;
+                VideoImportResultBase? importResult = null;
 
                 try
                 {
@@ -189,78 +149,56 @@ namespace Etherna.VideoImporter.Core
                     ioService.WriteLine($"Title: {sourceMetadata.Title}", false);
 
                     // Search already uploaded video. Compare serialized id on manifest personal data with metadata id from source.
-                    var allVideoIdHashes = sourceMetadata.SourceOldIds.Prepend(sourceMetadata.SourceId)
-                        .Select(id => hasher.ComputeHash(id).ToHex())
-                        .ToList();
-                    var alreadyPresentVideo = userVideosOnIndex.FirstOrDefault(
-                        v => v.LastValidManifest?.Manifest.PersonalData?.SourceVideoIdHash is not null &&
-                             allVideoIdHashes.Contains(v.LastValidManifest.Manifest.PersonalData.SourceVideoIdHash));
-
-                    // Check if it needs a migration operation.
-                    var minRequiredMigrationOp = migrationService.DecideOperation(alreadyPresentVideo?.LastValidManifest?.Manifest.PersonalData);
-
-                    //try to update only manifest, or to skip if possible
-                    if (alreadyPresentVideo is not null &&
-                        !forceVideoUpload &&
-                        minRequiredMigrationOp is OperationType.Skip or OperationType.UpdateManifest)
+                    var allVideoIdHashes = sourceMetadata.AllSourceIds
+                        .Select(id => hasher.ComputeHash(id).ToHex());
+                    
+                    var alreadyIndexedVideo = userVideosOnIndex.FirstOrDefault(
+                        indexedVideo => indexedVideo.LastValidManifest?.Manifest.PersonalData?.SourceVideoIdHash is not null &&
+                                        indexedVideo.LastValidManifest.Manifest.PersonalData.SourceProviderName == videoProvider.SourceName &&
+                                        allVideoIdHashes.Contains(indexedVideo.LastValidManifest.Manifest.PersonalData.SourceVideoIdHash));
+                    
+                    // Try to minimize operations as much as possible.
+                    if (alreadyIndexedVideo is not null && !forceVideoUpload)
                     {
                         ioService.WriteLine("Video already uploaded on etherna");
+                        
+                        // Check minimal required operation.
+                        var requiredOperation = migrationService.DecideOperation(
+                            alreadyIndexedVideo,
+                            sourceMetadata);
 
-                        // Verify if manifest needs to be updated with new metadata.
-                        //try to skip
-                        if (alreadyPresentVideo.HasEqualMetadata(sourceMetadata, hasher) &&
-                            minRequiredMigrationOp is OperationType.Skip)
+                        switch (requiredOperation)
                         {
-                            importResult = VideoImportResultSucceeded.Skipped(
-                                sourceMetadata,
-                                alreadyPresentVideo.Id,
-                                alreadyPresentVideo.LastValidManifest!.Hash);
-                        }
+                            case OperationType.Skip:
+                                ioService.WriteLine($"Metadata hasn't changed, skip the import");
 
-                        //else update manifest
-                        else
-                        {
-                            ioService.WriteLine($"Metadata has changed, update the video manifest");
+                                importResult = VideoImportResultSucceeded.Skipped(
+                                    sourceMetadata,
+                                    alreadyIndexedVideo.Id,
+                                    alreadyIndexedVideo.LastValidManifest!.Hash);
+                                break;
+                            
+                            case OperationType.UpdateManifest:
+                                ioService.WriteLine($"Metadata has changed, update the video manifest");
 
-                            // Create manifest.
-                            List<ThumbnailFile> thumbnailFiles = [];
-                            foreach (var thumbSource in alreadyPresentVideo.LastValidManifest!.Manifest.Thumbnail.Sources)
-                                thumbnailFiles.Add(await ThumbnailFile.BuildNewAsync(
-                                    universalUriProvider.GetNewUri(thumbSource.Uri, gatewayService.BeeClient)));
+                                var updatedPermalinkHash = await TryMigrateManifestAsync(
+                                    alreadyIndexedVideo,
+                                    sourceMetadata,
+                                    userEthAddress,
+                                    fundDownload,
+                                    fundPinning);
 
-                            List<VideoFile> videoFiles = [];
-                            foreach (var videoSource in alreadyPresentVideo.LastValidManifest.Manifest.VideoSources)
-                                videoFiles.Add(await VideoFile.BuildNewAsync(
-                                    ffmpegService,
-                                    universalUriProvider.GetNewUri(videoSource.Uri, gatewayService.BeeClient)));
-
-                            var video = new Video(
-                                sourceMetadata,
-                                thumbnailFiles.ToArray(),
-                                videoFiles.ToArray());
-
-                            // Upload new manifest.
-                            var metadataVideo = await ManifestDto.BuildNewAsync(
-                                video,
-                                alreadyPresentVideo.LastValidManifest.Manifest.BatchId,
-                                userEthAddress,
-                                appVersionService.CurrentVersion);
-                            var updatedPermalinkHash = await videoUploaderService.UploadVideoManifestAsync(metadataVideo, pinVideos, offerVideos);
-
-                            // Update on index.
-                            await ethernaIndexClient.UpdateVideoManifestAsync(
-                                alreadyPresentVideo.Id,
-                                updatedPermalinkHash);
-
-                            importResult = VideoImportResultSucceeded.ManifestUpdated(
-                                sourceMetadata,
-                                alreadyPresentVideo.Id,
-                                updatedPermalinkHash);
+                                if (updatedPermalinkHash != null)
+                                    importResult = VideoImportResultSucceeded.ManifestUpdated(
+                                        sourceMetadata,
+                                        alreadyIndexedVideo.Id,
+                                        updatedPermalinkHash.Value);
+                                break;
                         }
                     }
-
+                    
                     //else, full upload the new video on etherna
-                    else
+                    if(importResult is null)
                     {
                         // Validate metadata.
                         if (sourceMetadata.Title.Length > ethernaIndexParameters.VideoTitleMaxLength)
@@ -272,13 +210,13 @@ namespace Etherna.VideoImporter.Core
 
                         // Get and encode video from source.
                         var video = await videoProvider.GetVideoAsync(sourceMetadata);
-                        video.EthernaIndexId = alreadyPresentVideo?.Id;
+                        video.EthernaIndexId = alreadyIndexedVideo?.Id;
 
                         if (!video.VideoFiles.Any())
                             throw new InvalidOperationException("Error: can't get valid stream from source");
 
                         // Upload video and all related data.
-                        await videoUploaderService.UploadVideoAsync(video, pinVideos, offerVideos, userEthAddress);
+                        await videoUploaderService.UploadVideoAsync(video, fundPinning, fundDownload, userEthAddress);
 
                         importResult = VideoImportResultSucceeded.FullUploaded(
                             sourceMetadata,
@@ -360,6 +298,124 @@ namespace Etherna.VideoImporter.Core
                  Total video deleted for missing in source: {importSummaryModelView.TotDeletedRemovedFromSource}
                  Total video deleted because not from this tool: {importSummaryModelView.TotDeletedExogenous}
                  """);
+        }
+
+        // Helpers.
+        private async Task<bool> CheckNewAppVersionsAsync()
+        {
+            try
+            {
+                var (lastVersion, lastVersionUrl) = await appVersionService.GetLastVersionAsync();
+                if (lastVersion > appVersionService.CurrentVersion)
+                {
+                    ioService.WriteLine(
+                        $"""
+                         A new release is available: {lastVersion}
+                         Upgrade now, or check out the release page at:
+                          {lastVersionUrl}
+                         """, false);
+
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                ioService.WriteErrorLine("Unable to verify last version on GitHub");
+                ioService.PrintException(e);
+            }
+
+            return false;
+        }
+        
+        private void PrintStartupHeader()
+        {
+            ioService.WriteLine(
+                $"""
+
+                 Etherna Video Importer (v{appVersionService.CurrentVersion})
+
+                 """, false);
+        }
+
+        private async Task SignInUserAsync()
+        {
+            try
+            {
+                await ethernaSignInService.SignInAsync();
+            }
+            catch (InvalidOperationException e)
+            {
+                ioService.WriteErrorLine("Error during authentication");
+                ioService.PrintException(e);
+                throw;
+            }
+            catch (Win32Exception e)
+            {
+                ioService.WriteErrorLine("Error opening browser on local system. Try to authenticate with API key.");
+                ioService.PrintException(e);
+                throw;
+            }
+        }
+
+        private async Task<SwarmHash?> TryMigrateManifestAsync(
+            IndexedVideo alreadyIndexedVideo,
+            VideoMetadataBase sourceMetadata,
+            string userEthAddress,
+            bool fundDownload,
+            bool fundPinning)
+        {
+            // Try to retrieve Swarm files.
+            List<ThumbnailFile> thumbnailFiles = [];
+            List<VideoFile> videoFiles = [];
+            try
+            {
+                foreach (var thumbnailSource in
+                         alreadyIndexedVideo.LastValidManifest!.Manifest.Thumbnail.Sources)
+                {
+                    var thumbnailSwarmFile = uFileProvider.BuildNewUFile(new SwarmUUri(thumbnailSource.Uri));
+                    var thumbnailLocalFile = await uFileProvider.ToLocalUFileAsync(
+                        thumbnailSwarmFile,
+                        baseDirectory: alreadyIndexedVideo.LastValidManifest.Hash.ToString());
+
+                    var thumbnailHash = await gatewayService.ResolveSwarmAddressToHashAsync(
+                        thumbnailSource.Uri.ToSwarmAddress(alreadyIndexedVideo.LastValidManifest.Hash));
+                    
+                    thumbnailFiles.Add(await ThumbnailFile.BuildNewAsync(
+                        thumbnailLocalFile, thumbnailHash));
+                }
+
+                foreach (var videoSource in alreadyIndexedVideo.LastValidManifest.Manifest.VideoSources)
+                {
+                    var videoSwarmFile = uFileProvider.BuildNewUFile(new SwarmUUri(videoSource.Uri));
+                    var videoLocalFile = await uFileProvider.ToLocalUFileAsync(
+                        videoSwarmFile,
+                        baseDirectory: alreadyIndexedVideo.LastValidManifest.Hash.ToString());
+
+                    var videoHash = await gatewayService.ResolveSwarmAddressToHashAsync(
+                        videoSource.Uri.ToSwarmAddress(alreadyIndexedVideo.LastValidManifest.Hash));
+                    
+                    videoFiles.Add(await VideoFile.BuildNewAsync(
+                        ffmpegService,
+                        videoLocalFile,
+                        videoHash));
+                }
+            }
+            catch { return null; }
+
+            var video = new Video(
+                sourceMetadata,
+                thumbnailFiles.ToArray(),
+                videoFiles.ToArray());
+
+            // Upload new manifest.
+            await videoUploaderService.UploadVideoAsync(
+                video,
+                fundPinning,
+                fundDownload,
+                userEthAddress,
+                alreadyIndexedVideo.LastValidManifest.Manifest.BatchId);
+
+            return video.EthernaPermalinkHash;
         }
     }
 }

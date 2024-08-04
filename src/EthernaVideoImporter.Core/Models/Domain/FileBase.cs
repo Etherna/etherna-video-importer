@@ -22,13 +22,14 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public abstract class FileBase(
         long byteSize,
         string fileName,
-        UniversalFile universalFile)
+        UFile universalFile,
+        SwarmHash? swarmHash)
     {
         // Properties.
         public long ByteSize { get; } = byteSize;
         public string FileName { get; } = fileName;
-        public UniversalUri FileUri => universalFile.FileUri;
-        public SwarmHash? SwarmHash { get; set; }
+        public UUri FileUri => universalFile.FileUri;
+        public SwarmHash? SwarmHash { get; set; } = swarmHash;
         
         // Methods.
         public async Task<Stream> ReadToStreamAsync() => (await universalFile.ReadToStreamAsync()).Stream;

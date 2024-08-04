@@ -13,11 +13,12 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.Sdk.Users.Index.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
 
 namespace Etherna.VideoImporter.Core.Services
 {
     public interface IMigrationService
     {
-        OperationType DecideOperation(VideoManifestPersonalData? personalData);
+        OperationType DecideOperation(IndexedVideo alreadyIndexedVideo, VideoMetadataBase sourceMetadata);
     }
 }

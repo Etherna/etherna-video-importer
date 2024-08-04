@@ -12,15 +12,23 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Hashing;
 using Etherna.Sdk.Users.Index.Models;
+using Etherna.VideoImporter.Core.Extensions;
+using Etherna.VideoImporter.Core.Models.Domain;
 using System;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public class MigrationService : IMigrationService
+    public class MigrationService(IHasher hasher)
+        : IMigrationService
     {
-        public OperationType DecideOperation(VideoManifestPersonalData? personalData)
+        public OperationType DecideOperation(IndexedVideo alreadyIndexedVideo, VideoMetadataBase sourceMetadata)
         {
+            ArgumentNullException.ThrowIfNull(alreadyIndexedVideo, nameof(alreadyIndexedVideo));
+            
+            var personalData = alreadyIndexedVideo.LastValidManifest?.Manifest.PersonalData;
+            
             // If client version is missing (0.1.x or 0.2.x).
             if (string.IsNullOrWhiteSpace(personalData?.ClientVersion))
                 return OperationType.ImportAll;
@@ -29,7 +37,8 @@ namespace Etherna.VideoImporter.Core.Services
             {
                 { Major: 0, Minor: <= 2 } => OperationType.ImportAll,
                 { Major: 0, Minor: 3, Revision: < 9} => OperationType.ImportAll,
-                _ => OperationType.Skip
+                _ => alreadyIndexedVideo.HasEqualMetadata(sourceMetadata, hasher) ?
+                    OperationType.Skip : OperationType.UpdateManifest
             };
         }
     }

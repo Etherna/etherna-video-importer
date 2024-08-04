@@ -61,7 +61,7 @@ namespace Etherna.VideoImporter.Devcon.Services
         public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
             videoMetadata as MdFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(MdFileVideoMetadata)}", nameof(videoMetadata)));
 
-        public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
+        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()
         {
             var mdFilesPaths = Directory.GetFiles(options.MdSourceFolderPath, "*.md", SearchOption.AllDirectories);
 
@@ -101,7 +101,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     youtubeDownloader,
                     p.mdDto.YoutubeUrl,
                     p.mdDto.EthernaIndex,
-                    p.mdDto.EthernaPermalink));
+                    p.mdDto.EthernaPermalink)).Cast<VideoMetadataBase>().ToArray();
         }
 
         // Helpers.

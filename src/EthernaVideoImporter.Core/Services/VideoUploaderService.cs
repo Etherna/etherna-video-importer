@@ -68,7 +68,8 @@ namespace Etherna.VideoImporter.Core.Services
             Video video,
             bool fundPinning,
             bool fundDownload,
-            string ownerEthAddress)
+            string ownerEthAddress,
+            PostageBatchId? batchId = null)
         {
             ArgumentNullException.ThrowIfNull(video, nameof(video));
             
@@ -77,28 +78,26 @@ namespace Etherna.VideoImporter.Core.Services
             var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
             
             //video source files, exclude already uploaded Swarm files 
-            foreach (var videoFile in video.VideoFiles.OfType<VideoFile>())
+            foreach (var videoFile in video.VideoFiles.Where(f => f.SwarmHash is null))
             {
                 ioService.WriteLine($"Creating chunks of video stream {videoFile.QualityLabel} in progress...");
                 
                 using var stream = await videoFile.ReadToStreamAsync();
-                var streamHash = await chunkService.WriteDataChunksAsync(
+                videoFile.SwarmHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
-                videoFile.SwarmHash = streamHash;
             }
             
             //thumbnail source files, exclude already uploaded Swarm files 
             ioService.WriteLine($"Creating chunks of thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<ThumbnailFile>())
+            foreach (var thumbnailFile in video.ThumbnailFiles.Where(f => f.SwarmHash is null))
             {
                 using var stream = await thumbnailFile.ReadToStreamAsync();
-                var streamHash = await chunkService.WriteDataChunksAsync(
+                thumbnailFile.SwarmHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
-                thumbnailFile.SwarmHash = streamHash;
             }
             
             //new video manifest (at first without batchId. See: https://etherna.atlassian.net/browse/EVMS-8).
@@ -145,11 +144,11 @@ namespace Etherna.VideoImporter.Core.Services
                 chunksDirectory.FullName,
                 postageStampIssuer: stampIssuer);
             
-            // Create new batch.
-            var batchId = await CreatePostageBatchAsync(stampIssuer.Buckets.RequiredPostageBatchDepth);
+            // Create new batch if required.
+            batchId ??= await CreatePostageBatchAsync(stampIssuer.Buckets.RequiredPostageBatchDepth);
             
             // Assign batchId to manifest, and re-create manifest chunks. Get final hash.
-            videoManifest.BatchId = batchId;
+            videoManifest.BatchId = batchId.Value;
             var videoManifestHash = await videoPublisherService.CreateVideoManifestChunksAsync(
                 videoManifest,
                 chunksDirectory.FullName,
@@ -182,7 +181,7 @@ namespace Etherna.VideoImporter.Core.Services
                     try
                     {
                         await gatewayService.UploadChunkAsync(
-                            batchId,
+                            batchId.Value,
                             chunk,
                             chunkHash == videoManifestHash && fundPinning);
                     }

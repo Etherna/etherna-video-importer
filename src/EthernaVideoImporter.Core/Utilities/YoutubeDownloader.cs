@@ -36,7 +36,7 @@ namespace Etherna.VideoImporter.Core.Utilities
         IFFmpegService ffMpegService,
         IHttpClientFactory httpClientFactory,
         IIoService ioService,
-        IUniversalUriProvider universalUriProvider,
+        IUFileProvider uFileProvider,
         IYoutubeClient youtubeClient)
         : IYoutubeDownloader
     {
@@ -70,8 +70,8 @@ namespace Etherna.VideoImporter.Core.Utilities
             // Get thumbnail.
             var bestResolutionThumbnail = videoMetadata.Thumbnail is null ?
                 await ThumbnailFile.BuildNewAsync(
-                    universalUriProvider.GetNewUri(
-                        await ffMpegService.ExtractThumbnailAsync(videoLocalFile), UniversalUriKind.LocalAbsolute)) :
+                    uFileProvider.BuildNewUFile(new BasicUUri(
+                        await ffMpegService.ExtractThumbnailAsync(videoLocalFile), UUriKind.LocalAbsolute))) :
                 await DownloadThumbnailAsync(videoMetadata.Thumbnail, videoMetadata.Title);
 
             var thumbnailFiles = await encoderService.EncodeThumbnailsAsync(bestResolutionThumbnail, CommonConsts.TempDirectory);
@@ -117,7 +117,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             }
 
             return await ThumbnailFile.BuildNewAsync(
-                universalUriProvider.GetNewUri(thumbnailFilePath, UniversalUriKind.Local));
+                uFileProvider.BuildNewUFile(new BasicUUri(thumbnailFilePath, UUriKind.Local)));
         }
 
         private async Task<VideoFile> DownloadVideoAsync(
@@ -164,7 +164,7 @@ namespace Etherna.VideoImporter.Core.Utilities
 
             return await VideoFile.BuildNewAsync(
                 ffMpegService,
-                universalUriProvider.GetNewUri(videoFilePath, UniversalUriKind.Local));
+                uFileProvider.BuildNewUFile(new BasicUUri(videoFilePath, UUriKind.Local)));
         }
 
         private void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)

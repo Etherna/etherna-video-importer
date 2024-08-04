@@ -25,17 +25,19 @@ namespace Etherna.VideoImporter.Core.Services
     public interface IVideoUploaderService
     {
         /// <summary>
-        /// Start to upload all video data (manifest, video with all avaiable resolutions, thumbnail, index).
+        /// Start to upload all video data (manifest, video with all available resolutions, thumbnail, index).
         /// </summary>
         /// <param name="video">Video data</param>
         /// <param name="fundPinning">Pin video</param>
         /// <param name="fundDownload">Offer video contents for free</param>
         /// <param name="ownerEthAddress">Owner eth address</param>
+        /// <param name="batchId">Use existing batch id</param>
         public Task UploadVideoAsync(
             Video video,
             bool fundPinning,
             bool fundDownload,
-            string ownerEthAddress);
+            string ownerEthAddress,
+            PostageBatchId? batchId = null);
 
         /// <summary>
         /// Upload a new video manifest

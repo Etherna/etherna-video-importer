@@ -37,7 +37,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Fields.
         private readonly IFFmpegService ffMpegService;
         private readonly IIoService ioService;
-        private readonly IUniversalUriProvider universalUriProvider;
+        private readonly IUFileProvider uFileProvider;
 
         [SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used")]
         private readonly EncoderServiceOptions options;
@@ -47,12 +47,12 @@ namespace Etherna.VideoImporter.Core.Services
             IFFmpegService ffMpegService,
             IIoService ioService,
             IOptions<EncoderServiceOptions> options,
-            IUniversalUriProvider universalUriProvider)
+            IUFileProvider uFileProvider)
         {
             this.options = options.Value;
             this.ffMpegService = ffMpegService;
             this.ioService = ioService;
-            this.universalUriProvider = universalUriProvider;
+            this.uFileProvider = uFileProvider;
         }
 
         // Methods.
@@ -62,7 +62,6 @@ namespace Etherna.VideoImporter.Core.Services
         {
             ArgumentNullException.ThrowIfNull(tmpDirectory, nameof(tmpDirectory));
             ArgumentNullException.ThrowIfNull(sourceThumbnailFile, nameof(sourceThumbnailFile));
-            ArgumentNullException.ThrowIfNull(universalUriProvider, nameof(universalUriProvider));
 
             List<ThumbnailFile> thumbnails = [];
 
@@ -84,7 +83,7 @@ namespace Etherna.VideoImporter.Core.Services
                 }
 
                 thumbnails.Add(await ThumbnailFile.BuildNewAsync(
-                    universalUriProvider.GetNewUri(thumbnailResizedPath, UniversalUriKind.Local)));
+                    uFileProvider.BuildNewUFile(new BasicUUri(thumbnailResizedPath, UUriKind.Local))));
             }
 
             return thumbnails.ToArray();
@@ -106,7 +105,7 @@ namespace Etherna.VideoImporter.Core.Services
                 var outputFileSize = new FileInfo(outputFilePath).Length;
                 videoEncodedFiles.Add(await VideoFile.BuildNewAsync(
                     ffMpegService,
-                    universalUriProvider.GetNewUri(outputFilePath, UniversalUriKind.Local)));
+                    uFileProvider.BuildNewUFile(new BasicUUri(outputFilePath, UUriKind.Local))));
 
                 ioService.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
             }

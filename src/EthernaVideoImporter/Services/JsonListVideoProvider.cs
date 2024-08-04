@@ -35,7 +35,7 @@ namespace Etherna.VideoImporter.Services
         IFFmpegService ffMpegService,
         IIoService ioService,
         IOptions<JsonListVideoProviderOptions> options,
-        IUniversalUriProvider universalUriProvider)
+        IUFileProvider uFileProvider)
         : IVideoProvider
     {
         // Fields.
@@ -64,10 +64,10 @@ namespace Etherna.VideoImporter.Services
                 encodedVideoFiles.ToArray());
         }
 
-        public async Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync()
+        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()
         {
             // Read json list.
-            string jsonData = await new UniversalFile(options.JsonMetadataUri).ReadToStringAsync();
+            string jsonData = await uFileProvider.BuildNewUFile(options.JsonMetadataUri).ReadToStringAsync();
             string jsonMetadataDirectoryAbsoluteUri = (options.JsonMetadataUri.TryGetParentDirectoryAsAbsoluteUri() ??
                 throw new InvalidOperationException("Must exist a parent directory")).Item1;
 
@@ -91,23 +91,25 @@ namespace Etherna.VideoImporter.Services
                     // Build video.
                     var video = await VideoFile.BuildNewAsync(
                         ffMpegService,
-                        universalUriProvider.GetNewUri(metadataDto.VideoFilePath, defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri));
+                        uFileProvider.BuildNewUFile(new BasicUUri(
+                            metadataDto.VideoFilePath,
+                            defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri)));
 
                     // Build thumbnail.
                     ThumbnailFile thumbnail;
                     if (string.IsNullOrWhiteSpace(metadataDto.ThumbnailFilePath))
                     {
                         thumbnail = await ThumbnailFile.BuildNewAsync(
-                            universalUriProvider.GetNewUri(
+                            uFileProvider.BuildNewUFile(new BasicUUri(
                                 await ffMpegService.ExtractThumbnailAsync(video),
-                                UniversalUriKind.LocalAbsolute));
+                                UUriKind.LocalAbsolute)));
                     }
                     else
                     {
                         thumbnail = await ThumbnailFile.BuildNewAsync(
-                            universalUriProvider.GetNewUri(
+                            uFileProvider.BuildNewUFile(new BasicUUri(
                                 metadataDto.ThumbnailFilePath,
-                                defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri));
+                                defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri)));
                     }
 
                     // Add video metadata.
@@ -129,7 +131,7 @@ namespace Etherna.VideoImporter.Services
                 }
             }
 
-            return videosMetadataList;
+            return videosMetadataList.ToArray();
         }
     }
 }

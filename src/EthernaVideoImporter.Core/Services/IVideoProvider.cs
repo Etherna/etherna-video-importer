@@ -13,7 +13,6 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.VideoImporter.Core.Models.Domain;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -25,6 +24,6 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Methods.
         Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata);
-        Task<IEnumerable<VideoMetadataBase>> GetVideosMetadataAsync();
+        Task<VideoMetadataBase[]> GetVideosMetadataAsync();
     }
 }
