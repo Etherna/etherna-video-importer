@@ -14,48 +14,20 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Gateway.Clients;
+using Etherna.VideoImporter.Core.Options;
+using Microsoft.Extensions.Options;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public class BeeGatewayService : GatewayServiceBase
+    public class BeeGatewayService(
+        IEthernaUserGatewayClient ethernaGatewayClient,
+        IIoService ioService,
+        IOptions<GatewayServiceOptions> options)
+        : GatewayServiceBase(ethernaGatewayClient.BeeClient, options)
     {
-        // Fields.
-        private readonly IEthernaUserGatewayClient ethernaGatewayClient;
-        private readonly IIoService ioService;
-
-        // Constructor.
-        [SuppressMessage("Design", "CA1062:Validate arguments of public methods")]
-        public BeeGatewayService(
-            IEthernaUserGatewayClient ethernaGatewayClient,
-            IIoService ioService)
-            : base(ethernaGatewayClient.BeeClient, ioService)
-        {
-            this.ethernaGatewayClient = ethernaGatewayClient;
-            this.ioService = ioService;
-        }
-
         // Methods.
-        public override async Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth)
-        {
-            ioService.PrintTimeStamp();
-            ioService.Write("Waiting for batch created... (it may take a while)");
-            var batchId = await BeeClient.BuyPostageBatchAsync(amount, batchDepth);
-            ioService.WriteLine(". Done", false);
-
-            await WaitForBatchUsableAsync(batchId);
-
-            return batchId;
-        }
-
-        public override Task DefundResourcePinningAsync(SwarmHash hash) =>
-            BeeClient.DeletePinAsync(hash);
-
-        public override async Task FundResourceDownloadAsync(SwarmHash hash) =>
-            await ethernaGatewayClient.FundResourceDownloadAsync(hash);
-
         public override async Task<BzzBalance> GetChainPriceAsync() =>
              (await BeeClient.GetChainStateAsync()).CurrentPrice;
 
@@ -64,5 +36,32 @@ namespace Etherna.VideoImporter.Core.Services
 
         public override async Task<bool> IsBatchUsableAsync(PostageBatchId batchId) =>
             (await BeeClient.GetPostageBatchAsync(batchId)).IsUsable;
+        
+        // Protected override methods.
+        protected override async Task<PostageBatchId> CreatePostageBatchHelperAsync(BzzBalance amount, int batchDepth)
+        {
+            ioService.PrintTimeStamp();
+            ioService.Write("Waiting for batch created... (it may take a while)");
+            
+            var batchId = await BeeClient.BuyPostageBatchAsync(amount, batchDepth);
+            
+            ioService.WriteLine(". Done", false);
+
+            // Wait until created batch is usable.
+            ioService.PrintTimeStamp();
+            ioService.Write("Waiting for batch being usable... (it may take a while)");
+            
+            await WaitForBatchUsableAsync(batchId);
+
+            ioService.WriteLine(". Done", false);
+
+            return batchId;
+        }
+
+        protected override Task DefundResourcePinningHelperAsync(SwarmHash hash) =>
+            BeeClient.DeletePinAsync(hash);
+
+        protected override async Task FundResourceDownloadHelperAsync(SwarmHash hash) =>
+            await ethernaGatewayClient.FundResourceDownloadAsync(hash);
     }
 }

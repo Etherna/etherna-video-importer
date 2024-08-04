@@ -41,6 +41,7 @@ namespace Etherna.VideoImporter.Devcon
               -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
+              --dry                   Run in dry mode. Any action on swarm gateway is performed read-only
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)
@@ -71,6 +72,7 @@ namespace Etherna.VideoImporter.Devcon
             string? customFFMpegFolderPath = null;
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
+            bool isDryRun = false;
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
@@ -140,6 +142,10 @@ namespace Etherna.VideoImporter.Devcon
                     case "-a":
                     case "--auto-purchase":
                         autoPurchaseBatches = true;
+                        break;
+                    
+                    case "--dry":
+                        isDryRun = true;
                         break;
 
                     //video management
@@ -265,6 +271,10 @@ namespace Etherna.VideoImporter.Devcon
                 {
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                     ffMpegOptions.PresetCodec = presetCodec;
+                },
+                gatewayOptions =>
+                {
+                    gatewayOptions.IsDryRun = isDryRun;
                 },
                 uploaderOptions =>
                 {
