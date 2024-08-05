@@ -218,7 +218,6 @@ namespace Etherna.VideoImporter.Core.Services
         {
             // Build FFmpeg args.
             var args = new List<string>();
-            var fileNameGuid = Guid.NewGuid();
             var resolutionRatio = (decimal)videoFile.Width / videoFile.Height;
             var outputsList = new List<(string filePath, int height, int width)>();
 
@@ -233,7 +232,7 @@ namespace Etherna.VideoImporter.Core.Services
                     continue;
 
                 // Build output stream args.
-                var outputFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{fileNameGuid}_{height}.mp4");
+                var outputFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{height}.mp4");
 
                 var scaledWidth = (int)Math.Round(height * resolutionRatio, 0);
                 switch (scaledWidth % 4)

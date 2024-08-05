@@ -153,9 +153,9 @@ namespace Etherna.VideoImporter.Core
                         .Select(id => hasher.ComputeHash(id).ToHex());
                     
                     var alreadyIndexedVideo = userVideosOnIndex.FirstOrDefault(
-                        indexedVideo => indexedVideo.LastValidManifest?.Manifest.PersonalData?.SourceVideoIdHash is not null &&
+                        indexedVideo => indexedVideo.LastValidManifest?.Manifest.PersonalData?.SourceVideoId is not null &&
                                         indexedVideo.LastValidManifest.Manifest.PersonalData.SourceProviderName == videoProvider.SourceName &&
-                                        allVideoIdHashes.Contains(indexedVideo.LastValidManifest.Manifest.PersonalData.SourceVideoIdHash));
+                                        allVideoIdHashes.Contains(indexedVideo.LastValidManifest.Manifest.PersonalData.SourceVideoId));
                     
                     // Try to minimize operations as much as possible.
                     if (alreadyIndexedVideo is not null && !forceVideoUpload)
@@ -212,9 +212,6 @@ namespace Etherna.VideoImporter.Core
                         var video = await videoProvider.GetVideoAsync(sourceMetadata);
                         video.EthernaIndexId = alreadyIndexedVideo?.Id;
 
-                        if (!video.VideoFiles.Any())
-                            throw new InvalidOperationException("Error: can't get valid stream from source");
-
                         // Upload video and all related data.
                         await videoUploaderService.UploadVideoAsync(video, fundPinning, fundDownload, userEthAddress);
 
@@ -268,6 +265,9 @@ namespace Etherna.VideoImporter.Core
                     ioService.PrintException(ex);
                 }
             }
+            
+            // Delete temporary directory.
+            CommonConsts.TempDirectory.Delete(true);
 
             // Clean up user channel on etherna index.
             if (removeMissingVideosFromSource)

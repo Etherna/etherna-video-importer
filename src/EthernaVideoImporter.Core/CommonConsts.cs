@@ -18,7 +18,7 @@ using System.Runtime.InteropServices;
 
 namespace Etherna.VideoImporter.Core
 {
-    public sealed class CommonConsts
+    public static class CommonConsts
     {
         public const int BeePort = 1633;
         public const string BeeNodeUrl = "http://localhost/";
@@ -55,6 +55,7 @@ namespace Etherna.VideoImporter.Core
             }
         }
         public const string ImporterIdentifier = "EthernaImporter";
-        public static DirectoryInfo TempDirectory { get; } = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), ImporterIdentifier));
+        public static DirectoryInfo TempDirectory { get; } = Directory.CreateDirectory(
+            Path.Combine(Path.GetTempPath(), ImporterIdentifier, Guid.NewGuid().ToString()));
     }
 }

@@ -87,7 +87,7 @@ namespace Etherna.VideoImporter.Core.Services
                     indexedVideo.LastValidManifest?.Manifest.PersonalData?.SourceProviderName == sourceProviderName &&
                     !videosMetadataFromSource.Any(sourceMeta => sourceMeta.AllSourceIds
                         .Select(id => hasher.ComputeHash(id).ToHex()) //get hashed version of all source Ids
-                        .Contains(indexedVideo.LastValidManifest!.Manifest.PersonalData!.SourceVideoIdHash)));
+                        .Contains(indexedVideo.LastValidManifest!.Manifest.PersonalData!.SourceVideoId)));
 
             var deindexedVideos = 0;
             foreach (var sourceRemovedVideo in sourceRemovedVideos)

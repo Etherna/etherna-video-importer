@@ -33,7 +33,7 @@ namespace Etherna.VideoImporter.Core.Extensions
 
             var indexedManifest = indexedVideo.LastValidManifest.Manifest;
             
-            return indexedManifest.PersonalData?.SourceVideoIdHash == hasher.ComputeHash(metadata.SourceId).ToHex() &&
+            return indexedManifest.PersonalData?.SourceVideoId == hasher.ComputeHash(metadata.SourceId).ToHex() &&
                    indexedManifest.Title == metadata.Title &&
                    indexedManifest.Description == metadata.Description;
         }

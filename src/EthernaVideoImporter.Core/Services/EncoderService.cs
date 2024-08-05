@@ -31,7 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Consts.
         private static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
-        private static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440];
+        private static readonly int[] VideoHeightResolutions = [320, 480, 720, 1080, 1620];
 
         // Fields.
         private readonly IFFmpegService ffMpegService;
@@ -75,7 +75,7 @@ namespace Etherna.VideoImporter.Core.Services
 
                 using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium))
                 using (SKImage scaledImage = SKImage.FromBitmap(scaledBitmap))
-                using (SKData data = scaledImage.Encode())
+                using (SKData data = scaledImage.Encode(SKEncodedImageFormat.Jpeg, 75))
                 using (FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew))
                 {
                     await data.AsStream().CopyToAsync(outputFileStream);
@@ -106,7 +106,7 @@ namespace Etherna.VideoImporter.Core.Services
                     ffMpegService,
                     uFileProvider.BuildNewUFile(new BasicUUri(outputFilePath, UUriKind.Local))));
 
-                ioService.WriteLine($"Encoded output stream {outputHeight}:{outputWidth}, file size: {outputFileSize} byte");
+                ioService.WriteLine($"Encoded output stream {outputWidth}x{outputHeight}, file size: {outputFileSize} byte");
             }
 
             // Remove all video encodings where exists another with greater resolution, and equal or less file size.

@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
@@ -21,6 +22,7 @@ using Etherna.Sdk.Users.Index.Services;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
+using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.IO;
 using System.Linq;
@@ -40,6 +42,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly IChunkService chunkService;
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
+        private readonly IHasher hasher;
         private readonly IIoService ioService;
         private readonly VideoUploaderServiceOptions options;
         private readonly IVideoPublisherService videoPublisherService;
@@ -50,6 +53,7 @@ namespace Etherna.VideoImporter.Core.Services
             IChunkService chunkService,
             IEthernaUserIndexClient ethernaIndexClient,
             IGatewayService gatewayService,
+            IHasher hasher,
             IIoService ioService,
             IOptions<VideoUploaderServiceOptions> options,
             IVideoPublisherService videoPublisherService)
@@ -58,6 +62,7 @@ namespace Etherna.VideoImporter.Core.Services
             this.chunkService = chunkService;
             this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
+            this.hasher = hasher;
             this.ioService = ioService;
             this.videoPublisherService = videoPublisherService;
             this.options = options.Value;
@@ -106,7 +111,7 @@ namespace Etherna.VideoImporter.Core.Services
                 CommonConsts.ImporterIdentifier,
                 appVersionService.CurrentVersion.ToString(),
                 video.Metadata.SourceName,
-                video.Metadata.SourceId);
+                hasher.ComputeHash(video.Metadata.SourceId).ToHex());
             
             //video manifest video sources
             var manifestVideoSources = video.VideoFiles.Select(v =>new VideoManifestVideoSource(
@@ -164,7 +169,7 @@ namespace Etherna.VideoImporter.Core.Services
             
             for (int i = 0; i < chunkFiles.Length; i++)
             {
-                if (i % 10000 == 0)
+                if (i % 10000 == 0 && i != 0)
                     ioService.WriteLine($"  {i} chunks uploaded...");
 
                 bool uploadSucceeded = false;
@@ -184,6 +189,7 @@ namespace Etherna.VideoImporter.Core.Services
                             batchId.Value,
                             chunk,
                             chunkHash == videoManifestHash && fundPinning);
+                        uploadSucceeded = true;
                     }
                     catch (Exception e)
                     {
@@ -217,6 +223,10 @@ namespace Etherna.VideoImporter.Core.Services
                     video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(video.EthernaPermalinkHash!.Value);
                 else
                     await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkHash!.Value);
+            }
+            else
+            {
+                video.EthernaIndexId = "0000000";
             }
 
             ioService.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");

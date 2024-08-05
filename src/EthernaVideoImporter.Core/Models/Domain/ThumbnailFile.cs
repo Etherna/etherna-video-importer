@@ -18,6 +18,7 @@ using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using SkiaSharp;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
@@ -54,10 +55,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             var fileName = await uFile.TryGetFileNameAsync() ??
                            throw new InvalidOperationException($"Can't get file name from {uFile.FileUri.OriginalUri}");
 
-            var (thumbFileStream, _) = await uFile.ReadToStreamAsync();
-            using var thumbManagedStream = new SKManagedStream(thumbFileStream);
+            var (thumbByteArray, _) = await uFile.ReadToByteArrayAsync();
             
-            using var thumbBitmap = SKBitmap.Decode(thumbManagedStream);
+            using var thumbStream = new MemoryStream(thumbByteArray);
+            using var thumbManagedStream = new SKManagedStream(thumbStream);
             using var codec = SKCodec.Create(thumbManagedStream);
 
             var imageType = codec.EncodedFormat switch
@@ -69,6 +70,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 _ => ImageType.Unknown
             };
 
+            using var thumbBitmap = SKBitmap.Decode(thumbByteArray);
             return new ThumbnailFile(
                 Blurhasher.Encode(thumbBitmap, 4, 4),
                 byteSize,
