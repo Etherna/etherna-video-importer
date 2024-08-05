@@ -88,11 +88,12 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                         .First();
                     ChannelName = metadata.Author.ChannelTitle;
                     Description = metadata.Description;
-                    Duration = metadata.Duration ?? throw new InvalidOperationException("Live streams are not supported");
+                    Duration = metadata.Duration ??
+                               throw new InvalidOperationException("Live streams are not supported");
                     OriginVideoQualityLabel = bestStreamInfo.VideoQuality.Label;
                     Thumbnail = metadata.Thumbnails.MaxBy(t => t.Resolution.Area);
                     Title = metadata.Title;
-                    
+
                     ioService.WriteLine($"Fetched YouTube metadata for {metadata.Title}");
 
                     return true;
@@ -106,6 +107,13 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 {
                     ioService.WriteErrorLine($"Time out retrieving video: {YoutubeUrl}. Try again later");
                     ioService.PrintException(ex);
+                }
+                catch (VideoUnavailableException ex)
+                {
+                    // Skip because video has been obscured.
+                    ioService.WriteErrorLine($"Unavailable video: {YoutubeUrl}. Skipped");
+                    ioService.PrintException(ex);
+                    return false;
                 }
                 catch (VideoUnplayableException ex)
                 {
