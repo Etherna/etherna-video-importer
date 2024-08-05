@@ -211,10 +211,13 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             // List on index.
-            if (video.EthernaIndexId is null)
-                video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(video.EthernaPermalinkHash!.Value);
-            else
-                await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkHash!.Value);
+            if (!options.IsDryRun)
+            {
+                if (video.EthernaIndexId is null)
+                    video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(video.EthernaPermalinkHash!.Value);
+                else
+                    await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkHash!.Value);
+            }
 
             ioService.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
         }

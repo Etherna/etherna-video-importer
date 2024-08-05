@@ -17,6 +17,8 @@ using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Options;
+using Microsoft.Extensions.Options;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
@@ -29,9 +31,13 @@ namespace Etherna.VideoImporter.Core.Services
         IEthernaUserIndexClient ethernaIndexClient,
         IGatewayService gatewayService,
         IHasher hasher,
-        IIoService ioService)
+        IIoService ioService,
+        IOptions<CleanerVideoServiceOptions> options)
         : ICleanerVideoService
     {
+        // Fields.
+        private readonly CleanerVideoServiceOptions options = options.Value;
+        
         // Methods.
         public async Task<int> DeleteExogenousVideosAsync(
             IEnumerable<IndexedVideo> indexedVideos,
@@ -110,7 +116,8 @@ namespace Etherna.VideoImporter.Core.Services
             bool removeSucceeded = false;
             try
             {
-                await ethernaIndexClient.OwnerRemoveVideoAsync(indexedVideo.Id);
+                if (!options.IsDryRun)
+                    await ethernaIndexClient.OwnerRemoveVideoAsync(indexedVideo.Id);
                 removeSucceeded = true;
 
                 ioService.WriteSuccessLine($"Video with index Id {indexedVideo.Id} removed");

@@ -25,6 +25,7 @@ namespace Etherna.VideoImporter.Core
     {
         public static void AddCoreServices(
             this IServiceCollection services,
+            Action<CleanerVideoServiceOptions> configureCleanerOptions,
             Action<EncoderServiceOptions> configureEncoderOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
             Action<GatewayServiceOptions> configureGatewayOptions,
@@ -32,6 +33,7 @@ namespace Etherna.VideoImporter.Core
             bool useBeeNativeNode)
         {
             // Configure options.
+            services.Configure(configureCleanerOptions);
             services.Configure(configureEncoderOptions);
             services.Configure(configureFFmpegOptions);
             services.Configure(configureGatewayOptions);

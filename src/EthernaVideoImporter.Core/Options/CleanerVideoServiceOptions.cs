@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,18 +12,11 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System;
-
 namespace Etherna.VideoImporter.Core.Options
 {
-    public sealed class VideoUploaderServiceOptions
+    public class CleanerVideoServiceOptions
     {
-        // Consts.
-        public static readonly TimeSpan DefaultTtlPostageStamp = TimeSpan.FromDays(365);
-
         // Properties.
-        public bool AcceptPurchaseOfAllBatches { get; set; }
         public bool IsDryRun { get; set; } //move on IndexService when ready https://etherna.atlassian.net/browse/EVI-109
-        public TimeSpan TtlPostageStamp { get; set; } = DefaultTtlPostageStamp;
     }
 }

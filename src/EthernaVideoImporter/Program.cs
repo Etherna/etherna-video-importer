@@ -48,7 +48,7 @@ namespace Etherna.VideoImporter
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
               -w, --write-file        Write published videos result to a JSON file
-              --dry                   Run in dry mode. Any action on swarm gateway is performed read-only
+              --dry                   Run in dry mode. Any action on swarm gateway or index is performed read-only
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {{VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays}} days)
@@ -321,6 +321,10 @@ namespace Etherna.VideoImporter
             // Setup DI.
             //core
             services.AddCoreServices(
+                cleanerOptions =>
+                {
+                    cleanerOptions.IsDryRun = isDryRun;
+                },
                 encoderOptions =>
                 {
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
@@ -337,6 +341,7 @@ namespace Etherna.VideoImporter
                 uploaderOptions =>
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = autoPurchaseBatches;
+                    uploaderOptions.IsDryRun = isDryRun;
 
                     if (!string.IsNullOrEmpty(ttlPostageBatchStr))
                     {
