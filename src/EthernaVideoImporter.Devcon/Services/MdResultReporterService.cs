@@ -48,6 +48,9 @@ namespace Etherna.VideoImporter.Devcon.Services
 
         public async Task ReportResultAsync(VideoImportResultBase importResult)
         {
+            if (options.IsDryRun)
+                return;
+            
             if (importResult is not VideoImportResultSucceeded succededResult)
                 return;
             

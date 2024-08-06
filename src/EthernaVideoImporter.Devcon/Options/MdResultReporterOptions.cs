@@ -16,6 +16,7 @@ namespace Etherna.VideoImporter.Devcon.Options
 {
     internal sealed class MdResultReporterOptions
     {
+        public bool IsDryRun { get; set; }
         public string MdResultFolderPath { get; set; } = default!;
     }
 }

@@ -308,6 +308,7 @@ namespace Etherna.VideoImporter.Devcon
             //result reporter
             services.Configure<MdResultReporterOptions>(options =>
             {
+                options.IsDryRun = isDryRun;
                 options.MdResultFolderPath = mdSourceFolderPath;
             });
             services.AddSingleton<IValidateOptions<MdResultReporterOptions>, MdResultReporterOptionsValidation>();
