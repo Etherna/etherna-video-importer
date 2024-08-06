@@ -31,7 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Consts.
         private static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
-        private static readonly int[] VideoHeightResolutions = [320, 480, 720, 1080, 1620];
+        private static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440, 2160, 4320];
 
         // Fields.
         private readonly IFFmpegService ffMpegService;
