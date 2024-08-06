@@ -18,7 +18,6 @@ using Etherna.Sdk.Users.Gateway.Clients;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -35,9 +34,6 @@ namespace Etherna.VideoImporter.Core.Services
         // Methods.
         public override async Task<BzzBalance> GetChainPriceAsync() =>
             (await ethernaGatewayClient.GetChainStateAsync()).CurrentPrice;
-
-        public override async Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync() =>
-            await ethernaGatewayClient.GetPinFundedResourcesAsync();
 
         public override async Task<bool> IsBatchUsableAsync(PostageBatchId batchId) =>
             (await ethernaGatewayClient.GetPostageBatchAsync(batchId)).IsUsable;

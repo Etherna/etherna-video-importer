@@ -17,7 +17,6 @@ using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -55,8 +54,6 @@ namespace Etherna.VideoImporter.Core.Services
 
         public abstract Task<BzzBalance> GetChainPriceAsync();
 
-        public abstract Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync();
-
         public abstract Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
         public async Task<SwarmHash> ResolveSwarmAddressToHashAsync(SwarmAddress address) =>
@@ -72,20 +69,6 @@ namespace Etherna.VideoImporter.Core.Services
             using var dataStream = new MemoryStream(chunk.Data.ToArray());
             await BeeClient.UploadChunkAsync(batchId, dataStream, fundPinning);
         }
-
-        public Task<SwarmHash> UploadFileAsync(
-            PostageBatchId batchId,
-            Stream content,
-            string? name,
-            string? contentType,
-            bool fundPinning) => options.IsDryRun ?
-            Task.FromResult(SwarmHash.Zero) :
-            BeeClient.UploadFileAsync(
-                batchId,
-                content,
-                name: name,
-                contentType: contentType,
-                swarmPin: fundPinning);
 
         // Protected methods.
         protected abstract Task<PostageBatchId> CreatePostageBatchHelperAsync(BzzBalance amount, int batchDepth);
