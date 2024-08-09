@@ -22,18 +22,21 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     {
         // Constructor.
         protected VideoEncodingBase(
+            TimeSpan duration,
             FileBase? masterFile,
             VideoVariantBase[] variants)
         {
             ArgumentNullException.ThrowIfNull(variants, nameof(variants));
             if (variants.Length == 0)
                 throw new ArgumentException("Variant list can't be empty");
-            
+
+            Duration = duration;
             MasterFile = masterFile;
             Variants = variants;
         }
 
         // Properties.
+        public TimeSpan Duration { get; }
         public FileBase? MasterFile { get; }
         public long TotalByteSize => (MasterFile?.ByteSize ?? 0) + Variants.Sum(v => v.TotalByteSize);
         public IReadOnlyCollection<VideoVariantBase> Variants { get; }

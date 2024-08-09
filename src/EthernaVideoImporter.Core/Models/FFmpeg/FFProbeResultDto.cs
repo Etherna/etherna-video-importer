@@ -14,10 +14,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Etherna.VideoImporter.Core.Models.FFmpeg
 {
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public sealed class FFProbeResultDto
     {
         // Classes.
@@ -25,8 +26,6 @@ namespace Etherna.VideoImporter.Core.Models.FFmpeg
         {
             // Properties.
             public TimeSpan Duration { get; set; }
-            public string Size { get; set; } = default!;
-            public long SizeLong => Convert.ToInt64(Size, CultureInfo.InvariantCulture);
         }
 
         public sealed class StreamResult

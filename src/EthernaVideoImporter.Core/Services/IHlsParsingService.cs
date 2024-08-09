@@ -12,14 +12,28 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.Linq;
+using Etherna.BeeNet.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
+using M3U8Parser;
+using System;
+using System.Threading.Tasks;
 
-namespace Etherna.VideoImporter.Core.Models.Domain
+namespace Etherna.VideoImporter.Core.Services
 {
-    /// <summary>
-    /// A simple, single file, video encoding
-    /// </summary>
-    /// <param name="variants">Video variants</param>
-    public class UnknownVideoEncoding(SingleFileVideoVariant[] variants)
-        : VideoEncodingBase(null, variants.Cast<VideoVariantBase>().ToArray());
+    public interface IHlsParsingService
+    {
+        Task<HlsVideoEncoding> ParseHlsMasterPlaylistAsync(
+            TimeSpan duration,
+            FileBase masterFile,
+            SwarmAddress? masterSwarmAddress,
+            MasterPlaylist masterPlaylist);
+
+        Task<HlsVideoVariant> ParseHlsStreamPlaylistAsync(
+            FileBase streamPlaylistFile,
+            SwarmAddress? streamPlaylistSwarmAddress,
+            int height,
+            int width);
+
+        Task<MasterPlaylist?> TryReadHlsMasterPlaylistAsync(FileBase hlsPlaylist);
+    }
 }

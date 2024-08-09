@@ -17,6 +17,10 @@ using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class HlsVideoEncoding(TimeSpan duration, FileBase? masterFile, HlsVideoVariant[] variants)
-        : VideoEncodingBase(duration, masterFile, variants.Cast<VideoVariantBase>().ToArray());
+    /// <summary>
+    /// A simple, single file, video encoding
+    /// </summary>
+    /// <param name="variants">Video variants</param>
+    public class UndefinedVideoEncoding(TimeSpan duration, SingleFileVideoVariant[] variants)
+        : VideoEncodingBase(duration, null, variants.Cast<VideoVariantBase>().ToArray());
 }
