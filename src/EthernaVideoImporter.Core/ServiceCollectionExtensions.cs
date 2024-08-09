@@ -52,8 +52,8 @@ namespace Etherna.VideoImporter.Core
             else
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
             services.AddTransient<IHasher, Hasher>();
-            services.AddTransient<IHlsParsingService, HlsParsingService>();
             services.AddTransient<IMigrationService, MigrationService>();
+            services.AddTransient<IParsingService, ParsingService>();
             services.AddTransient<IIoService, ConsoleIoService>();
             services.AddTransient<IUFileProvider, UFileProvider>();
             services.AddTransient<IVideoPublisherService, VideoPublisherService>();

@@ -33,7 +33,7 @@ using System.Threading.Tasks;
 namespace Etherna.VideoImporter.Core.Services
 {
     internal sealed partial class FFmpegService(
-        IHlsParsingService hlsParsingService,
+        IParsingService parsingService,
         IIoService ioService,
         IOptions<FFmpegServiceOptions> options,
         IUFileProvider uFileProvider)
@@ -109,7 +109,7 @@ namespace Etherna.VideoImporter.Core.Services
                     var trimmedLine = line.TrimStart();
                     if (trimmedLine.StartsWith("frame=", StringComparison.InvariantCulture))
                         ioService.Write(line + '\r');
-                    else
+                    else if (duration is null)
                     {
                         var durationMatch = DurationRegex().Match(trimmedLine);
                         if (durationMatch.Success)
@@ -146,7 +146,7 @@ namespace Etherna.VideoImporter.Core.Services
                     {
                         var streamPlaylistFile = await FileBase.BuildFromUFileAsync(
                             uFileProvider.BuildNewUFile(new BasicUUri(varRef.filePath, UUriKind.LocalAbsolute)));
-                        variants.Add(await hlsParsingService.ParseHlsStreamPlaylistAsync(
+                        variants.Add(await parsingService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
                             streamPlaylistFile,
                             null,
                             varRef.height,

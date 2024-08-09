@@ -12,9 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Models;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System.IO;
 using System.Threading.Tasks;
@@ -34,9 +32,5 @@ namespace Etherna.VideoImporter.Core.Services
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase sourceVariant,
             VideoType outputEncoding = EncodingService.DefaultVideoType);
-
-        Task<VideoEncodingBase> ParseVideoEncodingFromSourceUriAsync(
-            BasicUUri mainFileUri,
-            SwarmAddress? swarmAddress = null);
     }
 }

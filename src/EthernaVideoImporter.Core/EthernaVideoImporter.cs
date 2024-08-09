@@ -40,11 +40,11 @@ namespace Etherna.VideoImporter.Core
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
         private readonly IEthernaSignInService ethernaSignInService;
-        private readonly IFFmpegService ffmpegService;
         private readonly IGatewayService gatewayService;
         private readonly IHasher hasher;
         private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
+        private readonly IParsingService parsingService;
         private readonly IResultReporterService resultReporterService;
         private readonly IUFileProvider uFileProvider;
         private readonly IVideoUploaderService videoUploaderService;
@@ -57,11 +57,11 @@ namespace Etherna.VideoImporter.Core
             IEthernaUserIndexClient ethernaIndexClient,
             IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
             IEthernaSignInService ethernaSignInService,
-            IFFmpegService ffmpegService,
             IGatewayService gatewayService,
             IHasher hasher,
             IIoService ioService,
             IMigrationService migrationService,
+            IParsingService parsingService,
             IResultReporterService resultReporterService,
             IUFileProvider uFileProvider,
             IVideoProvider videoProvider,
@@ -76,13 +76,13 @@ namespace Etherna.VideoImporter.Core
             this.ethernaIndexClient = ethernaIndexClient;
             this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
             this.ethernaSignInService = ethernaSignInService;
-            this.ffmpegService = ffmpegService;
             this.gatewayService = gatewayService;
             this.hasher = hasher;
             this.ioService = ioService;
             this.migrationService = migrationService;
             this.resultReporterService = resultReporterService;
             this.uFileProvider = uFileProvider;
+            this.parsingService = parsingService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -364,11 +364,12 @@ namespace Etherna.VideoImporter.Core
             bool fundDownload,
             bool fundPinning)
         {
-            // Try to retrieve Swarm files.
-            List<ThumbnailFile> thumbnailFiles = [];
-            List<VideoFile> videoFiles = [];
+            Video video;
+            
             try
             {
+                // Parse thumbnail.
+                List<ThumbnailFile> thumbnailFiles = [];
                 foreach (var thumbnailSource in
                          alreadyIndexedVideo.LastValidManifest!.Manifest.Thumbnail.Sources)
                 {
@@ -383,29 +384,17 @@ namespace Etherna.VideoImporter.Core
                     thumbnailFiles.Add(await ThumbnailFile.BuildNewAsync(
                         thumbnailLocalFile, thumbnailHash));
                 }
-
-                foreach (var videoSource in alreadyIndexedVideo.LastValidManifest.Manifest.VideoSources)
-                {
-                    var videoSwarmFile = uFileProvider.BuildNewUFile(new SwarmUUri(videoSource.Uri));
-                    var videoLocalFile = await uFileProvider.ToLocalUFileAsync(
-                        videoSwarmFile,
-                        baseDirectory: alreadyIndexedVideo.LastValidManifest.Hash.ToString());
-
-                    var videoHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                        videoSource.Uri.ToSwarmAddress(alreadyIndexedVideo.LastValidManifest.Hash));
-                    
-                    videoFiles.Add(await VideoFile.BuildNewAsync(
-                        ffmpegService,
-                        videoLocalFile,
-                        videoHash));
-                }
+                
+                // Parse video encoding.
+                var videoEncoding = await parsingService.ParseVideoEncodingFromIndexedVideoAsync(
+                    alreadyIndexedVideo);
+                
+                video = new Video(
+                    sourceMetadata,
+                    thumbnailFiles.ToArray(),
+                    videoEncoding);
             }
             catch { return null; }
-
-            var video = new Video(
-                sourceMetadata,
-                thumbnailFiles.ToArray(),
-                videoFiles.ToArray());
 
             // Upload new manifest.
             await videoUploaderService.UploadVideoAsync(

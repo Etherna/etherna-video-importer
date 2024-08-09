@@ -36,6 +36,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         }
 
         // Properties.
+        public VideoVariantBase BestVariant => Variants.MaxBy(v => v.Height)!;
         public TimeSpan Duration { get; }
         public FileBase? MasterFile { get; }
         public long TotalByteSize => (MasterFile?.ByteSize ?? 0) + Variants.Sum(v => v.TotalByteSize);
