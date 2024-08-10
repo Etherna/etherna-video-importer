@@ -131,7 +131,8 @@ namespace Etherna.VideoImporter.Core.Services
             int[] outputHeights,
             VideoType outputType)
         {
-            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, "encodedVideo");
+            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, "encoded");
+            Directory.CreateDirectory(outputDirectory);
             
             // Compose FFmpeg command args.
             TimeSpan? duration = default;

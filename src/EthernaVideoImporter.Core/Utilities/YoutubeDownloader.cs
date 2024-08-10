@@ -61,8 +61,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             // Get high resolution video.
             var sourceVideoEncoding = await DownloadVideoAsync(
                 audioOnlyStreamInfo,
-                videoOnlyStreamInfo,
-                videoMetadata.Title);
+                videoOnlyStreamInfo);
 
             // Transcode video resolutions.
             var finalVideoEncoding = await encodingService.EncodeVideoAsync(sourceVideoEncoding);
@@ -122,10 +121,9 @@ namespace Etherna.VideoImporter.Core.Utilities
 
         private async Task<VideoEncodingBase> DownloadVideoAsync(
             IAudioStreamInfo audioOnlyStream,
-            IVideoStreamInfo videoOnlyStream,
-            string videoTitle)
+            IVideoStreamInfo videoOnlyStream)
         {
-            var videoFileName = $"{videoTitle.ToSafeFileName()}_{videoOnlyStream.VideoResolution}.{videoOnlyStream.Container}";
+            var videoFileName = $"input_{videoOnlyStream.VideoResolution}.{videoOnlyStream.Container}";
             var videoFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, videoFileName);
             var videoQualityLabel = videoOnlyStream.VideoQuality.Label;
 
