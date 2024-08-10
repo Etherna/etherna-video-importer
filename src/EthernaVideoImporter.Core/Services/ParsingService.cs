@@ -20,14 +20,12 @@ using M3U8Parser;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
     public class ParsingService(
-        IFFmpegService ffMpegService,
         IGatewayService gatewayService,
         IUFileProvider uFileProvider)
         : IParsingService
@@ -140,78 +138,6 @@ namespace Etherna.VideoImporter.Core.Services
                 VideoType.Mp4 => await ParseMp4VideoEncodingFromPublishedVideoManifestAsync(publishedManifest),
                 _ => throw new InvalidOperationException()
             };
-        }
-
-        public async Task<VideoEncodingBase> ParseVideoEncodingFromUUriAsync(
-            BasicUUri mainFileUri,
-            SwarmAddress? swarmAddress = null)
-        {
-            ArgumentNullException.ThrowIfNull(ffMpegService, nameof(ffMpegService));
-            ArgumentNullException.ThrowIfNull(mainFileUri, nameof(mainFileUri));
-            ArgumentNullException.ThrowIfNull(uFileProvider, nameof(uFileProvider));
-
-            var mainFileAbsoluteUri = mainFileUri.ToAbsoluteUri();
-            var mainFile = await FileBase.BuildFromUFileAsync(
-                uFileProvider.BuildNewUFile(mainFileAbsoluteUri));
-            var ffProbeResult = await ffMpegService.GetVideoInfoAsync(mainFileAbsoluteUri.OriginalUri);
-
-            if (swarmAddress is not null)
-                mainFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(swarmAddress.Value);
-            
-            switch (Path.GetExtension(mainFile.FileName).ToLowerInvariant())
-            {
-                //hls
-                case ".m3u8":
-                {
-                    var masterPlaylist = await TryParseHlsMasterPlaylistFromFileAsync(mainFile);
-                    
-                    //if is a master playlist
-                    if (masterPlaylist is not null) 
-                        return await ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
-                            ffProbeResult.Format.Duration,
-                            mainFile,
-                            swarmAddress,
-                            masterPlaylist);
-                    
-                    //else, this is a single stream playlist
-                    var variant = await ParseVideoVariantFromHlsStreamPlaylistFileAsync(
-                        mainFile,
-                        swarmAddress,
-                        ffProbeResult.Streams.First(s => s.Height != 0).Height,
-                        ffProbeResult.Streams.First(s => s.Height != 0).Width);
-                    return new HlsVideoEncoding(
-                        ffProbeResult.Format.Duration,
-                        null,
-                        [variant]);
-                }
-                
-                //mp4
-                case ".mp4":
-                    return new Mp4VideoEncoding(
-                        ffProbeResult.Format.Duration,
-                        [
-                            new SingleFileVideoVariant(
-                                mainFile,
-                                ffProbeResult.Streams.First(s => s.Height != 0).Height,
-                                ffProbeResult.Streams.First(s => s.Height != 0).Width)
-                        ]
-                    );
-                
-                //mpeg dash
-                case ".mpd": throw new NotImplementedException();
-
-                //all other encodings from a single file
-                default:
-                    return new UndefinedVideoEncoding(
-                        ffProbeResult.Format.Duration,
-                        [
-                            new SingleFileVideoVariant(
-                                mainFile,
-                                ffProbeResult.Streams.First(s => s.Height != 0).Height,
-                                ffProbeResult.Streams.First(s => s.Height != 0).Width)
-                        ]
-                    );
-            }
         }
 
         public async Task<HlsVideoVariant> ParseVideoVariantFromHlsStreamPlaylistFileAsync(

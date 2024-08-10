@@ -12,7 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Models;
+using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using System.Threading.Tasks;
@@ -22,6 +24,9 @@ namespace Etherna.VideoImporter.Core.Services
     public interface IFFmpegService
     {
         // Methods.
+        Task<VideoEncodingBase> DecodeVideoEncodingFromUUriAsync(
+            BasicUUri mainFileUri,
+            SwarmAddress? swarmAddress = null);
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase inputVideoVariant,
             int[] outputHeights,

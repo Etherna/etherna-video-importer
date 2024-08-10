@@ -36,7 +36,6 @@ namespace Etherna.VideoImporter.Core.Utilities
         IFFmpegService ffMpegService,
         IHttpClientFactory httpClientFactory,
         IIoService ioService,
-        IParsingService parsingService,
         IUFileProvider uFileProvider,
         IYoutubeClient youtubeClient)
         : IYoutubeDownloader
@@ -163,7 +162,7 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return await parsingService.ParseVideoEncodingFromUUriAsync(
+            return await ffMpegService.DecodeVideoEncodingFromUUriAsync(
                 new BasicUUri(videoFilePath, UUriKind.Local));
         }
 

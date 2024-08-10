@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
@@ -34,6 +35,7 @@ namespace Etherna.VideoImporter.Core.Services
 {
     internal sealed partial class FFmpegService(
         IParsingService parsingService,
+        IGatewayService gatewayService,
         IIoService ioService,
         IOptions<FFmpegServiceOptions> options,
         IUFileProvider uFileProvider)
@@ -53,6 +55,77 @@ namespace Etherna.VideoImporter.Core.Services
         private string? ffProbeBinaryPath;
 
         // Methods.
+        public async Task<VideoEncodingBase> DecodeVideoEncodingFromUUriAsync(
+            BasicUUri mainFileUri,
+            SwarmAddress? swarmAddress = null)
+        {
+            ArgumentNullException.ThrowIfNull(mainFileUri, nameof(mainFileUri));
+            ArgumentNullException.ThrowIfNull(uFileProvider, nameof(uFileProvider));
+
+            var mainFileAbsoluteUri = mainFileUri.ToAbsoluteUri();
+            var mainFile = await FileBase.BuildFromUFileAsync(
+                uFileProvider.BuildNewUFile(mainFileAbsoluteUri));
+            var ffProbeResult = await GetVideoInfoAsync(mainFileAbsoluteUri.OriginalUri);
+
+            if (swarmAddress is not null)
+                mainFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(swarmAddress.Value);
+            
+            switch (Path.GetExtension(mainFile.FileName).ToLowerInvariant())
+            {
+                //hls
+                case ".m3u8":
+                {
+                    var masterPlaylist = await parsingService.TryParseHlsMasterPlaylistFromFileAsync(mainFile);
+                    
+                    //if is a master playlist
+                    if (masterPlaylist is not null) 
+                        return await parsingService.ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
+                            ffProbeResult.Format.Duration,
+                            mainFile,
+                            swarmAddress,
+                            masterPlaylist);
+                    
+                    //else, this is a single stream playlist
+                    var variant = await parsingService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
+                        mainFile,
+                        swarmAddress,
+                        ffProbeResult.Streams.First(s => s.Height != 0).Height,
+                        ffProbeResult.Streams.First(s => s.Height != 0).Width);
+                    return new HlsVideoEncoding(
+                        ffProbeResult.Format.Duration,
+                        null,
+                        [variant]);
+                }
+                
+                //mp4
+                case ".mp4":
+                    return new Mp4VideoEncoding(
+                        ffProbeResult.Format.Duration,
+                        [
+                            new SingleFileVideoVariant(
+                                mainFile,
+                                ffProbeResult.Streams.First(s => s.Height != 0).Height,
+                                ffProbeResult.Streams.First(s => s.Height != 0).Width)
+                        ]
+                    );
+                
+                //mpeg dash
+                case ".mpd": throw new NotImplementedException();
+
+                //all other encodings from a single file
+                default:
+                    return new UndefinedVideoEncoding(
+                        ffProbeResult.Format.Duration,
+                        [
+                            new SingleFileVideoVariant(
+                                mainFile,
+                                ffProbeResult.Streams.First(s => s.Height != 0).Height,
+                                ffProbeResult.Streams.First(s => s.Height != 0).Width)
+                        ]
+                    );
+            }
+        }
+        
         public async Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase inputVideoVariant,
             int[] outputHeights,

@@ -36,10 +36,6 @@ namespace Etherna.VideoImporter.Core.Services
         Task<VideoEncodingBase> ParseVideoEncodingFromPublishedVideoManifestAsync(
             PublishedVideoManifest publishedManifest);
 
-        Task<VideoEncodingBase> ParseVideoEncodingFromUUriAsync(
-            BasicUUri mainFileUri,
-            SwarmAddress? swarmAddress = null);
-
         Task<HlsVideoVariant> ParseVideoVariantFromHlsStreamPlaylistFileAsync(
             FileBase streamPlaylistFile,
             SwarmAddress? streamPlaylistSwarmAddress,

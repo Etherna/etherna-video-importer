@@ -34,8 +34,7 @@ namespace Etherna.VideoImporter.Services
         IFFmpegService ffMpegService,
         IIoService ioService,
         IOptions<JsonListVideoProviderOptions> options,
-        IUFileProvider uFileProvider,
-        IParsingService parsingService)
+        IUFileProvider uFileProvider)
         : IVideoProvider
     {
         // Fields.
@@ -89,7 +88,7 @@ namespace Etherna.VideoImporter.Services
                 try
                 {
                     // Build video.
-                    var videoEncoding = await parsingService.ParseVideoEncodingFromUUriAsync(
+                    var videoEncoding = await ffMpegService.DecodeVideoEncodingFromUUriAsync(
                         new BasicUUri(
                             metadataDto.VideoFilePath,
                             defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri));
