@@ -260,12 +260,5 @@ namespace Etherna.VideoImporter.Core.Services
                 publishedManifest.Manifest.Duration,
                 videoVariants.ToArray());
         }
-
-        private (int width, int height) ParseVideoSizeFromQuality(float aspectRatio, string quality)
-        {
-            var height = int.Parse(quality.TrimEnd('p'), CultureInfo.InvariantCulture);
-            var width = (int)(height * aspectRatio);
-            return (width, height);
-        }
     }
 }

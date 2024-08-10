@@ -142,17 +142,31 @@ namespace Etherna.VideoImporter.Core.Services
                 hasher.ComputeHash(video.Metadata.SourceId).ToHex());
             
             //video manifest video sources
-            var manifestVideoSources = video.VideoEncoding.Variants.Select(v =>new VideoManifestVideoSource(
-                v.EntryFile.FileName,
-                v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
-                video.VideoEncoding switch
-                {
-                    Mp4VideoEncoding _ => VideoType.Mp4,
-                    HlsVideoEncoding _ => VideoType.Hls,
-                    _ => throw new InvalidOperationException()
-                },
-                v.QualityLabel,
-                v.EntryFile.ByteSize));
+            var manifestVideoSources = video.VideoEncoding.Variants.Select(v =>
+            {
+                return new VideoManifestVideoSource(
+                    v.EntryFile.FileName,
+                    v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
+                    video.VideoEncoding switch
+                    {
+                        Mp4VideoEncoding _ => VideoType.Mp4,
+                        HlsVideoEncoding _ => VideoType.Hls,
+                        _ => throw new InvalidOperationException()
+                    },
+                    v.QualityLabel,
+                    v.EntryFile.ByteSize,
+                    v switch
+                    {
+                        HlsVideoVariant hlsV => hlsV.HlsSegmentFiles.Select(segment =>
+                            new VideoManifestVideoSourceAdditionalFile(
+                                segment.FileName,
+                                segment.SwarmHash ??
+                                throw new InvalidOperationException("Swarm hash can't be null here"),
+                                segment.UUri.OriginalUri))
+                            .ToArray(),
+                        _ => []
+                    });
+            });
             if (video.VideoEncoding.MasterFile != null)
             {
                 var masterFile = video.VideoEncoding.MasterFile;
@@ -165,7 +179,8 @@ namespace Etherna.VideoImporter.Core.Services
                         _ => throw new InvalidOperationException()
                     },
                     null,
-                    0)); //need to be 0 with manifest v2, to be recognizable
+                    0, //need to be 0 with manifest v2, to be recognizable
+                    []));
             }
             
             //video manifest thumbnail

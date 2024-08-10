@@ -12,15 +12,6 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
-using Etherna.UniversalFiles;
-using Etherna.VideoImporter.Core.Services;
-using M3U8Parser;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
     public abstract class VideoVariantBase(
