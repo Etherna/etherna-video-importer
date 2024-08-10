@@ -364,34 +364,23 @@ namespace Etherna.VideoImporter.Core
             bool fundDownload,
             bool fundPinning)
         {
-            Video video;
+            if (alreadyIndexedVideo.LastValidManifest is null)
+                return null;
             
+            Video video;
             try
             {
                 // Parse thumbnail.
-                List<ThumbnailFile> thumbnailFiles = [];
-                foreach (var thumbnailSource in
-                         alreadyIndexedVideo.LastValidManifest!.Manifest.Thumbnail.Sources)
-                {
-                    var thumbnailSwarmFile = uFileProvider.BuildNewUFile(new SwarmUUri(thumbnailSource.Uri));
-                    var thumbnailLocalFile = await uFileProvider.ToLocalUFileAsync(
-                        thumbnailSwarmFile,
-                        baseDirectory: alreadyIndexedVideo.LastValidManifest.Hash.ToString());
+                var thumbnailFiles = await parsingService.ParseThumbnailFromPublishedVideoManifestAsync(
+                    alreadyIndexedVideo.LastValidManifest);
 
-                    var thumbnailHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                        thumbnailSource.Uri.ToSwarmAddress(alreadyIndexedVideo.LastValidManifest.Hash));
-                    
-                    thumbnailFiles.Add(await ThumbnailFile.BuildNewAsync(
-                        thumbnailLocalFile, thumbnailHash));
-                }
-                
                 // Parse video encoding.
-                var videoEncoding = await parsingService.ParseVideoEncodingFromIndexedVideoAsync(
-                    alreadyIndexedVideo);
+                var videoEncoding = await parsingService.ParseVideoEncodingFromPublishedVideoManifestAsync(
+                    alreadyIndexedVideo.LastValidManifest);
                 
                 video = new Video(
                     sourceMetadata,
-                    thumbnailFiles.ToArray(),
+                    thumbnailFiles,
                     videoEncoding);
             }
             catch { return null; }

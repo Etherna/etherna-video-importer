@@ -24,14 +24,17 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IParsingService
     {
+        Task<ThumbnailFile[]> ParseThumbnailFromPublishedVideoManifestAsync(
+            PublishedVideoManifest publishedManifest);
+        
         Task<HlsVideoEncoding> ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
             TimeSpan duration,
             FileBase masterFile,
             SwarmAddress? masterSwarmAddress,
             MasterPlaylist masterPlaylist);
 
-        Task<VideoEncodingBase> ParseVideoEncodingFromIndexedVideoAsync(
-            IndexedVideo indexedVideo);
+        Task<VideoEncodingBase> ParseVideoEncodingFromPublishedVideoManifestAsync(
+            PublishedVideoManifest publishedManifest);
 
         Task<VideoEncodingBase> ParseVideoEncodingFromUUriAsync(
             BasicUUri mainFileUri,
