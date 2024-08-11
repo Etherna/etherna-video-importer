@@ -22,21 +22,20 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public class Video
     {
         // Constructor.
-        public Video(VideoMetadataBase metadata,
+        public Video(
+            VideoMetadataBase metadata,
             ThumbnailFile[] thumbnailFiles,
-            VideoFile[] videoFiles)
+            VideoEncodingBase videoEncoding)
         {
-            ArgumentNullException.ThrowIfNull(videoFiles, nameof(videoFiles));
             ArgumentNullException.ThrowIfNull(thumbnailFiles, nameof(thumbnailFiles));
+            ArgumentNullException.ThrowIfNull(videoEncoding, nameof(videoEncoding));
             
-            if (videoFiles.Length == 0)
-                throw new ArgumentException("Must exist at least a stream");
             if (thumbnailFiles.Length == 0)
                 throw new ArgumentException("Must exist at least a thumbnail");
 
             Metadata = metadata;
             ThumbnailFiles = thumbnailFiles;
-            VideoFiles = videoFiles;
+            VideoEncoding = videoEncoding;
         }
 
         // Properties.
@@ -44,7 +43,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         {
             get
             {
-                var largerVideo = VideoFiles.MaxBy(v => v.Width) ?? throw new InvalidOperationException();
+                var largerVideo = VideoEncoding.Variants.MaxBy(v => v.Width) ?? throw new InvalidOperationException();
                 return (float)largerVideo.Width / largerVideo.Height;
             }
         }
@@ -53,6 +52,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public VideoMetadataBase Metadata { get; }
         public string ThumbnailBlurhash => ThumbnailFiles.First().Blurhash;
         public IEnumerable<ThumbnailFile> ThumbnailFiles { get; }
-        public IEnumerable<VideoFile> VideoFiles { get; }
+        public VideoEncodingBase VideoEncoding { get; }
     }
 }

@@ -14,22 +14,35 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.UniversalFiles;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract class FileBase(
+    public class FileBase(
         long byteSize,
         string fileName,
         UFile universalFile,
         SwarmHash? swarmHash)
     {
+        // Static builders.
+        public static async Task<FileBase> BuildFromUFileAsync(UFile uFile)
+        {
+            ArgumentNullException.ThrowIfNull(uFile, nameof(uFile));
+            
+            var fileSize = await uFile.GetByteSizeAsync();
+            var fileName = await uFile.TryGetFileNameAsync() ?? throw new InvalidOperationException(
+                $"Can't get file name from {uFile.FileUri.OriginalUri}");
+            
+            return new FileBase(fileSize, fileName,uFile, null);
+        }
+        
         // Properties.
         public long ByteSize { get; } = byteSize;
         public string FileName { get; } = fileName;
-        public UUri FileUri => universalFile.FileUri;
         public SwarmHash? SwarmHash { get; set; } = swarmHash;
+        public UUri UUri => universalFile.FileUri;
         
         // Methods.
         public async Task<Stream> ReadToStreamAsync() => (await universalFile.ReadToStreamAsync()).Stream;

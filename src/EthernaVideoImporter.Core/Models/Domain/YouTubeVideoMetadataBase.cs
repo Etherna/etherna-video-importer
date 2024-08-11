@@ -25,26 +25,19 @@ using YoutubeExplode.Exceptions;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract class YouTubeVideoMetadataBase : VideoMetadataBase
+    public abstract class YouTubeVideoMetadataBase(
+        IYoutubeDownloader youtubeDownloader,
+        string youtubeUrl,
+        string? playlistName)
+        : VideoMetadataBase
     {
         // Consts.
         private readonly TimeSpan FetchRetryDelay = TimeSpan.FromMinutes(10);
         private const int FetchRetryMax = 20;
-        
-        // Constructor.
-        protected YouTubeVideoMetadataBase(
-            IYoutubeDownloader youtubeDownloader,
-            string youtubeUrl,
-            string? playlistName)
-        {
-            YoutubeDownloader = youtubeDownloader;
-            YoutubeUrl = youtubeUrl;
-            PlaylistName = playlistName;
-        }
 
         // Properties.
         public string? ChannelName { get; private set; }
-        public string? PlaylistName { get; private set; }
+        public string? PlaylistName { get; private set; } = playlistName;
         public override string SourceName => "youtube";
         public override IEnumerable<string> SourceOldIds => Array.Empty<string>();
         public Thumbnail? Thumbnail { get; protected set; }
@@ -61,11 +54,11 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 return uri.Segments.Last();
             }
         }
-        public string YoutubeUrl { get; }
-        
+        public string YoutubeUrl { get; } = youtubeUrl;
+
         // Protected properties.
-        protected IYoutubeDownloader YoutubeDownloader { get; }
-        
+        protected IYoutubeDownloader YoutubeDownloader { get; } = youtubeDownloader;
+
         // Methods.
         public override async Task<bool> TryFetchMetadataAsync(
             IIoService ioService)
@@ -81,16 +74,10 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 try
                 {
                     var metadata = await YoutubeDownloader.YoutubeClient.Videos.GetAsync(YoutubeUrl);
-                    var bestStreamInfo =
-                        (await YoutubeDownloader.YoutubeClient.Videos.Streams.GetManifestAsync(metadata.Id))
-                        .GetVideoOnlyStreams()
-                        .OrderByDescending(s => s.VideoResolution.Area)
-                        .First();
                     ChannelName = metadata.Author.ChannelTitle;
                     Description = metadata.Description;
                     Duration = metadata.Duration ??
                                throw new InvalidOperationException("Live streams are not supported");
-                    OriginVideoQualityLabel = bestStreamInfo.VideoQuality.Label;
                     Thumbnail = metadata.Thumbnails.MaxBy(t => t.Resolution.Area);
                     Title = metadata.Title;
 

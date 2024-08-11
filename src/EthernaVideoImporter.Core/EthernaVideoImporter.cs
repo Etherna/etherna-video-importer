@@ -18,7 +18,6 @@ using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.Sdk.Users.Index.Models;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
@@ -40,13 +39,11 @@ namespace Etherna.VideoImporter.Core
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
         private readonly IEthernaSignInService ethernaSignInService;
-        private readonly IFFmpegService ffmpegService;
-        private readonly IGatewayService gatewayService;
         private readonly IHasher hasher;
         private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
+        private readonly IParsingService parsingService;
         private readonly IResultReporterService resultReporterService;
-        private readonly IUFileProvider uFileProvider;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -57,13 +54,11 @@ namespace Etherna.VideoImporter.Core
             IEthernaUserIndexClient ethernaIndexClient,
             IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
             IEthernaSignInService ethernaSignInService,
-            IFFmpegService ffmpegService,
-            IGatewayService gatewayService,
             IHasher hasher,
             IIoService ioService,
             IMigrationService migrationService,
+            IParsingService parsingService,
             IResultReporterService resultReporterService,
-            IUFileProvider uFileProvider,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
@@ -76,13 +71,11 @@ namespace Etherna.VideoImporter.Core
             this.ethernaIndexClient = ethernaIndexClient;
             this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
             this.ethernaSignInService = ethernaSignInService;
-            this.ffmpegService = ffmpegService;
-            this.gatewayService = gatewayService;
             this.hasher = hasher;
             this.ioService = ioService;
             this.migrationService = migrationService;
             this.resultReporterService = resultReporterService;
-            this.uFileProvider = uFileProvider;
+            this.parsingService = parsingService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -235,7 +228,7 @@ namespace Etherna.VideoImporter.Core
                 {
                     try
                     {
-                        // Clear tmp folder.
+                        // Clear tmp folder for next import.
                         foreach (var file in CommonConsts.TempDirectory.GetFiles())
                             file.Delete();
                         foreach (var dir in CommonConsts.TempDirectory.GetDirectories())
@@ -364,48 +357,26 @@ namespace Etherna.VideoImporter.Core
             bool fundDownload,
             bool fundPinning)
         {
-            // Try to retrieve Swarm files.
-            List<ThumbnailFile> thumbnailFiles = [];
-            List<VideoFile> videoFiles = [];
+            if (alreadyIndexedVideo.LastValidManifest is null)
+                return null;
+            
+            Video video;
             try
             {
-                foreach (var thumbnailSource in
-                         alreadyIndexedVideo.LastValidManifest!.Manifest.Thumbnail.Sources)
-                {
-                    var thumbnailSwarmFile = uFileProvider.BuildNewUFile(new SwarmUUri(thumbnailSource.Uri));
-                    var thumbnailLocalFile = await uFileProvider.ToLocalUFileAsync(
-                        thumbnailSwarmFile,
-                        baseDirectory: alreadyIndexedVideo.LastValidManifest.Hash.ToString());
+                // Parse thumbnail.
+                var thumbnailFiles = await parsingService.ParseThumbnailFromPublishedVideoManifestAsync(
+                    alreadyIndexedVideo.LastValidManifest);
 
-                    var thumbnailHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                        thumbnailSource.Uri.ToSwarmAddress(alreadyIndexedVideo.LastValidManifest.Hash));
-                    
-                    thumbnailFiles.Add(await ThumbnailFile.BuildNewAsync(
-                        thumbnailLocalFile, thumbnailHash));
-                }
-
-                foreach (var videoSource in alreadyIndexedVideo.LastValidManifest.Manifest.VideoSources)
-                {
-                    var videoSwarmFile = uFileProvider.BuildNewUFile(new SwarmUUri(videoSource.Uri));
-                    var videoLocalFile = await uFileProvider.ToLocalUFileAsync(
-                        videoSwarmFile,
-                        baseDirectory: alreadyIndexedVideo.LastValidManifest.Hash.ToString());
-
-                    var videoHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                        videoSource.Uri.ToSwarmAddress(alreadyIndexedVideo.LastValidManifest.Hash));
-                    
-                    videoFiles.Add(await VideoFile.BuildNewAsync(
-                        ffmpegService,
-                        videoLocalFile,
-                        videoHash));
-                }
+                // Parse video encoding.
+                var videoEncoding = await parsingService.ParseVideoEncodingFromPublishedVideoManifestAsync(
+                    alreadyIndexedVideo.LastValidManifest);
+                
+                video = new Video(
+                    sourceMetadata,
+                    thumbnailFiles,
+                    videoEncoding);
             }
             catch { return null; }
-
-            var video = new Video(
-                sourceMetadata,
-                thumbnailFiles.ToArray(),
-                videoFiles.ToArray());
 
             // Upload new manifest.
             await videoUploaderService.UploadVideoAsync(

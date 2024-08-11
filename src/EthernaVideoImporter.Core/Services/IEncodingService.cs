@@ -12,31 +12,23 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using Etherna.Sdk.Users.Index.Models;
+using Etherna.VideoImporter.Core.Models.Domain;
+using System.Threading.Tasks;
 
-namespace Etherna.VideoImporter.Core.Models.FFmpeg
+namespace Etherna.VideoImporter.Core.Services
 {
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public sealed class FFProbeResultDto
+    public interface IEncodingService
     {
-        // Classes.
-        public sealed class FormatResult
-        {
-            // Properties.
-            public TimeSpan Duration { get; set; }
-        }
-
-        public sealed class StreamResult
-        {
-            // Properties.
-            public int Height { get; set; }
-            public int Width { get; set; }
-        }
-
-        // Properties.
-        public IEnumerable<StreamResult> Streams { get; set; } = default!;
-        public FormatResult Format { get; set; } = default!;
+        Task<ThumbnailFile[]> EncodeThumbnailsAsync(
+            ThumbnailFile sourceThumbnailFile);
+        
+        Task<VideoEncodingBase> EncodeVideoAsync(
+            VideoEncodingBase sourceEncoding,
+            VideoType outputEncoding = EncodingService.DefaultVideoType);
+        
+        Task<VideoEncodingBase> EncodeVideoAsync(
+            VideoVariantBase sourceVariant,
+            VideoType outputEncoding = EncodingService.DefaultVideoType);
     }
 }

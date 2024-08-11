@@ -82,16 +82,44 @@ namespace Etherna.VideoImporter.Core.Services
             var chunksDirectory = Directory.CreateDirectory(Path.Combine(CommonConsts.TempDirectory.FullName, ChunksSubDirectoryName));
             var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
             
-            //video source files, exclude already uploaded Swarm files 
-            foreach (var videoFile in video.VideoFiles.Where(f => f.SwarmHash is null))
+            //video source files, exclude already uploaded Swarm files
+            if (video.VideoEncoding.MasterFile is { SwarmHash: null })
             {
-                ioService.WriteLine($"Creating chunks of video stream {videoFile.QualityLabel} in progress...");
-                
-                using var stream = await videoFile.ReadToStreamAsync();
-                videoFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                ioService.WriteLine($"Creating chunks of master playlist in progress...");
+
+                using var stream = await video.VideoEncoding.MasterFile.ReadToStreamAsync();
+                video.VideoEncoding.MasterFile.SwarmHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
+            }
+            foreach (var variant in video.VideoEncoding.Variants.Where(v => v.EntryFile.SwarmHash is null))
+            {
+                ioService.WriteLine($"Creating chunks of {variant.QualityLabel} video variant in progress...");
+                
+                //common entry file
+                using var stream = await variant.EntryFile.ReadToStreamAsync();
+                variant.EntryFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    stream,
+                    chunksDirectory.FullName,
+                    postageStampIssuer: stampIssuer);
+                
+                //additional files.
+                switch (variant)
+                {
+                    case HlsVideoVariant hlsVariant:
+                        foreach (var segment in hlsVariant.HlsSegmentFiles)
+                        {
+                            using var segStream = await segment.ReadToStreamAsync();
+                            segment.SwarmHash = await chunkService.WriteDataChunksAsync(
+                                segStream,
+                                chunksDirectory.FullName,
+                                postageStampIssuer: stampIssuer);
+                        }
+                        break;
+                    case SingleFileVideoVariant: break;
+                    default: throw new InvalidOperationException();
+                }
             }
             
             //thumbnail source files, exclude already uploaded Swarm files 
@@ -114,12 +142,55 @@ namespace Etherna.VideoImporter.Core.Services
                 hasher.ComputeHash(video.Metadata.SourceId).ToHex());
             
             //video manifest video sources
-            var manifestVideoSources = video.VideoFiles.Select(v =>new VideoManifestVideoSource(
-                v.FileName,
-                v.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
-                v.VideoType,
-                v.QualityLabel,
-                v.ByteSize));
+            var manifestVideoSources = video.VideoEncoding.Variants.Select(v =>
+            {
+                var sourceRelativePath = v.EntryFile.UUri.OriginalUri;
+                if (video.VideoEncoding.EncodingDirectoryPath != null)
+                    sourceRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, sourceRelativePath);
+                    
+                return new VideoManifestVideoSource(
+                    sourceRelativePath,
+                    v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
+                    video.VideoEncoding switch
+                    {
+                        Mp4VideoEncoding _ => VideoType.Mp4,
+                        HlsVideoEncoding _ => VideoType.Hls,
+                        _ => throw new InvalidOperationException()
+                    },
+                    v.QualityLabel,
+                    v.EntryFile.ByteSize,
+                    v switch
+                    {
+                        HlsVideoVariant hlsV => hlsV.HlsSegmentFiles.Select(segment =>
+                            {
+                                var segmentRelativePath = segment.UUri.OriginalUri;
+                                if (video.VideoEncoding.EncodingDirectoryPath != null)
+                                    segmentRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, segmentRelativePath);
+                                
+                                return new VideoManifestVideoSourceAdditionalFile(
+                                    segmentRelativePath,
+                                    segment.SwarmHash ??
+                                    throw new InvalidOperationException("Swarm hash can't be null here"));
+                            })
+                            .ToArray(),
+                        _ => []
+                    });
+            });
+            if (video.VideoEncoding.MasterFile != null)
+            {
+                var masterFile = video.VideoEncoding.MasterFile;
+                manifestVideoSources = manifestVideoSources.Prepend(new VideoManifestVideoSource(
+                    masterFile.FileName,
+                    masterFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
+                    video.VideoEncoding switch
+                    {
+                        HlsVideoEncoding _ => VideoType.Hls,
+                        _ => throw new InvalidOperationException()
+                    },
+                    null,
+                    0, //need to be 0 with manifest v2, to be recognizable
+                    []));
+            }
             
             //video manifest thumbnail
             var manifestThumbnail = new VideoManifestImage(

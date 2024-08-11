@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
@@ -20,18 +21,20 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    internal sealed class EncoderService : IEncoderService
+    internal sealed class EncodingService : IEncodingService
     {
         // Consts.
-        private static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
-        private static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440, 2160, 4320];
+        public const VideoType DefaultVideoType = VideoType.Hls;
+        public const string EncodedThumbSubDirectory = "encoded/thumb";
+        public const string EncodedVideoSubDirectory = "encoded/video";
+        public static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
+        public static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440, 2160, 4320];
 
         // Fields.
         private readonly IFFmpegService ffMpegService;
@@ -42,7 +45,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly EncoderServiceOptions options;
 
         // Constructor.
-        public EncoderService(
+        public EncodingService(
             IFFmpegService ffMpegService,
             IIoService ioService,
             IOptions<EncoderServiceOptions> options,
@@ -56,13 +59,13 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Methods.
         public async Task<ThumbnailFile[]> EncodeThumbnailsAsync(
-            ThumbnailFile sourceThumbnailFile,
-            DirectoryInfo tmpDirectory)
+            ThumbnailFile sourceThumbnailFile)
         {
-            ArgumentNullException.ThrowIfNull(tmpDirectory, nameof(tmpDirectory));
             ArgumentNullException.ThrowIfNull(sourceThumbnailFile, nameof(sourceThumbnailFile));
 
             List<ThumbnailFile> thumbnails = [];
+            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedThumbSubDirectory);
+            Directory.CreateDirectory(outputDirectory);
 
             using var thumbFileStream = await sourceThumbnailFile.ReadToStreamAsync();
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -71,7 +74,7 @@ namespace Etherna.VideoImporter.Core.Services
             foreach (var responsiveWidthSize in ThumbnailHeightResolutions)
             {
                 var responsiveHeightSize = (int)(responsiveWidthSize / sourceThumbnailFile.AspectRatio);
-                var thumbnailResizedPath = Path.Combine(tmpDirectory.FullName, $"{responsiveHeightSize}.jpg");
+                var thumbnailResizedPath = Path.Combine(outputDirectory, $"{responsiveHeightSize}.jpg");
 
                 using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium))
                 using (SKImage scaledImage = SKImage.FromBitmap(scaledBitmap))
@@ -88,50 +91,32 @@ namespace Etherna.VideoImporter.Core.Services
             return thumbnails.ToArray();
         }
 
-        public async Task<VideoFile[]> EncodeVideosAsync(
-            VideoFile videoFile)
+        public Task<VideoEncodingBase> EncodeVideoAsync(
+            VideoEncodingBase sourceEncoding,
+            VideoType outputEncoding = DefaultVideoType) =>
+            EncodeVideoAsync(sourceEncoding.BestVariant, outputEncoding);
+
+        public async Task<VideoEncodingBase> EncodeVideoAsync(
+            VideoVariantBase sourceVariant,
+            VideoType outputEncoding = DefaultVideoType)
         {
-            ArgumentNullException.ThrowIfNull(videoFile, nameof(videoFile));
+            ArgumentNullException.ThrowIfNull(sourceVariant, nameof(sourceVariant));
+            
+            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedVideoSubDirectory);
+            Directory.CreateDirectory(outputDirectory);
 
-            var videoEncodedFiles = new List<VideoFile>();
-            var outputs = await ffMpegService.EncodeVideosAsync(
-                videoFile,
-                VideoHeightResolutions.Union(new List<int> { videoFile.Height })
-                                      .OrderDescending());
+            var encodedVideo = await ffMpegService.EncodeVideoAsync(
+                sourceVariant,
+                VideoHeightResolutions.Union(new List<int> { sourceVariant.Height })
+                                      .OrderDescending()
+                                      .ToArray(),
+                outputEncoding,
+                outputDirectory);
 
-            foreach (var (outputFilePath, outputHeight, outputWidth) in outputs)
-            {
-                var outputFileSize = new FileInfo(outputFilePath).Length;
-                videoEncodedFiles.Add(await VideoFile.BuildNewAsync(
-                    ffMpegService,
-                    uFileProvider.BuildNewUFile(new BasicUUri(outputFilePath, UUriKind.Local))));
+            foreach (var variant in encodedVideo.Variants)
+                ioService.WriteLine($"Encoded video variant {variant.Width}x{variant.Height}, size: {variant.TotalByteSize} byte");
 
-                ioService.WriteLine($"Encoded output stream {outputWidth}x{outputHeight}, file size: {outputFileSize} byte");
-            }
-
-            // Remove all video encodings where exists another with greater resolution, and equal or less file size.
-            RemoveUnusefulResolutions(videoEncodedFiles);
-
-            ioService.WriteLine($"Keep [{videoEncodedFiles.Select(vf => vf.Height.ToString(CultureInfo.InvariantCulture))
-                                                        .Aggregate((r, h) => $"{r}, {h}")}] as valid resolutions to upload");
-
-            return videoEncodedFiles.ToArray();
-        }
-
-        // Helpers.
-        private static void RemoveUnusefulResolutions(List<VideoFile> videoFiles)
-        {
-            var videoFilesWithByteSize = new List<(VideoFile video, long byteSize)>();
-            foreach (var file in videoFiles)
-                videoFilesWithByteSize.Add((file, file.ByteSize));
-
-            videoFilesWithByteSize.RemoveAll(
-                vf1 => videoFilesWithByteSize.Any(
-                    vf2 => vf1.video.Height < vf2.video.Height &&
-                           vf1.byteSize >= vf2.byteSize));
-
-            videoFiles.Clear();
-            videoFiles.AddRange(videoFilesWithByteSize.Select(p => p.video));
+            return encodedVideo;
         }
     }
 }

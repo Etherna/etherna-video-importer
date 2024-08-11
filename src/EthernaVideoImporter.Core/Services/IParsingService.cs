@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -16,31 +16,32 @@ using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.FFmpeg;
+using M3U8Parser;
+using System;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public interface IFFmpegService
+    public interface IParsingService
     {
-        // Methods.
-        Task<VideoEncodingBase> DecodeVideoEncodingFromUUriAsync(
-            BasicUUri mainFileUri,
-            SwarmAddress? swarmAddress = null);
+        Task<ThumbnailFile[]> ParseThumbnailFromPublishedVideoManifestAsync(
+            PublishedVideoManifest publishedManifest);
         
-        Task<VideoEncodingBase> EncodeVideoAsync(
-            VideoVariantBase inputVideoVariant,
-            int[] outputHeights,
-            VideoType outputType,
-            string outputDirectory);
-        
-        Task<string> ExtractThumbnailAsync(
-            VideoVariantBase inputVideoVariant);
-        
-        Task<string> GetFFmpegBinaryPathAsync();
-        
-        Task<string> GetFFprobeBinaryPathAsync();
-        
-        Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri);
+        Task<HlsVideoEncoding> ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
+            TimeSpan duration,
+            FileBase masterFile,
+            SwarmAddress? masterSwarmAddress,
+            MasterPlaylist masterPlaylist);
+
+        Task<VideoEncodingBase> ParseVideoEncodingFromPublishedVideoManifestAsync(
+            PublishedVideoManifest publishedManifest);
+
+        Task<HlsVideoVariant> ParseVideoVariantFromHlsStreamPlaylistFileAsync(
+            FileBase streamPlaylistFile,
+            SwarmAddress? streamPlaylistSwarmAddress,
+            int height,
+            int width);
+
+        Task<MasterPlaylist?> TryParseHlsMasterPlaylistFromFileAsync(FileBase hlsPlaylist);
     }
 }

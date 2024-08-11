@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,18 +12,14 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.VideoImporter.Core.Models.Domain;
-using System.IO;
-using System.Threading.Tasks;
+using System;
+using System.Linq;
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public interface IEncoderService
-    {
-        Task<ThumbnailFile[]> EncodeThumbnailsAsync(
-            ThumbnailFile sourceThumbnailFile,
-            DirectoryInfo tmpDirectory);
-        
-        Task<VideoFile[]> EncodeVideosAsync(VideoFile videoFile);
-    }
+    public class Mp4VideoEncoding(
+        TimeSpan duration,
+        string? encodingDirectoryPath,
+        SingleFileVideoVariant[] variants)
+        : VideoEncodingBase(duration, encodingDirectoryPath, null, variants.Cast<VideoVariantBase>().ToArray());
 }

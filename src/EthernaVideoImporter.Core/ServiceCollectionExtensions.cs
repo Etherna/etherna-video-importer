@@ -45,7 +45,7 @@ namespace Etherna.VideoImporter.Core
             services.AddTransient<IAppVersionService, AppVersionService>();
             services.AddTransient<IChunkService, ChunkService>();
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
-            services.AddTransient<IEncoderService, EncoderService>();
+            services.AddTransient<IEncodingService, EncodingService>();
             services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
             if (useBeeNativeNode)
                 services.AddTransient<IGatewayService, BeeGatewayService>();
@@ -53,6 +53,7 @@ namespace Etherna.VideoImporter.Core
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
             services.AddTransient<IHasher, Hasher>();
             services.AddTransient<IMigrationService, MigrationService>();
+            services.AddTransient<IParsingService, ParsingService>();
             services.AddTransient<IIoService, ConsoleIoService>();
             services.AddTransient<IUFileProvider, UFileProvider>();
             services.AddTransient<IVideoPublisherService, VideoPublisherService>();

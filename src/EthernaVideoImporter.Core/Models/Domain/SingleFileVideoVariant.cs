@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,31 +12,16 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-
-namespace Etherna.VideoImporter.Core.Models.FFmpeg
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public sealed class FFProbeResultDto
+    public class SingleFileVideoVariant(
+        FileBase videoFile,
+        int height,
+        int width)
+        : VideoVariantBase(height, width)
     {
-        // Classes.
-        public sealed class FormatResult
-        {
-            // Properties.
-            public TimeSpan Duration { get; set; }
-        }
-
-        public sealed class StreamResult
-        {
-            // Properties.
-            public int Height { get; set; }
-            public int Width { get; set; }
-        }
-
         // Properties.
-        public IEnumerable<StreamResult> Streams { get; set; } = default!;
-        public FormatResult Format { get; set; } = default!;
+        public override FileBase EntryFile => videoFile;
+        public override long TotalByteSize => videoFile.ByteSize;
     }
 }

@@ -17,6 +17,7 @@ using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -31,7 +32,7 @@ using YoutubeExplode.Videos.Streams;
 namespace Etherna.VideoImporter.Core.Utilities
 {
     public sealed class YoutubeDownloader(
-        IEncoderService encoderService,
+        IEncodingService encodingService,
         IFFmpegService ffMpegService,
         IHttpClientFactory httpClientFactory,
         IIoService ioService,
@@ -58,37 +59,37 @@ namespace Etherna.VideoImporter.Core.Utilities
                 .GetWithHighestBitrate();
 
             // Get high resolution video.
-            var videoLocalFile = await DownloadVideoAsync(
+            var sourceVideoEncoding = await DownloadVideoAsync(
                 audioOnlyStreamInfo,
-                videoOnlyStreamInfo,
-                videoMetadata.Title);
+                videoOnlyStreamInfo);
 
             // Transcode video resolutions.
-            var videoFiles = await encoderService.EncodeVideosAsync(videoLocalFile);
+            var finalVideoEncoding = await encodingService.EncodeVideoAsync(sourceVideoEncoding);
 
             // Get thumbnail.
             var bestResolutionThumbnail = videoMetadata.Thumbnail is null ?
                 await ThumbnailFile.BuildNewAsync(
                     uFileProvider.BuildNewUFile(new BasicUUri(
-                        await ffMpegService.ExtractThumbnailAsync(videoLocalFile), UUriKind.LocalAbsolute))) :
-                await DownloadThumbnailAsync(videoMetadata.Thumbnail, videoMetadata.Title);
+                        await ffMpegService.ExtractThumbnailAsync(sourceVideoEncoding.BestVariant), UUriKind.LocalAbsolute))) :
+                await DownloadThumbnailAsync(videoMetadata.Thumbnail);
 
-            var thumbnailFiles = await encoderService.EncodeThumbnailsAsync(bestResolutionThumbnail, CommonConsts.TempDirectory);
+            var thumbnailFiles = await encodingService.EncodeThumbnailsAsync(bestResolutionThumbnail);
             
             return new Video(
                 videoMetadata,
                 thumbnailFiles,
-                videoFiles);
+                finalVideoEncoding);
         }
 
         // Helpers.
         private async Task<ThumbnailFile> DownloadThumbnailAsync(
-            Thumbnail thumbnail,
-            string videoTitle)
+            Thumbnail thumbnail)
         {
             ArgumentNullException.ThrowIfNull(thumbnail, nameof(thumbnail));
 
-            string thumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
+            string thumbnailFilePath = Path.Combine(
+                CommonConsts.TempDirectory.FullName,
+                $"input_{thumbnail.Resolution.Width}x{thumbnail.Resolution.Height}.jpg");
 
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {
@@ -119,12 +120,11 @@ namespace Etherna.VideoImporter.Core.Utilities
                 uFileProvider.BuildNewUFile(new BasicUUri(thumbnailFilePath, UUriKind.Local)));
         }
 
-        private async Task<VideoFile> DownloadVideoAsync(
+        private async Task<VideoEncodingBase> DownloadVideoAsync(
             IAudioStreamInfo audioOnlyStream,
-            IVideoStreamInfo videoOnlyStream,
-            string videoTitle)
+            IVideoStreamInfo videoOnlyStream)
         {
-            var videoFileName = $"{videoTitle.ToSafeFileName()}_{videoOnlyStream.VideoResolution}.{videoOnlyStream.Container}";
+            var videoFileName = $"input_{videoOnlyStream.VideoResolution}.{videoOnlyStream.Container}";
             var videoFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, videoFileName);
             var videoQualityLabel = videoOnlyStream.VideoQuality.Label;
 
@@ -161,11 +161,11 @@ namespace Etherna.VideoImporter.Core.Utilities
                 }
             }
 
-            return await VideoFile.BuildNewAsync(
-                ffMpegService,
-                uFileProvider.BuildNewUFile(new BasicUUri(videoFilePath, UUriKind.Local)));
+            return await ffMpegService.DecodeVideoEncodingFromUUriAsync(
+                new BasicUUri(videoFilePath, UUriKind.Local));
         }
 
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private void PrintProgressLine(string message, double progressStatus, double totalSizeMB, DateTime startDateTime)
         {
             // Calculate ETA.

@@ -25,7 +25,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     {
         private string? _description;
         private TimeSpan? _duration;
-        private string? _originVideoQualityLabel;
         private string? _title;
 
         // Consts.
@@ -36,7 +35,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public IEnumerable<string> AllSourceIds => SourceOldIds.Prepend(SourceId);
         public bool IsDataFetched => _description is not null &&
                                      _duration is not null &&
-                                     _originVideoQualityLabel is not null &&
                                      _title is not null;
         public virtual string Description
         {
@@ -47,18 +45,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         {
             get => _duration ?? throw new InvalidOperationException("Duration is not fetched");
             protected set => _duration = value;
-        }
-        public string OriginVideoQualityLabel
-        {
-            get => _originVideoQualityLabel ?? throw new InvalidOperationException("Origin video quality is not fetched");
-            protected set
-            {
-                var match = QualityLabelRegex().Match(value);
-                if (match.Success)
-                    _originVideoQualityLabel = match.Groups["label"].Value;
-                else
-                    throw new InvalidOperationException("Invalid quality label");
-            }
         }
         public abstract string SourceId { get; }
         public abstract string SourceName { get; }

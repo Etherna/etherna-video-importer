@@ -30,7 +30,7 @@ using System.Threading.Tasks;
 namespace Etherna.VideoImporter.Services
 {
     internal sealed class JsonListVideoProvider(
-        IEncoderService encoderService,
+        IEncodingService encodingService,
         IFFmpegService ffMpegService,
         IIoService ioService,
         IOptions<JsonListVideoProviderOptions> options,
@@ -51,16 +51,16 @@ namespace Etherna.VideoImporter.Services
                 ?? throw new ArgumentException($"Metadata must be of type {nameof(JsonVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
-            var encodedVideoFiles = await encoderService.EncodeVideosAsync(sourceVideoMetadata.Video);
+            var encodedVideoFiles = await encodingService.EncodeVideoAsync(sourceVideoMetadata.VideoEncoding);
 
             // Transcode thumbnail resolutions.
-            var thumbnailFiles = await encoderService.EncodeThumbnailsAsync(
-                sourceVideoMetadata.SourceThumbnail, CommonConsts.TempDirectory);
+            var thumbnailFiles = await encodingService.EncodeThumbnailsAsync(
+                sourceVideoMetadata.SourceThumbnail);
 
             return new Video(
                 videoMetadata,
                 thumbnailFiles.ToArray(),
-                encodedVideoFiles.ToArray());
+                encodedVideoFiles);
         }
 
         public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()
@@ -68,7 +68,7 @@ namespace Etherna.VideoImporter.Services
             // Read json list.
             string jsonData = await uFileProvider.BuildNewUFile(options.JsonMetadataUri).ReadToStringAsync();
             string jsonMetadataDirectoryAbsoluteUri = (options.JsonMetadataUri.TryGetParentDirectoryAsAbsoluteUri() ??
-                throw new InvalidOperationException("Must exist a parent directory")).Item1;
+                throw new InvalidOperationException("Must exist a parent directory")).OriginalUri;
 
             // Parse json video list.
             var jsonVideosMetadataDto = JsonSerializer.Deserialize<List<JsonVideoMetadataDto>>(jsonData) 
@@ -88,11 +88,10 @@ namespace Etherna.VideoImporter.Services
                 try
                 {
                     // Build video.
-                    var video = await VideoFile.BuildNewAsync(
-                        ffMpegService,
-                        uFileProvider.BuildNewUFile(new BasicUUri(
+                    var videoEncoding = await ffMpegService.DecodeVideoEncodingFromUUriAsync(
+                        new BasicUUri(
                             metadataDto.VideoFilePath,
-                            defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri)));
+                            defaultBaseDirectory: jsonMetadataDirectoryAbsoluteUri));
 
                     // Build thumbnail.
                     ThumbnailFile thumbnail;
@@ -100,7 +99,7 @@ namespace Etherna.VideoImporter.Services
                     {
                         thumbnail = await ThumbnailFile.BuildNewAsync(
                             uFileProvider.BuildNewUFile(new BasicUUri(
-                                await ffMpegService.ExtractThumbnailAsync(video),
+                                await ffMpegService.ExtractThumbnailAsync(videoEncoding.BestVariant),
                                 UUriKind.LocalAbsolute)));
                     }
                     else
@@ -118,7 +117,7 @@ namespace Etherna.VideoImporter.Services
                             metadataDto.Title,
                             metadataDto.Description,
                             metadataDto.OldIds,
-                            video,
+                            videoEncoding,
                             thumbnail));
 
                     ioService.WriteLine($"Loaded metadata for {metadataDto.Title}");
