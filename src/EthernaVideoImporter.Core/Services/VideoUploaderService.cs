@@ -95,7 +95,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
             foreach (var variant in video.VideoEncoding.Variants.Where(v => v.EntryFile.SwarmHash is null))
             {
-                ioService.WriteLine($"Creating chunks of {variant.QualityLabel} variant in progress...");
+                ioService.WriteLine($"Creating chunks of {variant.QualityLabel} video variant in progress...");
                 
                 //common entry file
                 using var stream = await variant.EntryFile.ReadToStreamAsync();
@@ -144,8 +144,12 @@ namespace Etherna.VideoImporter.Core.Services
             //video manifest video sources
             var manifestVideoSources = video.VideoEncoding.Variants.Select(v =>
             {
+                var sourceRelativePath = v.EntryFile.UUri.OriginalUri;
+                if (video.VideoEncoding.EncodingDirectoryPath != null)
+                    sourceRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, sourceRelativePath);
+                    
                 return new VideoManifestVideoSource(
-                    v.EntryFile.FileName,
+                    sourceRelativePath,
                     v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
                     video.VideoEncoding switch
                     {
@@ -158,11 +162,18 @@ namespace Etherna.VideoImporter.Core.Services
                     v switch
                     {
                         HlsVideoVariant hlsV => hlsV.HlsSegmentFiles.Select(segment =>
-                            new VideoManifestVideoSourceAdditionalFile(
-                                segment.FileName,
-                                segment.SwarmHash ??
-                                throw new InvalidOperationException("Swarm hash can't be null here"),
-                                segment.UUri.OriginalUri))
+                            {
+                                var segmentRelativePath = segment.UUri.OriginalUri;
+                                if (video.VideoEncoding.EncodingDirectoryPath != null)
+                                    segmentRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, segmentRelativePath);
+                                var swarmUri = new SwarmUri(segment.UUri.OriginalUri, UriKind.Relative);
+                                
+                                return new VideoManifestVideoSourceAdditionalFile(
+                                    segmentRelativePath,
+                                    segment.SwarmHash ??
+                                    throw new InvalidOperationException("Swarm hash can't be null here"),
+                                    swarmUri);
+                            })
                             .ToArray(),
                         _ => []
                     });

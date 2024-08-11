@@ -71,9 +71,9 @@ namespace Etherna.VideoImporter.Core.Utilities
                 await ThumbnailFile.BuildNewAsync(
                     uFileProvider.BuildNewUFile(new BasicUUri(
                         await ffMpegService.ExtractThumbnailAsync(sourceVideoEncoding.BestVariant), UUriKind.LocalAbsolute))) :
-                await DownloadThumbnailAsync(videoMetadata.Thumbnail, videoMetadata.Title);
+                await DownloadThumbnailAsync(videoMetadata.Thumbnail);
 
-            var thumbnailFiles = await encodingService.EncodeThumbnailsAsync(bestResolutionThumbnail, CommonConsts.TempDirectory);
+            var thumbnailFiles = await encodingService.EncodeThumbnailsAsync(bestResolutionThumbnail);
             
             return new Video(
                 videoMetadata,
@@ -83,12 +83,13 @@ namespace Etherna.VideoImporter.Core.Utilities
 
         // Helpers.
         private async Task<ThumbnailFile> DownloadThumbnailAsync(
-            Thumbnail thumbnail,
-            string videoTitle)
+            Thumbnail thumbnail)
         {
             ArgumentNullException.ThrowIfNull(thumbnail, nameof(thumbnail));
 
-            string thumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{videoTitle.ToSafeFileName()}_thumb.jpg");
+            string thumbnailFilePath = Path.Combine(
+                CommonConsts.TempDirectory.FullName,
+                $"input_{thumbnail.Resolution.Width}x{thumbnail.Resolution.Height}.jpg");
 
             for (int i = 0; i <= CommonConsts.DownloadMaxRetry; i++)
             {

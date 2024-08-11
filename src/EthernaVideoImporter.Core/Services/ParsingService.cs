@@ -102,6 +102,7 @@ namespace Etherna.VideoImporter.Core.Services
                         
             return new HlsVideoEncoding(
                 duration,
+                masterFileDirectory.OriginalUri,
                 masterFile,
                 variants.ToArray());
         }
@@ -258,6 +259,7 @@ namespace Etherna.VideoImporter.Core.Services
             
             return new Mp4VideoEncoding(
                 publishedManifest.Manifest.Duration,
+                null,
                 videoVariants.ToArray());
         }
     }

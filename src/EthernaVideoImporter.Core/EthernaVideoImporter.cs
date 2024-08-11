@@ -18,7 +18,6 @@ using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.Sdk.Users.Index.Models;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.ModelView;
 using Etherna.VideoImporter.Core.Services;
@@ -40,13 +39,11 @@ namespace Etherna.VideoImporter.Core
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
         private readonly IEthernaSignInService ethernaSignInService;
-        private readonly IGatewayService gatewayService;
         private readonly IHasher hasher;
         private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
         private readonly IParsingService parsingService;
         private readonly IResultReporterService resultReporterService;
-        private readonly IUFileProvider uFileProvider;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -57,13 +54,11 @@ namespace Etherna.VideoImporter.Core
             IEthernaUserIndexClient ethernaIndexClient,
             IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
             IEthernaSignInService ethernaSignInService,
-            IGatewayService gatewayService,
             IHasher hasher,
             IIoService ioService,
             IMigrationService migrationService,
             IParsingService parsingService,
             IResultReporterService resultReporterService,
-            IUFileProvider uFileProvider,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
@@ -76,12 +71,10 @@ namespace Etherna.VideoImporter.Core
             this.ethernaIndexClient = ethernaIndexClient;
             this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
             this.ethernaSignInService = ethernaSignInService;
-            this.gatewayService = gatewayService;
             this.hasher = hasher;
             this.ioService = ioService;
             this.migrationService = migrationService;
             this.resultReporterService = resultReporterService;
-            this.uFileProvider = uFileProvider;
             this.parsingService = parsingService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
@@ -235,7 +228,7 @@ namespace Etherna.VideoImporter.Core
                 {
                     try
                     {
-                        // Clear tmp folder.
+                        // Clear tmp folder for next import.
                         foreach (var file in CommonConsts.TempDirectory.GetFiles())
                             file.Delete();
                         foreach (var dir in CommonConsts.TempDirectory.GetDirectories())

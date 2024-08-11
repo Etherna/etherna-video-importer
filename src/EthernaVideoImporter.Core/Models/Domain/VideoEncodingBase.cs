@@ -23,6 +23,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Constructor.
         protected VideoEncodingBase(
             TimeSpan duration,
+            string? encodingDirectoryPath,
             FileBase? masterFile,
             VideoVariantBase[] variants)
         {
@@ -31,6 +32,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 throw new ArgumentException("Variant list can't be empty");
 
             Duration = duration;
+            EncodingDirectoryPath = encodingDirectoryPath;
             MasterFile = masterFile;
             Variants = variants;
         }
@@ -38,6 +40,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Properties.
         public VideoVariantBase BestVariant => Variants.MaxBy(v => v.Height)!;
         public TimeSpan Duration { get; }
+        public string? EncodingDirectoryPath { get; }
         public FileBase? MasterFile { get; }
         public long TotalByteSize => (MasterFile?.ByteSize ?? 0) + Variants.Sum(v => v.TotalByteSize);
         public IReadOnlyCollection<VideoVariantBase> Variants { get; }

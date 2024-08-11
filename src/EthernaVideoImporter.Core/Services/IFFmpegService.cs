@@ -27,14 +27,20 @@ namespace Etherna.VideoImporter.Core.Services
         Task<VideoEncodingBase> DecodeVideoEncodingFromUUriAsync(
             BasicUUri mainFileUri,
             SwarmAddress? swarmAddress = null);
+        
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase inputVideoVariant,
             int[] outputHeights,
-            VideoType outputType);
+            VideoType outputType,
+            string outputDirectory);
+        
         Task<string> ExtractThumbnailAsync(
             VideoVariantBase inputVideoVariant);
+        
         Task<string> GetFFmpegBinaryPathAsync();
+        
         Task<string> GetFFprobeBinaryPathAsync();
+        
         Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri);
     }
 }

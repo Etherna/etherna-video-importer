@@ -19,8 +19,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         int width)
     {
         // Properties.
-        public int Height { get; } = height;
         public abstract FileBase EntryFile { get; }
+        public int Height { get; } = height;
         public string QualityLabel => $"{Height}p";
         public int Width { get; } = width;
         public abstract long TotalByteSize { get; }

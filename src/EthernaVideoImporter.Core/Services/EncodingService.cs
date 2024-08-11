@@ -31,6 +31,8 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Consts.
         public const VideoType DefaultVideoType = VideoType.Hls;
+        public const string EncodedThumbSubDirectory = "encoded/thumb";
+        public const string EncodedVideoSubDirectory = "encoded/video";
         public static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
         public static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440, 2160, 4320];
 
@@ -57,13 +59,13 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Methods.
         public async Task<ThumbnailFile[]> EncodeThumbnailsAsync(
-            ThumbnailFile sourceThumbnailFile,
-            DirectoryInfo tmpDirectory)
+            ThumbnailFile sourceThumbnailFile)
         {
-            ArgumentNullException.ThrowIfNull(tmpDirectory, nameof(tmpDirectory));
             ArgumentNullException.ThrowIfNull(sourceThumbnailFile, nameof(sourceThumbnailFile));
 
             List<ThumbnailFile> thumbnails = [];
+            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedThumbSubDirectory);
+            Directory.CreateDirectory(outputDirectory);
 
             using var thumbFileStream = await sourceThumbnailFile.ReadToStreamAsync();
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -72,7 +74,7 @@ namespace Etherna.VideoImporter.Core.Services
             foreach (var responsiveWidthSize in ThumbnailHeightResolutions)
             {
                 var responsiveHeightSize = (int)(responsiveWidthSize / sourceThumbnailFile.AspectRatio);
-                var thumbnailResizedPath = Path.Combine(tmpDirectory.FullName, $"{responsiveHeightSize}.jpg");
+                var thumbnailResizedPath = Path.Combine(outputDirectory, $"{responsiveHeightSize}.jpg");
 
                 using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium))
                 using (SKImage scaledImage = SKImage.FromBitmap(scaledBitmap))
@@ -92,20 +94,24 @@ namespace Etherna.VideoImporter.Core.Services
         public Task<VideoEncodingBase> EncodeVideoAsync(
             VideoEncodingBase sourceEncoding,
             VideoType outputEncoding = DefaultVideoType) =>
-            EncodeVideoAsync(sourceEncoding.Variants.MaxBy(v => v.Height)!, outputEncoding);
+            EncodeVideoAsync(sourceEncoding.BestVariant, outputEncoding);
 
         public async Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase sourceVariant,
             VideoType outputEncoding = DefaultVideoType)
         {
             ArgumentNullException.ThrowIfNull(sourceVariant, nameof(sourceVariant));
+            
+            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedVideoSubDirectory);
+            Directory.CreateDirectory(outputDirectory);
 
             var encodedVideo = await ffMpegService.EncodeVideoAsync(
                 sourceVariant,
                 VideoHeightResolutions.Union(new List<int> { sourceVariant.Height })
                                       .OrderDescending()
                                       .ToArray(),
-                outputEncoding);
+                outputEncoding,
+                outputDirectory);
 
             foreach (var variant in encodedVideo.Variants)
                 ioService.WriteLine($"Encoded video variant {variant.Width}x{variant.Height}, size: {variant.TotalByteSize} byte");

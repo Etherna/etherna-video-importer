@@ -14,7 +14,6 @@
 
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
-using System.IO;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -22,8 +21,7 @@ namespace Etherna.VideoImporter.Core.Services
     public interface IEncodingService
     {
         Task<ThumbnailFile[]> EncodeThumbnailsAsync(
-            ThumbnailFile sourceThumbnailFile,
-            DirectoryInfo tmpDirectory);
+            ThumbnailFile sourceThumbnailFile);
         
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoEncodingBase sourceEncoding,

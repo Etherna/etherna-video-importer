@@ -17,6 +17,9 @@ using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class Mp4VideoEncoding(TimeSpan duration, SingleFileVideoVariant[] variants)
-        : VideoEncodingBase(duration, null, variants.Cast<VideoVariantBase>().ToArray());
+    public class Mp4VideoEncoding(
+        TimeSpan duration,
+        string? encodingDirectoryPath,
+        SingleFileVideoVariant[] variants)
+        : VideoEncodingBase(duration, encodingDirectoryPath, null, variants.Cast<VideoVariantBase>().ToArray());
 }

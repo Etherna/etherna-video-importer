@@ -21,6 +21,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     /// A simple, single file, video encoding
     /// </summary>
     /// <param name="variants">Video variants</param>
-    public class UndefinedVideoEncoding(TimeSpan duration, SingleFileVideoVariant[] variants)
-        : VideoEncodingBase(duration, null, variants.Cast<VideoVariantBase>().ToArray());
+    public class UndefinedVideoEncoding(
+        TimeSpan duration,
+        string? encodingDirectoryPath,
+        SingleFileVideoVariant[] variants)
+        : VideoEncodingBase(duration, encodingDirectoryPath, null, variants.Cast<VideoVariantBase>().ToArray());
 }
