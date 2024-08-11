@@ -166,13 +166,11 @@ namespace Etherna.VideoImporter.Core.Services
                                 var segmentRelativePath = segment.UUri.OriginalUri;
                                 if (video.VideoEncoding.EncodingDirectoryPath != null)
                                     segmentRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, segmentRelativePath);
-                                var swarmUri = new SwarmUri(segment.UUri.OriginalUri, UriKind.Relative);
                                 
                                 return new VideoManifestVideoSourceAdditionalFile(
                                     segmentRelativePath,
                                     segment.SwarmHash ??
-                                    throw new InvalidOperationException("Swarm hash can't be null here"),
-                                    swarmUri);
+                                    throw new InvalidOperationException("Swarm hash can't be null here"));
                             })
                             .ToArray(),
                         _ => []
