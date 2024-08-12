@@ -25,18 +25,17 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
-    internal sealed class MdResultReporterService : IResultReporterService
+    internal sealed class DevconResultReporterService : IResultReporterService
     {
         // Consts.
-        private const string EthernaIndexPrefix = "ethernaIndex:";
         private const string EthernaPermalinkPrefix = "ethernaPermalink:";
         
         // Fields.
-        private readonly MdResultReporterOptions options;
+        private readonly DevconResultReporterOptions options;
 
         // Constructor.
-        public MdResultReporterService(
-            IOptions<MdResultReporterOptions> options)
+        public DevconResultReporterService(
+            IOptions<DevconResultReporterOptions> options)
         {
             ArgumentNullException.ThrowIfNull(options, nameof(options));
 
@@ -54,24 +53,15 @@ namespace Etherna.VideoImporter.Devcon.Services
             if (importResult is not VideoImportResultSucceeded succededResult)
                 return;
             
-            var filePath = Path.Combine(options.MdResultFolderPath, succededResult.SourceMetadata.SourceId);
-            var ethernaIndexUrl = UrlBuilder.BuildEmbeddedIndexUrl(succededResult.IndexId);
-            var ethernaPermalinkUrl = UrlBuilder.BuildEmbeddedPermalinkUrl(succededResult.ReferenceHash);
+            var filePath = Path.Combine(options.ResultFolderPath, succededResult.SourceMetadata.SourceId);
+            var swarmHash = UrlBuilder.BuildEmbeddedPermalinkUrl(succededResult.ReferenceHash);
 
             // Read all line.
             var lines = (await File.ReadAllLinesAsync(filePath)).ToList();
 
-            // Set ethernaIndex.
-            var index = GetLineNumber(lines, EthernaIndexPrefix);
-            var ethernaIndexLine = $"{EthernaIndexPrefix} \"{ethernaIndexUrl}\"";
-            if (index >= 0)
-                lines[index] = ethernaIndexLine;
-            else
-                lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaIndexLine);
-
-            // Set ethernaPermalink.
-            index = GetLineNumber(lines, EthernaPermalinkPrefix);
-            var ethernaPermalinkLine = $"{EthernaPermalinkPrefix} \"{ethernaPermalinkUrl}\"";
+            // Set swarm hash.
+            var index = GetLineNumber(lines, EthernaPermalinkPrefix);
+            var ethernaPermalinkLine = $"{EthernaPermalinkPrefix} \"{swarmHash}\"";
             if (index >= 0)
                 lines[index] = ethernaPermalinkLine;
             else

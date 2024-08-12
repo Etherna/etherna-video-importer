@@ -296,23 +296,23 @@ namespace Etherna.VideoImporter.Devcon
                 useBeeNativeNode);
             
             //source provider
-            services.Configure<MdVideoProviderOptions>(options =>
+            services.Configure<DevconVideoProviderOptions>(options =>
             {
-                options.MdSourceFolderPath = mdSourceFolderPath;
+                options.DevconSourceFolderPath = mdSourceFolderPath;
             });
-            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
+            services.AddSingleton<IValidateOptions<DevconVideoProviderOptions>, DevconVideoProviderOptionsValidation>();
             services.AddTransient<IYoutubeClient, YoutubeClient>();
             services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
-            services.AddTransient<IVideoProvider, MdVideoProvider>();
+            services.AddTransient<IVideoProvider, DevconVideoProvider>();
             
             //result reporter
-            services.Configure<MdResultReporterOptions>(options =>
+            services.Configure<DevconResultReporterOptions>(options =>
             {
                 options.IsDryRun = isDryRun;
-                options.MdResultFolderPath = mdSourceFolderPath;
+                options.ResultFolderPath = mdSourceFolderPath;
             });
-            services.AddSingleton<IValidateOptions<MdResultReporterOptions>, MdResultReporterOptionsValidation>();
-            services.AddTransient<IResultReporterService, MdResultReporterService>();
+            services.AddSingleton<IValidateOptions<DevconResultReporterOptions>, DevconResultReporterOptionsValidation>();
+            services.AddTransient<IResultReporterService, DevconResultReporterService>();
 
             var serviceProvider = services.BuildServiceProvider();
 

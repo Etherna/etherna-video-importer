@@ -1,4 +1,4 @@
-// Copyright 2022-present Etherna SA
+﻿// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,9 +14,8 @@
 
 namespace Etherna.VideoImporter.Devcon.Options
 {
-    internal sealed class MdResultReporterOptions
+    internal sealed class DevconVideoProviderOptions
     {
-        public bool IsDryRun { get; set; }
-        public string MdResultFolderPath { get; set; } = default!;
+        public string DevconSourceFolderPath { get; set; } = default!;
     }
 }

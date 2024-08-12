@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Utilities;
 using System;
@@ -19,34 +20,32 @@ using System.Collections.Generic;
 
 namespace Etherna.VideoImporter.Devcon.Models.Domain
 {
-    internal sealed class MdFileVideoMetadata : YouTubeVideoMetadataBase
+    internal sealed class DevconFileVideoMetadata : YouTubeVideoMetadataBase
     {
         // Fields.
         private readonly string descriptionOverride;
         private readonly string titleOverride;
         
         // Constructor.
-        public MdFileVideoMetadata(
+        public DevconFileVideoMetadata(
             string title,
             string description,
-            string mdFileRelativePath,
+            string devconFileRelativePath,
             IYoutubeDownloader youtubeDownloader,
-            string youtubeUrl,
-            string? ethernaIndexUrl,
-            string? ethernaPermalinkUrl)
-            : base(youtubeDownloader, youtubeUrl, null)
+            string youtubeId,
+            SwarmHash? swarmHash)
+            : base(youtubeDownloader, "https://youtu.be/" + youtubeId, null)
         {
-            if (string.IsNullOrWhiteSpace(mdFileRelativePath))
-                throw new ArgumentException("Value cannot be null or whitespace.", nameof(mdFileRelativePath));
+            if (string.IsNullOrWhiteSpace(devconFileRelativePath))
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(devconFileRelativePath));
             
             // Generate Id and old Ids.
-            SourceId = mdFileRelativePath.Replace('\\', '/'); //use unix-like path
-            SourceOldIds = new[] { mdFileRelativePath.Replace('/', '\\') }; //migrate from windows-like path
+            SourceId = devconFileRelativePath.Replace('\\', '/'); //use unix-like path
+            SourceOldIds = new[] { devconFileRelativePath.Replace('/', '\\') }; //migrate from windows-like path
 
             descriptionOverride = description;
-            EthernaIndexUrl = ethernaIndexUrl;
-            EthernaPermalinkUrl = ethernaPermalinkUrl;
-            MdFileRelativePath = mdFileRelativePath;
+            DevconFileRelativePath = devconFileRelativePath;
+            SwarmHash = swarmHash;
             titleOverride = title;
         }
 
@@ -56,11 +55,10 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
             get => descriptionOverride;
             protected set { }
         }
-        public string? EthernaIndexUrl { get; }
-        public string? EthernaPermalinkUrl { get; }
-        public string MdFileRelativePath { get; }
+        public string DevconFileRelativePath { get; }
         public override string SourceId { get; }
         public override IEnumerable<string> SourceOldIds { get; }
+        public SwarmHash? SwarmHash { get; }
         public override string Title
         {
             get => titleOverride;
