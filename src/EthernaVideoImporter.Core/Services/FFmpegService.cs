@@ -514,7 +514,7 @@ namespace Etherna.VideoImporter.Core.Services
                     (ceilingKey - floorKey) + HlsBitrateByArea[floorKey]);
             }
 
-            var bitrate = FindBitrateValue(height * width) / (int)options.BitrateCompaction;
+            var bitrate = FindBitrateValue(height * width) / (int)options.BitrateReduction;
             return bitrate + "k";
         }
 

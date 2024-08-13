@@ -41,7 +41,7 @@ Video Management Options:
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
-  --bitrate-compact       Bitrate compaction. Values: [None, Low, Normal, High, Extreme, Insane]. Default: Normal
+  --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
   -c, --preset-codec      Preset of codec used for encoder (see ffmpeg documentation). Default: medium
 
 Bee Node Options:
@@ -98,7 +98,7 @@ Video Management Options:
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
-  --bitrate-compact       Bitrate compaction. Values: [None, Low, Normal, High, Extreme, Insane]. Default: Normal
+  --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
   -c, --preset-codec      Preset of codec used for encoder (ultrafast, superfast, fast, medium, slow, slower) default: medium
 
 Bee Node Options:

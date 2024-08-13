@@ -18,7 +18,7 @@ namespace Etherna.VideoImporter.Core.Models.FFmpeg
 {
     [SuppressMessage("Design", "CA1008:Enums should have zero value")]
     [SuppressMessage("Design", "CA1027:Mark enums with FlagsAttribute")]
-    public enum FFmpegBitrateCompaction
+    public enum FFmpegBitrateReduction
     {
         None = 1,
         Low = 2,

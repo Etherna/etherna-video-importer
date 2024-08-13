@@ -52,7 +52,7 @@ namespace Etherna.VideoImporter.Devcon
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
-              --bitrate-compact       Bitrate compaction. Values: [None, Low, Normal, High, Extreme, Insane]. Default: {FFmpegServiceOptions.DefaultBitrateCompaction}
+              --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: {FFmpegServiceOptions.DefaultBitrateReduction}
               -c, --preset-codec      Preset of codec used for encoder (see ffmpeg documentation). Default: {FFmpegServiceOptions.DefaultPresetCodec}
 
             Bee Node Options:
@@ -84,8 +84,8 @@ namespace Etherna.VideoImporter.Devcon
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
-            FFmpegBitrateCompaction bitrateCompaction = FFmpegBitrateCompaction.Normal;
-            FFmpegH264Preset presetCodec = FFmpegServiceOptions.DefaultPresetCodec;
+            var bitrateReduction = FFmpegBitrateReduction.Normal;
+            var presetCodec = FFmpegServiceOptions.DefaultPresetCodec;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -190,10 +190,10 @@ namespace Etherna.VideoImporter.Devcon
                         unpinRemovedVideos = true;
                         break;
                     
-                    case "--bitrate-compact":
+                    case "--bitrate-reduction":
                         if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Bitrate compaction value is missing");
-                        bitrateCompaction = Enum.Parse<FFmpegBitrateCompaction>(optArgs[++i]);
+                            throw new ArgumentException("Bitrate reduction value is missing");
+                        bitrateReduction = Enum.Parse<FFmpegBitrateReduction>(optArgs[++i]);
                         break;
 
                     case "-c":
@@ -282,7 +282,7 @@ namespace Etherna.VideoImporter.Devcon
                 },
                 ffMpegOptions =>
                 {
-                    ffMpegOptions.BitrateCompaction = bitrateCompaction;
+                    ffMpegOptions.BitrateReduction = bitrateReduction;
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                     ffMpegOptions.PresetCodec = presetCodec;
                 },
