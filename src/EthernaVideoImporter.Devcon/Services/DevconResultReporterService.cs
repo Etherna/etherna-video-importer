@@ -14,22 +14,19 @@
 
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Services;
-using Etherna.VideoImporter.Core.Utilities;
+using Etherna.VideoImporter.Devcon.Models.JsonDto;
 using Etherna.VideoImporter.Devcon.Options;
 using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Devcon.Services
 {
     internal sealed class DevconResultReporterService : IResultReporterService
     {
-        // Consts.
-        private const string EthernaPermalinkPrefix = "ethernaPermalink:";
-        
         // Fields.
         private readonly DevconResultReporterOptions options;
 
@@ -54,41 +51,59 @@ namespace Etherna.VideoImporter.Devcon.Services
                 return;
             
             var filePath = Path.Combine(options.ResultFolderPath, succededResult.SourceMetadata.SourceId);
-            var swarmHash = UrlBuilder.BuildEmbeddedPermalinkUrl(succededResult.ReferenceHash);
 
-            // Read all line.
-            var lines = (await File.ReadAllLinesAsync(filePath)).ToList();
-
-            // Set swarm hash.
-            var index = GetLineNumber(lines, EthernaPermalinkPrefix);
-            var ethernaPermalinkLine = $"{EthernaPermalinkPrefix} \"{swarmHash}\"";
-            if (index >= 0)
-                lines[index] = ethernaPermalinkLine;
-            else
-                lines.Insert(GetIndexOfInsertLine(lines.Count), ethernaPermalinkLine);
-
-            // Save file.
-            await File.WriteAllLinesAsync(filePath, lines);
-        }
-        
-        // Helpers.
-        private int GetLineNumber(List<string> lines, string prefix)
-        {
-            var lineIndex = 0;
-            foreach (var line in lines)
+            // Read full json file.
+            var jsonString = await File.ReadAllTextAsync(filePath);
+            using var jsonDoc = JsonDocument.Parse(jsonString);
+            var jsonRoot = jsonDoc.RootElement;
+            
+            // Create the new json object with modified value
+            using var outputStream = new MemoryStream();
+            using var writer = new Utf8JsonWriter(outputStream, new JsonWriterOptions
             {
-                if (line.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    return lineIndex;
+                Indented = true
+            });
+            writer.WriteStartObject();
 
-                lineIndex++;
+            bool isWrote = false;
+            bool waitingToWrite = false;
+            foreach (var property in jsonRoot.EnumerateObject())
+            {
+                switch (property.Name)
+                {
+                    case DevconFileDto.YoutubeIdKey:
+                    case DevconFileDto.IpfsHashKey:
+                        writer.WritePropertyName(property.Name);
+                        property.Value.WriteTo(writer);
+                        waitingToWrite = !isWrote;
+                        break;
+                    
+                    case DevconFileDto.SwarmHashKey:
+                        writer.WriteString(DevconFileDto.SwarmHashKey, succededResult.ReferenceHash.ToString());
+                        isWrote = true;
+                        waitingToWrite = false;
+                        break;
+                    
+                    default:
+                        if (waitingToWrite)
+                        {
+                            writer.WriteString(DevconFileDto.SwarmHashKey, succededResult.ReferenceHash.ToString());
+                            isWrote = true;
+                            waitingToWrite = false;
+                        }
+                        writer.WritePropertyName(property.Name);
+                        property.Value.WriteTo(writer);
+                        break;
+                }
             }
-            return -1;
-        }
-
-        private int GetIndexOfInsertLine(int lines)
-        {
-            // Last position. (Excluded final ---)
-            return lines - 2;
+            
+            writer.WriteEndObject();
+            await writer.FlushAsync();
+            outputStream.Position = 0;
+            
+            // Write back json file.
+            jsonString = Encoding.UTF8.GetString(outputStream.ToArray());
+            await File.WriteAllTextAsync(filePath, jsonString);
         }
     }
 }

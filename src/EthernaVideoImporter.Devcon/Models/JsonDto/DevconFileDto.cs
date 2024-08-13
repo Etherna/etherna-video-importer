@@ -18,6 +18,11 @@ namespace Etherna.VideoImporter.Devcon.Models.JsonDto
 {
     internal sealed class DevconFileDto
     {
+        // Consts.
+        public const string IpfsHashKey = "sources_ipfsHash";
+        public const string SwarmHashKey = "sources_swarmHash";
+        public const string YoutubeIdKey = "sources_youtubeId";
+        
         // Properties.
         [JsonPropertyName("description")]
         public string Description { get; set; } = default!;
@@ -25,10 +30,10 @@ namespace Etherna.VideoImporter.Devcon.Models.JsonDto
         [JsonPropertyName("title")]
         public string Title { get; set; } = default!;
         
-        [JsonPropertyName("sources_swarmHash")]
+        [JsonPropertyName(SwarmHashKey)]
         public string? SwarmHash { get; set; }
         
-        [JsonPropertyName("sources_youtubeId")]
+        [JsonPropertyName(YoutubeIdKey)]
         public string YoutubeId { get; set; } = default!;
     }
 }
