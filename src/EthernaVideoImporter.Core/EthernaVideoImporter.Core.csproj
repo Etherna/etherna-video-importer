@@ -27,7 +27,7 @@
     <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.4.1" />
     <PackageReference Include="EthernaSdk.Users.Gateway" Version="0.4.0-alpha.101" />
     <PackageReference Include="EthernaSdk.Users.Index" Version="0.4.0-alpha.101" />
-    <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
+    <PackageReference Include="GitVersion.MsBuild" Version="6.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
