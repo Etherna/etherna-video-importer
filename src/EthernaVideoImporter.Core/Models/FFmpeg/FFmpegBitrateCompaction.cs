@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,19 +12,19 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.VideoImporter.Core.Models.FFmpeg;
+using System.Diagnostics.CodeAnalysis;
 
-namespace Etherna.VideoImporter.Core.Options
+namespace Etherna.VideoImporter.Core.Models.FFmpeg
 {
-    public class FFmpegServiceOptions
+    [SuppressMessage("Design", "CA1008:Enums should have zero value")]
+    [SuppressMessage("Design", "CA1027:Mark enums with FlagsAttribute")]
+    public enum FFmpegBitrateCompaction
     {
-        // Consts.
-        public const FFmpegBitrateCompaction DefaultBitrateCompaction = FFmpegBitrateCompaction.Normal;
-        public const FFmpegH264Preset DefaultPresetCodec = FFmpegH264Preset.Medium;
-        
-        // Properties.
-        public string? CustomFFmpegFolderPath { get; set; }
-        public FFmpegBitrateCompaction BitrateCompaction { get; set; }
-        public FFmpegH264Preset PresetCodec { get; set; }
+        None = 1,
+        Low = 2,
+        Normal = 4,
+        High = 8,
+        Extreme = 16,
+        Insane = 32
     }
 }

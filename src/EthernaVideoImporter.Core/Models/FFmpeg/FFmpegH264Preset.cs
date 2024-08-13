@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Core.Models.FFmpeg
 {
     public enum FFmpegH264Preset
     {

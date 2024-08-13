@@ -15,6 +15,7 @@
 using Etherna.Sdk.Users;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -58,6 +59,7 @@ namespace Etherna.VideoImporter
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
+              --bitrate-compact       Bitrate compaction. Values: [None, Low, Normal, High, Extreme, Insane]. Default: {{FFmpegServiceOptions.DefaultBitrateCompaction}}
               -c, --preset-codec      Preset of codec used for encoder (see ffmpeg documentation). Default: {{FFmpegServiceOptions.DefaultPresetCodec}}
 
             Bee Node Options:
@@ -118,6 +120,7 @@ namespace Etherna.VideoImporter
             bool removeUnrecognizedVideos = false;
             bool defundRemovedVideosPin = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
+            FFmpegBitrateCompaction bitrateCompaction = FFmpegBitrateCompaction.Normal;
             FFmpegH264Preset presetCodec = FFmpegServiceOptions.DefaultPresetCodec;
 
             bool useBeeNativeNode = false;
@@ -240,6 +243,12 @@ namespace Etherna.VideoImporter
                     case "--unpin":
                         defundRemovedVideosPin = true;
                         break;
+                    
+                    case "--bitrate-compact":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Bitrate compaction value is missing");
+                        bitrateCompaction = Enum.Parse<FFmpegBitrateCompaction>(optArgs[++i]);
+                        break;
 
                     case "-c":
                     case "--preset-codec":
@@ -331,6 +340,7 @@ namespace Etherna.VideoImporter
                 },
                 ffMpegOptions =>
                 {
+                    ffMpegOptions.BitrateCompaction = bitrateCompaction;
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                     ffMpegOptions.PresetCodec = presetCodec;
                 },
