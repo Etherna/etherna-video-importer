@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -17,12 +17,12 @@ using System.IO;
 
 namespace Etherna.VideoImporter.Devcon.Options
 {
-    internal sealed class MdVideoProviderOptionsValidation : IValidateOptions<MdVideoProviderOptions>
+    internal sealed class DevconResultReporterOptionsValidation : IValidateOptions<DevconResultReporterOptions>
     {
-        public ValidateOptionsResult Validate(string? name, MdVideoProviderOptions options)
+        public ValidateOptionsResult Validate(string? name, DevconResultReporterOptions options)
         {
-            if (!Directory.Exists(options.MdSourceFolderPath))
-                return ValidateOptionsResult.Fail($"Not found MD directory path at ({options.MdSourceFolderPath})");
+            if (!Directory.Exists(options.ResultFolderPath))
+                return ValidateOptionsResult.Fail($"Not found directory at ({options.ResultFolderPath})");
 
             return ValidateOptionsResult.Success;
         }

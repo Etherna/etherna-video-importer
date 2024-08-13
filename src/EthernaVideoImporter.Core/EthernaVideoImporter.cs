@@ -114,7 +114,7 @@ namespace Etherna.VideoImporter.Core
             ioService.WriteLine($"Found {totalSourceVideo} valid distinct videos from source");
 
             // Get information from etherna index.
-            ioService.WriteLine("Get user's videos on etherna index");
+            ioService.WriteLine("Getting user videos on etherna index... (it may take a while)");
 
             var userVideosOnIndex = await ethernaIndexClient.GetAllVideosByOwnerAsync(userEthAddress);
             var ethernaIndexParameters = await ethernaIndexClient.GetIndexParametersAsync();

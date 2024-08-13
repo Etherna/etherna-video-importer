@@ -12,10 +12,28 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-namespace Etherna.VideoImporter.Devcon.Options
+using System.Text.Json.Serialization;
+
+namespace Etherna.VideoImporter.Devcon.Models.JsonDto
 {
-    internal sealed class MdVideoProviderOptions
+    internal sealed class DevconFileDto
     {
-        public string MdSourceFolderPath { get; set; } = default!;
+        // Consts.
+        public const string IpfsHashKey = "sources_ipfsHash";
+        public const string SwarmHashKey = "sources_swarmHash";
+        public const string YoutubeIdKey = "sources_youtubeId";
+        
+        // Properties.
+        [JsonPropertyName("description")]
+        public string Description { get; set; } = default!;
+        
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = default!;
+        
+        [JsonPropertyName(SwarmHashKey)]
+        public string? SwarmHash { get; set; }
+        
+        [JsonPropertyName(YoutubeIdKey)]
+        public string YoutubeId { get; set; } = default!;
     }
 }

@@ -148,9 +148,9 @@ namespace Etherna.VideoImporter.Core.Services
                 if (video.VideoEncoding.EncodingDirectoryPath != null)
                     sourceRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, sourceRelativePath);
                     
-                return new VideoManifestVideoSource(
-                    sourceRelativePath,
+                return VideoManifestVideoSource.BuildFromNewContent(
                     v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
+                    sourceRelativePath,
                     video.VideoEncoding switch
                     {
                         Mp4VideoEncoding _ => VideoType.Mp4,
@@ -179,9 +179,9 @@ namespace Etherna.VideoImporter.Core.Services
             if (video.VideoEncoding.MasterFile != null)
             {
                 var masterFile = video.VideoEncoding.MasterFile;
-                manifestVideoSources = manifestVideoSources.Prepend(new VideoManifestVideoSource(
-                    masterFile.FileName,
+                manifestVideoSources = manifestVideoSources.Prepend(VideoManifestVideoSource.BuildFromNewContent(
                     masterFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
+                    masterFile.FileName,
                     video.VideoEncoding switch
                     {
                         HlsVideoEncoding _ => VideoType.Hls,
@@ -196,7 +196,7 @@ namespace Etherna.VideoImporter.Core.Services
             var manifestThumbnail = new VideoManifestImage(
                 video.AspectRatio,
                 video.ThumbnailBlurhash,
-                video.ThumbnailFiles.Select(t => new VideoManifestImageSource(
+                video.ThumbnailFiles.Select(t => VideoManifestImageSource.BuildFromNewContent(
                     t.FileName,
                     t.ImageType,
                     t.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),

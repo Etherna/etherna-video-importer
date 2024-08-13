@@ -12,19 +12,11 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Microsoft.Extensions.Options;
-using System.IO;
-
 namespace Etherna.VideoImporter.Devcon.Options
 {
-    internal sealed class MdResultReporterOptionsValidation : IValidateOptions<MdResultReporterOptions>
+    internal sealed class DevconResultReporterOptions
     {
-        public ValidateOptionsResult Validate(string? name, MdResultReporterOptions options)
-        {
-            if (!Directory.Exists(options.MdResultFolderPath))
-                return ValidateOptionsResult.Fail($"Not found MD directory path at ({options.MdResultFolderPath})");
-
-            return ValidateOptionsResult.Success;
-        }
+        public bool IsDryRun { get; set; }
+        public string ResultFolderPath { get; set; } = default!;
     }
 }

@@ -12,24 +12,19 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using System.Collections.Generic;
+using Microsoft.Extensions.Options;
+using System.IO;
 
-namespace Etherna.VideoImporter.Devcon.Models.MdDto
+namespace Etherna.VideoImporter.Devcon.Options
 {
-    internal sealed class ArchiveMdFileDto
+    internal sealed class DevconVideoProviderOptionsValidation : IValidateOptions<DevconVideoProviderOptions>
     {
-        // Properties.
-        public string Description { get; set; } = default!;
-        public string? EthernaIndex { get; set; }
-        public string? EthernaPermalink { get; set; }
-        public string Title { get; set; } = default!;
-        public string YoutubeUrl { get; set; } = default!;
-
-        // Methods.
-        public void AddDescription(IEnumerable<string> descriptions)
+        public ValidateOptionsResult Validate(string? name, DevconVideoProviderOptions options)
         {
-            Description ??= "";
-            Description += string.Join(". ", descriptions);
+            if (!Directory.Exists(options.DevconSourceFolderPath))
+                return ValidateOptionsResult.Fail($"Not found directory at ({options.DevconSourceFolderPath})");
+
+            return ValidateOptionsResult.Success;
         }
     }
 }

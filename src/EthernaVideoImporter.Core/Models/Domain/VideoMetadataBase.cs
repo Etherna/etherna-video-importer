@@ -16,20 +16,16 @@ using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract partial class VideoMetadataBase
+    public abstract class VideoMetadataBase
     {
+        // Fields.
         private string? _description;
         private TimeSpan? _duration;
         private string? _title;
-
-        // Consts.
-        [GeneratedRegex("^(?<label>\\d+p)\\d*$")]
-        private static partial Regex QualityLabelRegex();
 
         // Properties.
         public IEnumerable<string> AllSourceIds => SourceOldIds.Prepend(SourceId);
