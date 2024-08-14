@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,19 +12,16 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.VideoImporter.Core.Models.Domain;
-using System.Threading.Tasks;
-using YoutubeExplode;
+using Etherna.UniversalFiles;
+using YoutubeExplode.Videos.ClosedCaptions;
 
-namespace Etherna.VideoImporter.Core.Utilities
+namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public interface IYoutubeDownloader
+    public class ClosedCaptionTrackFile(
+        Language language,
+        UUri? uri = null)
     {
-        // Properties.
-        IYoutubeClient YoutubeClient { get; }
-
-        // Methods.
-        Task<Video> BuildVideoFromMetadataAsync(
-            YouTubeVideoMetadataBase videoMetadata);
+        public Language Language { get; } = language;
+        public UUri? Uri { get; } = uri;
     }
 }

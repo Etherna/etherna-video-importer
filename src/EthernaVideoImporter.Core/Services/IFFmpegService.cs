@@ -31,6 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase inputVideoVariant,
             int[] outputHeights,
+            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputType,
             string outputDirectory);
         

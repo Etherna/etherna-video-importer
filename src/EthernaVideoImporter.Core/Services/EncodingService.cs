@@ -93,11 +93,13 @@ namespace Etherna.VideoImporter.Core.Services
 
         public Task<VideoEncodingBase> EncodeVideoAsync(
             VideoEncodingBase sourceEncoding,
+            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputEncoding = DefaultVideoType) =>
-            EncodeVideoAsync(sourceEncoding.BestVariant, outputEncoding);
+            EncodeVideoAsync(sourceEncoding.BestVariant, closedCaptionTracks, outputEncoding);
 
         public async Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase sourceVariant,
+            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputEncoding = DefaultVideoType)
         {
             ArgumentNullException.ThrowIfNull(sourceVariant, nameof(sourceVariant));
@@ -107,9 +109,9 @@ namespace Etherna.VideoImporter.Core.Services
 
             var encodedVideo = await ffMpegService.EncodeVideoAsync(
                 sourceVariant,
-                VideoHeightResolutions.Union(new List<int> { sourceVariant.Height })
-                                      .OrderDescending()
+                VideoHeightResolutions.OrderDescending()
                                       .ToArray(),
+                closedCaptionTracks,
                 outputEncoding,
                 outputDirectory);
 

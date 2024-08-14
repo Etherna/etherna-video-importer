@@ -43,14 +43,16 @@ namespace Etherna.VideoImporter.Services
         public string SourceName => options.JsonMetadataUri.OriginalUri;
 
         // Methods.
-        public async Task<Video> GetVideoAsync(
+        public async Task<Video> BuildVideoFromMetadataAsync(
             VideoMetadataBase videoMetadata)
         {
             var sourceVideoMetadata = videoMetadata as JsonVideoMetadata 
                 ?? throw new ArgumentException($"Metadata must be of type {nameof(JsonVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
-            var encodedVideoFiles = await encodingService.EncodeVideoAsync(sourceVideoMetadata.VideoEncoding);
+            var encodedVideoFiles = await encodingService.EncodeVideoAsync(
+                sourceVideoMetadata.VideoEncoding,
+                []);
 
             // Transcode thumbnail resolutions.
             var thumbnailFiles = await encodingService.EncodeThumbnailsAsync(
