@@ -404,30 +404,30 @@ namespace Etherna.VideoImporter.Core.Services
             // Build FFmpeg args.
             List<string> args = [];
 
-            args.Add("-i"); args.Add(inputVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri);  //input
-            foreach (var _ in outputResolutions)                                                //map input to streams
+            args.Add("-i"); args.Add(inputVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri);      //input
+            foreach (var _ in outputResolutions)                                                    //map input to streams
             {
                 args.Add("-map"); args.Add("0:v:0");
                 args.Add("-map"); args.Add("0:a:0");
             }
-            for (int i = 0; i < outputResolutions.Length; i++)                                  //build output streams
+            for (int i = 0; i < outputResolutions.Length; i++)                                      //build output streams
             {
                 args.Add($"-s:v:{i}"); args.Add($"{outputResolutions[i].width}x{outputResolutions[i].height}");
                 args.Add($"-b:v:{i}"); args.Add(GetHlsH264BitrateArg(outputResolutions[i].height, outputResolutions[i].width));
-            }
-            args.Add("-preset"); args.Add(options.PresetCodec.ToString().ToLowerInvariant());   //preset
-            args.Add("-c:a"); args.Add("aac");                                                  //audio codec
-            args.Add("-c:v"); args.Add("libx264");                                              //video codec
-            args.Add("-f"); args.Add("hls");                                                    //hls format
-            args.Add("-hls_time"); args.Add("6");                                               //segment duration
-            args.Add("-hls_list_size"); args.Add("0");                                          //keep all segments
-            args.Add("-hls_playlist_type"); args.Add("vod");                                    //video on demand
-            args.Add("-hls_segment_filename"); args.Add(Path.Combine(outputDirectory, "%v/%d.ts"));//segments filename
-            args.Add("-var_stream_map");                                                        //map output streams
+            }   
+            args.Add("-preset"); args.Add(options.Preset.ToString().ToLowerInvariant());            //preset
+            args.Add("-c:a"); args.Add("aac");                                                      //audio codec
+            args.Add("-c:v"); args.Add("libx264");                                                  //video codec
+            args.Add("-f"); args.Add("hls");                                                        //hls format
+            args.Add("-hls_time"); args.Add("6");                                                   //segment duration
+            args.Add("-hls_list_size"); args.Add("0");                                              //keep all segments
+            args.Add("-hls_playlist_type"); args.Add("vod");                                        //video on demand
+            args.Add("-hls_segment_filename"); args.Add(Path.Combine(outputDirectory, "%v/%d.ts")); //segments filename
+            args.Add("-var_stream_map");                                                            //map output streams
             args.Add(string.Join(' ', outputResolutions.Select(
                 (res, i) => $"v:{i},a:{i},name:{res.height}p")));
-            args.Add("-master_pl_name"); args.Add(HlsMasterPlaylistName);                       //master playlist name
-            args.Add(Path.Combine(outputDirectory, "%v", HlsStreamPlaylistName));               //stream playlist names
+            args.Add("-master_pl_name"); args.Add(HlsMasterPlaylistName);                           //master playlist name
+            args.Add(Path.Combine(outputDirectory, "%v", HlsStreamPlaylistName));                   //stream playlist names
             
             return args;
         }
@@ -467,16 +467,16 @@ namespace Etherna.VideoImporter.Core.Services
             var args = new List<string>();
             var outputVariantRefsList = new List<(string filePath, int height, int width)>();
             
-            args.Add("-i"); args.Add(inputVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri);      //input
+            args.Add("-i"); args.Add(inputVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri); //input
 
             //all output variants
             foreach (var (height, width) in outputResolutions)
             {
-                args.Add("-c:a"); args.Add("aac");                                                  //audio codec
-                args.Add("-c:v"); args.Add("libx264");                                              //video codec
-                args.Add("-preset"); args.Add(options.PresetCodec.ToString().ToLowerInvariant());   //preset
-                args.Add("-movflags"); args.Add("faststart");                                       //flags
-                args.Add("-vf");                                                                    //filters
+                args.Add("-c:a"); args.Add("aac");                                             //audio codec
+                args.Add("-c:v"); args.Add("libx264");                                         //video codec
+                args.Add("-preset"); args.Add(options.Preset.ToString().ToLowerInvariant());   //preset
+                args.Add("-movflags"); args.Add("faststart");                                  //flags
+                args.Add("-vf");                                                               //filters
                 {
                     string[] filters = [$"scale=w={width}:h={height}"];
                     args.Add($"{filters.Aggregate((r, f) => $"{r},{f}")}");

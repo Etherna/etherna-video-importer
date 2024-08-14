@@ -53,7 +53,7 @@ namespace Etherna.VideoImporter.Devcon
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
               --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: {FFmpegServiceOptions.DefaultBitrateReduction}
-              --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: {FFmpegServiceOptions.DefaultPresetCodec}
+              --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: {FFmpegServiceOptions.DefaultFFmpegPreset}
 
             Bee Node Options:
               --bee-node              Use bee native node
@@ -85,7 +85,7 @@ namespace Etherna.VideoImporter.Devcon
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
             var bitrateReduction = FFmpegBitrateReduction.Normal;
-            var presetCodec = FFmpegServiceOptions.DefaultPresetCodec;
+            var ffmpegPreset = FFmpegServiceOptions.DefaultFFmpegPreset;
 
             bool useBeeNativeNode = false;
             string beeNodeUrl = CommonConsts.BeeNodeUrl;
@@ -199,7 +199,7 @@ namespace Etherna.VideoImporter.Devcon
                     case "--ffmpeg-preset":
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("Preset value is missing");
-                        presetCodec = Enum.Parse<FFmpegH264Preset>(optArgs[++i]);
+                        ffmpegPreset = Enum.Parse<FFmpegH264Preset>(optArgs[++i]);
                         break;
 
                     //bee node
@@ -283,7 +283,7 @@ namespace Etherna.VideoImporter.Devcon
                 {
                     ffMpegOptions.BitrateReduction = bitrateReduction;
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
-                    ffMpegOptions.PresetCodec = presetCodec;
+                    ffMpegOptions.Preset = ffmpegPreset;
                 },
                 gatewayOptions =>
                 {

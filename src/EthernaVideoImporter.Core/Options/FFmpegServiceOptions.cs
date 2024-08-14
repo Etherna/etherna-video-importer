@@ -20,11 +20,11 @@ namespace Etherna.VideoImporter.Core.Options
     {
         // Consts.
         public const FFmpegBitrateReduction DefaultBitrateReduction = FFmpegBitrateReduction.Normal;
-        public const FFmpegH264Preset DefaultPresetCodec = FFmpegH264Preset.Medium;
+        public const FFmpegH264Preset DefaultFFmpegPreset = FFmpegH264Preset.Medium;
         
         // Properties.
         public string? CustomFFmpegFolderPath { get; set; }
         public FFmpegBitrateReduction BitrateReduction { get; set; }
-        public FFmpegH264Preset PresetCodec { get; set; }
+        public FFmpegH264Preset Preset { get; set; }
     }
 }
