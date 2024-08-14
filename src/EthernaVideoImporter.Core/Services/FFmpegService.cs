@@ -417,7 +417,7 @@ namespace Etherna.VideoImporter.Core.Services
             for (int i = 0; i < outputResolutions.Length; i++)                                      //build output streams
             {
                 args.Add($"-s:v:{i}"); args.Add($"{outputResolutions[i].width}x{outputResolutions[i].height}");
-                args.Add($"-b:v:{i}"); args.Add(GetHlsH264BitrateArg(outputResolutions[i].height, outputResolutions[i].width));
+                args.Add($"-b:v:{i}"); args.Add(GetH264BitrateArg(outputResolutions[i].height, outputResolutions[i].width));
             }   
             args.Add("-preset"); args.Add(options.Preset.ToString().ToLowerInvariant());            //preset
             args.Add("-c:a"); args.Add("aac");                                                      //audio codec
@@ -466,7 +466,7 @@ namespace Etherna.VideoImporter.Core.Services
                     }
 
                     return (height, width: scaledWidth);
-                });
+                }).ToArray();
             
             // Build FFmpeg args.
             var args = new List<string>();
@@ -498,7 +498,7 @@ namespace Etherna.VideoImporter.Core.Services
             return args;
         }
 
-        private string GetHlsH264BitrateArg(int height, int width)
+        private string GetH264BitrateArg(int height, int width)
         {
             int FindBitrateValue(int area)
             {
