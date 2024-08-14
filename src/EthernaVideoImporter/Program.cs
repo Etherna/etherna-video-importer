@@ -60,7 +60,7 @@ namespace Etherna.VideoImporter
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
               --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: {{FFmpegServiceOptions.DefaultBitrateReduction}}
-              -c, --preset-codec      Preset of codec used for encoder (see ffmpeg documentation). Default: {{FFmpegServiceOptions.DefaultPresetCodec}}
+              --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: {{FFmpegServiceOptions.DefaultPresetCodec}}
 
             Bee Node Options:
               --bee-node              Use bee native node
@@ -250,10 +250,9 @@ namespace Etherna.VideoImporter
                         bitrateReduction = Enum.Parse<FFmpegBitrateReduction>(optArgs[++i]);
                         break;
 
-                    case "-c":
-                    case "--preset-codec":
+                    case "--ffmpeg-preset":
                         if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Preset Codec value is missing");
+                            throw new ArgumentException("Preset value is missing");
                         presetCodec = Enum.Parse<FFmpegH264Preset>(optArgs[++i]);
                         break;
 

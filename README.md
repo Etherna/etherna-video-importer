@@ -42,7 +42,7 @@ Video Management Options:
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
   --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
-  -c, --preset-codec      Preset of codec used for encoder (see ffmpeg documentation). Default: medium
+  --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: medium
 
 Bee Node Options:
   --bee-node              Use bee native node
@@ -99,7 +99,7 @@ Video Management Options:
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
   --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
-  -c, --preset-codec      Preset of codec used for encoder (ultrafast, superfast, fast, medium, slow, slower) default: medium
+  --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: medium
 
 Bee Node Options:
   --bee-node              Use bee native node
