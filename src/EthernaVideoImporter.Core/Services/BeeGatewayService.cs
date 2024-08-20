@@ -16,6 +16,7 @@ using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Gateway.Clients;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
+using System;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -57,7 +58,10 @@ namespace Etherna.VideoImporter.Core.Services
         protected override Task DefundResourcePinningHelperAsync(SwarmHash hash) =>
             BeeClient.DeletePinAsync(hash);
 
-        protected override async Task FundResourceDownloadHelperAsync(SwarmHash hash) =>
-            await ethernaGatewayClient.FundResourceDownloadAsync(hash);
+        protected override Task FundResourceDownloadHelperAsync(SwarmHash hash) =>
+            throw new NotSupportedException();
+
+        protected override Task FundResourcePinningHelperAsync(SwarmHash hash) =>
+            BeeClient.CreatePinAsync(hash);
     }
 }

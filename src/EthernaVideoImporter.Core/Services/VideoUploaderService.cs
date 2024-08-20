@@ -24,8 +24,12 @@ using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -234,57 +238,82 @@ namespace Etherna.VideoImporter.Core.Services
             
             // Upload chunks. Pin only video manifest hash, if required.
             var chunkFiles = chunkService.GetAllChunkFilesInDirectory(chunksDirectory.FullName);
-            var chunkBuffer = new byte[SwarmChunk.SpanAndDataSize];
             
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
             
-            for (int i = 0; i < chunkFiles.Length; i++)
+            var tagInfo = await gatewayService.CreateTagAsync(batchId.Value); //necessary to not bypass bee local storage
+            
+            int totalUploaded = 0;
+            var uploadStartDateTime = DateTime.UtcNow;
+            for (int i = 0; i < UploadMaxRetry && totalUploaded < chunkFiles.Length; i++)
             {
-                if (i % 10000 == 0 && i != 0)
-                    ioService.WriteLine($"  {i} chunks uploaded...");
-
-                bool uploadSucceeded = false;
+                // Skip with dry run.
+                if (options.IsDryRun)
+                    break;
                 
-                var chunkFilePath = chunkFiles[i];
-                var chunkHash = SwarmHash.FromString(Path.GetFileNameWithoutExtension(chunkFilePath));
-                using var chunkFileStream = File.OpenRead(chunkFilePath);
-                var chunkReadBytes = await chunkFileStream.ReadAsync(chunkBuffer).ConfigureAwait(false);
+                // Create websocket.
+                using var chunkUploaderWs = await gatewayService.GetChunkUploaderWebSocketAsync(batchId.Value, tagInfo.Id);
 
-                var chunk = SwarmChunk.BuildFromSpanAndData(chunkHash, chunkBuffer.AsSpan()[..chunkReadBytes]);
-                    
-                for (int j = 0; j < UploadMaxRetry && !uploadSucceeded; j++)
+                try
                 {
-                    try
+                    var lastUpdateDateTime = DateTime.UtcNow;
+                    
+                    for (int j = totalUploaded; j < chunkFiles.Length; j++)
                     {
-                        await gatewayService.UploadChunkAsync(
-                            batchId.Value,
-                            chunk,
-                            chunkHash == videoManifestHash && fundPinning);
-                        uploadSucceeded = true;
-                    }
-                    catch (Exception e)
-                    {
-                        ioService.WriteErrorLine($"Error uploading chunk {chunkFilePath}");
-                        ioService.PrintException(e);
-                        if (i + 1 < UploadMaxRetry)
+                        var now = DateTime.UtcNow;
+                        if (now - lastUpdateDateTime > TimeSpan.FromSeconds(1))
                         {
-                            ioService.WriteLine("Retry...");
-                            await Task.Delay(UploadRetryTimeSpan);
+                            PrintProgressLine(
+                                "Uploading chunks",
+                                totalUploaded,
+                                chunkFiles.Length,
+                                uploadStartDateTime);
+                            lastUpdateDateTime = now;
                         }
+
+                        var chunkPath = chunkFiles[j];
+                        var chunk = SwarmChunk.BuildFromSpanAndData(
+                            Path.GetFileNameWithoutExtension(chunkPath),
+                            await File.ReadAllBytesAsync(chunkPath));
+                        
+                        await chunkUploaderWs.SendChunkAsync(chunk, CancellationToken.None);
+
+                        totalUploaded++;
+                    }
+                    ioService.WriteLine(null, false);
+                }
+                catch (Exception e) when (e is WebSocketException or OperationCanceledException)
+                {
+                    ioService.WriteErrorLine($"Error uploading chunks");
+                    ioService.WriteLine(e.ToString());
+
+                    if (i + 1 < UploadMaxRetry)
+                    {
+                        Console.WriteLine("Retry...");
+                        await Task.Delay(UploadRetryTimeSpan);
                     }
                 }
-                
-                if (!uploadSucceeded)
-                    throw new InvalidOperationException($"Can't upload chunk after {UploadMaxRetry} retries");
+                finally
+                {
+                    await chunkUploaderWs.CloseAsync();
+                }
             }
+            
             ioService.WriteLine($"Chunks upload completed!");
             ioService.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
+            
+            // Fund pinning.
+            if (fundPinning)
+            {
+                await gatewayService.FundResourcePinningAsync(videoManifestHash);
+                ioService.WriteLine("Funded video pinning");
+            }
             
             // Fund downloads.
             if (fundDownload)
             {
                 await gatewayService.FundResourceDownloadAsync(videoManifestHash);
-                ioService.WriteLine($"Funded public download");
+                ioService.WriteLine("Funded public download");
             }
 
             // List on index.
@@ -345,6 +374,32 @@ namespace Etherna.VideoImporter.Core.Services
             var batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
             ioService.WriteLine($"Postage batch: {batchId}");
             return batchId;
+        }
+
+        private void PrintProgressLine(string message, long uploadedChunks, long totalChunks, DateTime startDateTime)
+        {
+            // Calculate ETA.
+            var elapsedTime = DateTime.UtcNow - startDateTime;
+            TimeSpan? eta = null;
+            var progressStatus = (double)uploadedChunks / totalChunks;
+            if (progressStatus != 0)
+            {
+                var totalRequiredTime = TimeSpan.FromSeconds(elapsedTime.TotalSeconds / progressStatus);
+                eta = totalRequiredTime - elapsedTime;
+            }
+
+            // Print update.
+            var strBuilder = new StringBuilder();
+
+            strBuilder.Append(CultureInfo.InvariantCulture,
+                $"{message} ({(progressStatus * 100):N2}%) {uploadedChunks} chunks of {totalChunks}.");
+
+            if (eta is not null)
+                strBuilder.Append(CultureInfo.InvariantCulture, $" ETA: {eta:hh\\:mm\\:ss}");
+
+            strBuilder.Append('\r');
+
+            ioService.Write(strBuilder.ToString());
         }
     }
 }

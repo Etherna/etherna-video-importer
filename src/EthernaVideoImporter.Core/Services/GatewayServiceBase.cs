@@ -18,6 +18,7 @@ using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -44,6 +45,10 @@ namespace Etherna.VideoImporter.Core.Services
             Task.FromResult(PostageBatchId.Zero) :
             CreatePostageBatchHelperAsync(amount, batchDepth);
 
+        public Task<TagInfo> CreateTagAsync(PostageBatchId postageBatchId) => options.IsDryRun ?
+            Task.FromResult(new TagInfo(new TagId(0), DateTimeOffset.UtcNow, 0, 0, 0, 0, 0)) :
+            BeeClient.CreateTagAsync(postageBatchId);
+
         public Task DefundResourcePinningAsync(SwarmHash hash) => options.IsDryRun ?
             Task.CompletedTask :
             DefundResourcePinningHelperAsync(hash);
@@ -52,7 +57,17 @@ namespace Etherna.VideoImporter.Core.Services
             Task.CompletedTask :
             FundResourceDownloadHelperAsync(hash);
 
+        public Task FundResourcePinningAsync(SwarmHash hash) => options.IsDryRun ?
+            Task.CompletedTask :
+            FundResourcePinningHelperAsync(hash);
+
         public abstract Task<BzzBalance> GetChainPriceAsync();
+
+        public Task<ChunkUploaderWebSocket> GetChunkUploaderWebSocketAsync(
+            PostageBatchId batchId,
+            TagId? tagId = null,
+            CancellationToken cancellationToken = default) =>
+            BeeClient.GetChunkUploaderWebSocketAsync(batchId, tagId, cancellationToken);
 
         public abstract Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
@@ -76,6 +91,8 @@ namespace Etherna.VideoImporter.Core.Services
         protected abstract Task DefundResourcePinningHelperAsync(SwarmHash hash);
         
         protected abstract Task FundResourceDownloadHelperAsync(SwarmHash hash);
+        
+        protected abstract Task FundResourcePinningHelperAsync(SwarmHash hash);
         
         protected async Task WaitForBatchUsableAsync(PostageBatchId batchId)
         {
