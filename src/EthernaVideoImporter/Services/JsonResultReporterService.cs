@@ -44,9 +44,11 @@ namespace Etherna.VideoImporter.Services
         // Methods.
         public async Task FlushResultOutputAsync()
         {
+            if (options.OutputFilePath is null)
+                return;
+            
             var jsonContent = JsonSerializer.Serialize(results, serializerOptions);
-            var filePath = options.OutputFilePath ?? throw new InvalidOperationException("OutputFilePath is not set");
-            await File.WriteAllTextAsync(filePath, jsonContent);
+            await File.WriteAllTextAsync(options.OutputFilePath, jsonContent);
         }
 
         public Task ReportResultAsync(VideoImportResultBase importResult)

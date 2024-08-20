@@ -88,5 +88,8 @@ namespace Etherna.VideoImporter.Core.Services
 
         protected override Task FundResourceDownloadHelperAsync(SwarmHash hash) =>
             ethernaGatewayClient.FundResourceDownloadAsync(hash);
+
+        protected override Task FundResourcePinningHelperAsync(SwarmHash hash) =>
+            ethernaGatewayClient.FundResourcePinningAsync(hash);
     }
 }
