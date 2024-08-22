@@ -16,6 +16,7 @@ using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Gateway.Clients;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
+using System;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -34,6 +35,9 @@ namespace Etherna.VideoImporter.Core.Services
             (await BeeClient.GetPostageBatchAsync(batchId)).IsUsable;
         
         // Protected override methods.
+        protected override Task AnnounceChunksUploadHelperAsync(SwarmHash rootHash, PostageBatchId batchId) =>
+            Task.CompletedTask; //not required because it's a single node, but no reason to fail
+
         protected override async Task<PostageBatchId> CreatePostageBatchHelperAsync(BzzBalance amount, int batchDepth)
         {
             ioService.PrintTimeStamp();
@@ -57,7 +61,10 @@ namespace Etherna.VideoImporter.Core.Services
         protected override Task DefundResourcePinningHelperAsync(SwarmHash hash) =>
             BeeClient.DeletePinAsync(hash);
 
-        protected override async Task FundResourceDownloadHelperAsync(SwarmHash hash) =>
-            await ethernaGatewayClient.FundResourceDownloadAsync(hash);
+        protected override Task FundResourceDownloadHelperAsync(SwarmHash hash) =>
+            throw new NotSupportedException();
+
+        protected override Task FundResourcePinningHelperAsync(SwarmHash hash) =>
+            BeeClient.CreatePinAsync(hash);
     }
 }

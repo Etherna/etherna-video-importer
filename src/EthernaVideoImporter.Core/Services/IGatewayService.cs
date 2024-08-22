@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet;
 using Etherna.BeeNet.Models;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -31,6 +32,8 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="batchDepth">batch depth</param>
         Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth);
 
+        Task<TagInfo> CreateTagAsync(PostageBatchId postageBatchId);
+
         /// <summary>
         /// Delete pin.
         /// </summary>
@@ -43,10 +46,17 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="hash">Resource hash</param>
         Task FundResourceDownloadAsync(SwarmHash hash);
 
+        Task FundResourcePinningAsync(SwarmHash hash);
+
         /// <summary>
         /// Get the current price.
         /// </summary>
         Task<BzzBalance> GetChainPriceAsync();
+
+        Task<ChunkUploaderWebSocket> GetChunkUploaderWebSocketAsync(
+            PostageBatchId batchId,
+            TagId? tagId = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get usable batch.
@@ -60,5 +70,7 @@ namespace Etherna.VideoImporter.Core.Services
             PostageBatchId batchId,
             SwarmChunk chunk,
             bool fundPinning = false);
+
+        Task AnnounceChunksUploadAsync(SwarmHash rootHash, PostageBatchId batchId);
     }
 }

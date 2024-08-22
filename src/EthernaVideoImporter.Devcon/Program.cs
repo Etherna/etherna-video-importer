@@ -148,6 +148,7 @@ namespace Etherna.VideoImporter.Devcon
                         break;
                     
                     case "--dry":
+                        Console.WriteLine("Dry Run");
                         isDryRun = true;
                         break;
 

@@ -39,6 +39,9 @@ namespace Etherna.VideoImporter.Core.Services
             (await ethernaGatewayClient.GetPostageBatchAsync(batchId)).IsUsable;
         
         // Protected override methods.
+        protected override Task AnnounceChunksUploadHelperAsync(SwarmHash rootHash, PostageBatchId batchId) =>
+            ethernaGatewayClient.AnnounceChunksUploadAsync(rootHash, batchId);
+
         protected override async Task<PostageBatchId> CreatePostageBatchHelperAsync(BzzBalance amount, int batchDepth)
         {
             var batchReferenceId = await ethernaGatewayClient.BuyPostageBatchAsync(amount, batchDepth);
@@ -88,5 +91,8 @@ namespace Etherna.VideoImporter.Core.Services
 
         protected override Task FundResourceDownloadHelperAsync(SwarmHash hash) =>
             ethernaGatewayClient.FundResourceDownloadAsync(hash);
+
+        protected override Task FundResourcePinningHelperAsync(SwarmHash hash) =>
+            ethernaGatewayClient.FundResourcePinningAsync(hash);
     }
 }

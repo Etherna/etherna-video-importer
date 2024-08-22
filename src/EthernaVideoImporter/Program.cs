@@ -202,6 +202,7 @@ namespace Etherna.VideoImporter
                         break;
                     
                     case "--dry":
+                        Console.WriteLine("Dry Run");
                         isDryRun = true;
                         break;
 
