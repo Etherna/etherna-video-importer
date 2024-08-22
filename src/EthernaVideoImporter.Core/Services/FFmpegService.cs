@@ -161,11 +161,18 @@ namespace Etherna.VideoImporter.Core.Services
                     );
             }
         }
-        
+
+        public Task<FileBase[]> EncodeSubtitlesAsync(
+            VideoVariantBase sourceVariant,
+            SubtitleTrack[] subtitleTracks,
+            string outputDirectory)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase inputVideoVariant,
             int[] outputHeights,
-            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputType,
             string outputDirectory)
         {
@@ -183,7 +190,6 @@ namespace Etherna.VideoImporter.Core.Services
                     args = BuildHlsFFmpegCommandArgs(
                         inputVideoVariant,
                         outputHeights,
-                        closedCaptionTracks,
                         outputDirectory,
                         out masterPlaylistPath,
                         out outputVariantRefs);
@@ -192,7 +198,6 @@ namespace Etherna.VideoImporter.Core.Services
                     args = BuildMp4FFmpegCommandArgs(
                         inputVideoVariant,
                         outputHeights,
-                        closedCaptionTracks,
                         outputDirectory,
                         out outputVariantRefs);
                     break;
@@ -376,7 +381,6 @@ namespace Etherna.VideoImporter.Core.Services
         private List<string> BuildHlsFFmpegCommandArgs(
             VideoVariantBase inputVariant,
             int[] outputHeights,
-            ClosedCaptionTrackFile[] closedCaptionTracks,
             string outputDirectory,
             out string masterPlaylistPath,
             out (string filePath, int height, int width)[] outputVariantRefs)
@@ -447,7 +451,6 @@ namespace Etherna.VideoImporter.Core.Services
         private List<string> BuildMp4FFmpegCommandArgs(
             VideoVariantBase inputVariant,
             int[] outputHeights,
-            ClosedCaptionTrackFile[] closedCaptionTracks,
             string outputDirectory,
             out (string filePath, int height, int width)[] outputVariantRefs)
         {

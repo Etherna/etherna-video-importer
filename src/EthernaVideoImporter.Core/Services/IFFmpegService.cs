@@ -28,10 +28,14 @@ namespace Etherna.VideoImporter.Core.Services
             BasicUUri mainFileUri,
             SwarmAddress? swarmAddress = null);
         
+        Task<FileBase[]> EncodeSubtitlesAsync(
+            VideoVariantBase sourceVariant,
+            SubtitleTrack[] subtitleTracks,
+            string outputDirectory);
+        
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase inputVideoVariant,
             int[] outputHeights,
-            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputType,
             string outputDirectory);
         

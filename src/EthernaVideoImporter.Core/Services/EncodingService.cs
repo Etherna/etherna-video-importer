@@ -31,6 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Consts.
         public const VideoType DefaultVideoType = VideoType.Hls;
+        public const string EncodedSubtitlesSubDirectory = "encoded/subs";
         public const string EncodedThumbSubDirectory = "encoded/thumb";
         public const string EncodedVideoSubDirectory = "encoded/video";
         public static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
@@ -58,6 +59,28 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Methods.
+        public async Task<FileBase[]> EncodeSubtitlesAsync(
+            VideoVariantBase sourceVariant,
+            SubtitleTrack[] subtitleTracks)
+        {
+            ArgumentNullException.ThrowIfNull(subtitleTracks, nameof(subtitleTracks));
+
+            if (subtitleTracks.Length == 0)
+                return [];
+            
+            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedSubtitlesSubDirectory);
+
+            var encodedSubFiles = await ffMpegService.EncodeSubtitlesAsync(
+                sourceVariant,
+                subtitleTracks,
+                outputDirectory);
+            
+            foreach (var subTrack in subtitleTracks)
+                ioService.WriteLine($"Encoded {subTrack.Language} subtitles");
+
+            return encodedSubFiles;
+        }
+        
         public async Task<ThumbnailFile[]> EncodeThumbnailsAsync(
             ThumbnailFile sourceThumbnailFile)
         {
@@ -65,7 +88,6 @@ namespace Etherna.VideoImporter.Core.Services
 
             List<ThumbnailFile> thumbnails = [];
             var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedThumbSubDirectory);
-            Directory.CreateDirectory(outputDirectory);
 
             using var thumbFileStream = await sourceThumbnailFile.ReadToStreamAsync();
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -93,25 +115,21 @@ namespace Etherna.VideoImporter.Core.Services
 
         public Task<VideoEncodingBase> EncodeVideoAsync(
             VideoEncodingBase sourceEncoding,
-            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputEncoding = DefaultVideoType) =>
-            EncodeVideoAsync(sourceEncoding.BestVariant, closedCaptionTracks, outputEncoding);
+            EncodeVideoAsync(sourceEncoding.BestVariant, outputEncoding);
 
         public async Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase sourceVariant,
-            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputEncoding = DefaultVideoType)
         {
             ArgumentNullException.ThrowIfNull(sourceVariant, nameof(sourceVariant));
             
             var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedVideoSubDirectory);
-            Directory.CreateDirectory(outputDirectory);
 
             var encodedVideo = await ffMpegService.EncodeVideoAsync(
                 sourceVariant,
                 VideoHeightResolutions.OrderDescending()
                                       .ToArray(),
-                closedCaptionTracks,
                 outputEncoding,
                 outputDirectory);
 

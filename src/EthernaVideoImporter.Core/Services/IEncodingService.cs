@@ -25,12 +25,10 @@ namespace Etherna.VideoImporter.Core.Services
         
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoEncodingBase sourceEncoding,
-            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputEncoding = EncodingService.DefaultVideoType);
         
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase sourceVariant,
-            ClosedCaptionTrackFile[] closedCaptionTracks,
             VideoType outputEncoding = EncodingService.DefaultVideoType);
     }
 }

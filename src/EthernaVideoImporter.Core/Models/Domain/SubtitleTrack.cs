@@ -17,11 +17,11 @@ using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public class ClosedCaptionTrackFile(
+    public class SubtitleTrack(
         Language language,
-        UUri? uri = null)
+        UUri? fileUri = null)
     {
         public Language Language { get; } = language;
-        public UUri? Uri { get; } = uri;
+        public UUri? FileUri { get; } = fileUri;
     }
 }
