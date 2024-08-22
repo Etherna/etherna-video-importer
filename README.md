@@ -19,6 +19,11 @@ To run the importer you need to download [FFmpeg and FFprobe](https://ffmpeg.org
 
 **EthernaVideoImporter's help**
 ```
+Tool to import videos on Etherna from different sources.
+
+    Program distributed under AGPLv3 license. Copyright since 2022 by Etherna SA.
+    You can find source code at: https://github.com/Etherna/etherna-video-importer
+
 Usage:  evi COMMAND SOURCE_URI [SOURCE_URI, ...] [OPTIONS]
 
 Commands:
@@ -42,7 +47,7 @@ Video Management Options:
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
   --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
-  --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: medium
+  --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: Medium
 
 Bee Node Options:
   --bee-node              Use bee native node
@@ -81,6 +86,11 @@ Run 'evi -h' or 'evi --help' to print help.
 
 **EthernaVideoImporter.Devcon's help**
 ```
+Tool to import videos on Etherna from Devcon archive.
+
+    Program distributed under AGPLv3 license. Copyright since 2022 by Etherna SA.
+    You can find source code at: https://github.com/Etherna/etherna-video-importer
+
 Usage:  evid MD_FOLDER [OPTIONS]
 
 General Options:
@@ -99,7 +109,7 @@ Video Management Options:
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
   --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
-  --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: medium
+  --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: Medium
 
 Bee Node Options:
   --bee-node              Use bee native node

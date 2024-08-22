@@ -35,6 +35,11 @@ namespace Etherna.VideoImporter.Devcon
         // Consts.
         private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
         private static readonly string HelpText = $"""
+            Tool to import videos on Etherna from Devcon archive.
+            
+                Program distributed under AGPLv3 license. Copyright since 2022 by Etherna SA.
+                You can find source code at: https://github.com/Etherna/etherna-video-importer
+            
             Usage:  evid MD_FOLDER [OPTIONS]
 
             General Options:
