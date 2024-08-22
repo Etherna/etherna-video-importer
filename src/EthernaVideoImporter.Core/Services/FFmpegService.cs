@@ -236,7 +236,7 @@ namespace Etherna.VideoImporter.Core.Services
             var result = await command.Task;
 
             ioService.Write(new string(' ', ioService.BufferWidth));
-            ioService.SetCursorPosition(0, ioService.CursorTop - 1);
+            ioService.SetCursorPosition(0, Math.Max(0, ioService.CursorTop - 1));
             ioService.WriteLine(null, false);
 
             // Validate result.
