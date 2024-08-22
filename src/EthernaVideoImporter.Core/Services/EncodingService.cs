@@ -107,8 +107,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             var encodedVideo = await ffMpegService.EncodeVideoAsync(
                 sourceVariant,
-                VideoHeightResolutions.Union(new List<int> { sourceVariant.Height })
-                                      .OrderDescending()
+                VideoHeightResolutions.OrderDescending()
                                       .ToArray(),
                 outputEncoding,
                 outputDirectory);
