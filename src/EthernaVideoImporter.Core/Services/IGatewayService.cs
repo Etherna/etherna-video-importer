@@ -70,5 +70,7 @@ namespace Etherna.VideoImporter.Core.Services
             PostageBatchId batchId,
             SwarmChunk chunk,
             bool fundPinning = false);
+
+        Task AnnounceChunksUploadAsync(SwarmHash rootHash, PostageBatchId batchId);
     }
 }

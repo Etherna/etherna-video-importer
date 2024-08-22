@@ -241,7 +241,11 @@ namespace Etherna.VideoImporter.Core.Services
             
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
             
-            var tagInfo = await gatewayService.CreateTagAsync(batchId.Value); //necessary to not bypass bee local storage
+            //required to not bypass bee local storage
+            var tagInfo = await gatewayService.CreateTagAsync(batchId.Value);
+            
+            //required to pre-pin the root chunk on same node owning the postage batch. Doesn't imply user's pinning.
+            await gatewayService.AnnounceChunksUploadAsync(videoManifestHash, batchId.Value);
             
             int totalUploaded = 0;
             var uploadStartDateTime = DateTime.UtcNow;

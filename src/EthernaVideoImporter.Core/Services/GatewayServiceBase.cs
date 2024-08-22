@@ -41,6 +41,10 @@ namespace Etherna.VideoImporter.Core.Services
         public IBeeClient BeeClient { get; } = beeClient;
 
         // Methods.
+        public Task AnnounceChunksUploadAsync(SwarmHash rootHash, PostageBatchId batchId) => options.IsDryRun ?
+            Task.CompletedTask :
+            AnnounceChunksUploadHelperAsync(rootHash, batchId);
+
         public Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth) => options.IsDryRun ?
             Task.FromResult(PostageBatchId.Zero) :
             CreatePostageBatchHelperAsync(amount, batchDepth);
@@ -86,6 +90,8 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Protected methods.
+        protected abstract Task AnnounceChunksUploadHelperAsync(SwarmHash rootHash, PostageBatchId batchId);
+        
         protected abstract Task<PostageBatchId> CreatePostageBatchHelperAsync(BzzBalance amount, int batchDepth);
         
         protected abstract Task DefundResourcePinningHelperAsync(SwarmHash hash);

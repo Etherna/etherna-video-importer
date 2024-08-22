@@ -35,6 +35,9 @@ namespace Etherna.VideoImporter.Core.Services
             (await BeeClient.GetPostageBatchAsync(batchId)).IsUsable;
         
         // Protected override methods.
+        protected override Task AnnounceChunksUploadHelperAsync(SwarmHash rootHash, PostageBatchId batchId) =>
+            Task.CompletedTask; //not required because it's a single node, but no reason to fail
+
         protected override async Task<PostageBatchId> CreatePostageBatchHelperAsync(BzzBalance amount, int batchDepth)
         {
             ioService.PrintTimeStamp();
