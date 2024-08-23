@@ -24,6 +24,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace Etherna.VideoImporter.Core.Services
 {
@@ -31,6 +32,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Consts.
         public const VideoType DefaultVideoType = VideoType.Hls;
+        public const string EncodedSubtitlesSubDirectory = "encoded/subs";
         public const string EncodedThumbSubDirectory = "encoded/thumb";
         public const string EncodedVideoSubDirectory = "encoded/video";
         public static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
@@ -58,6 +60,29 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Methods.
+        public async Task<SubtitleFile[]> EncodeSubtitlesFromSourceVariantAsync(
+            VideoVariantBase sourceVariant,
+            ClosedCaptionTrackInfo[] subtitleTracks)
+        {
+            ArgumentNullException.ThrowIfNull(subtitleTracks, nameof(subtitleTracks));
+
+            if (subtitleTracks.Length == 0)
+                return [];
+            
+            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedSubtitlesSubDirectory);
+
+            ioService.WriteLine($"Encoding subtitles [{string.Join(", ", subtitleTracks.Select(t => t.Language.Name))}]...");
+            
+            var encodedSubFiles = await ffMpegService.EncodeSubtitlesFromSourceVariantAsync(
+                sourceVariant,
+                subtitleTracks,
+                outputDirectory);
+            
+            ioService.WriteLine($"Encoded subtitles");
+
+            return encodedSubFiles;
+        }
+
         public async Task<ThumbnailFile[]> EncodeThumbnailsAsync(
             ThumbnailFile sourceThumbnailFile)
         {
@@ -103,7 +128,6 @@ namespace Etherna.VideoImporter.Core.Services
             ArgumentNullException.ThrowIfNull(sourceVariant, nameof(sourceVariant));
             
             var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedVideoSubDirectory);
-            Directory.CreateDirectory(outputDirectory);
 
             var encodedVideo = await ffMpegService.EncodeVideoAsync(
                 sourceVariant,

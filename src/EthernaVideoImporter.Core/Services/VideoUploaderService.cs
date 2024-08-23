@@ -137,6 +137,17 @@ namespace Etherna.VideoImporter.Core.Services
                     postageStampIssuer: stampIssuer);
             }
             
+            //subtitle source files, exclude already uploaded Swarm files 
+            ioService.WriteLine($"Creating chunks of subtitles in progress...");
+            foreach (var subtitleFile in video.SubtitleFiles.Where(f => f.SwarmHash is null))
+            {
+                using var stream = await subtitleFile.ReadToStreamAsync();
+                subtitleFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    stream,
+                    chunksDirectory.FullName,
+                    postageStampIssuer: stampIssuer);
+            }
+            
             //new video manifest (at first without batchId. See: https://etherna.atlassian.net/browse/EVMS-8).
             //personal data
             var personalData = new VideoManifestPersonalData(
@@ -162,7 +173,7 @@ namespace Etherna.VideoImporter.Core.Services
                         _ => throw new InvalidOperationException()
                     },
                     v.QualityLabel,
-                    v.EntryFile.ByteSize,
+                    v.TotalByteSize,
                     v switch
                     {
                         HlsVideoVariant hlsV => hlsV.HlsSegmentFiles.Select(segment =>
@@ -206,6 +217,13 @@ namespace Etherna.VideoImporter.Core.Services
                     t.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
                     t.Width)));
             
+            //video manifest captions
+            var manifestSubtitleSources = video.SubtitleFiles.Select(s =>
+                new VideoManifestCaptionSource(
+                    s.TrackName,
+                    s.FileName,
+                    s.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here")));
+            
             //video manifest
             var videoManifest = new VideoManifest(
                 video.AspectRatio,
@@ -217,7 +235,8 @@ namespace Etherna.VideoImporter.Core.Services
                 ownerEthAddress,
                 personalData.Serialize(),
                 manifestVideoSources,
-                manifestThumbnail);
+                manifestThumbnail,
+                manifestSubtitleSources);
 
             await videoPublisherService.CreateVideoManifestChunksAsync(
                 videoManifest,

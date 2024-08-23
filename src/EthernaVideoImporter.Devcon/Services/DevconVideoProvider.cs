@@ -42,7 +42,8 @@ namespace Etherna.VideoImporter.Devcon.Services
         public string SourceName => "devconFolder";
 
         // Methods.
-        public Task<Video> GetVideoAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.GetVideoAsync(
+        public Task<Video> BuildVideoFromMetadataAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.BuildVideoFromMetadataAsync(
+            true,
             videoMetadata as DevconFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(DevconFileVideoMetadata)}", nameof(videoMetadata)));
 
         public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()

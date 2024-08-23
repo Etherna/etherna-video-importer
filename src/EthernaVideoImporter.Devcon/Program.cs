@@ -153,6 +153,7 @@ namespace Etherna.VideoImporter.Devcon
                         break;
                     
                     case "--dry":
+                        Console.WriteLine("Dry Run");
                         isDryRun = true;
                         break;
 
@@ -198,13 +199,13 @@ namespace Etherna.VideoImporter.Devcon
                     case "--bitrate-reduction":
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("Bitrate reduction value is missing");
-                        bitrateReduction = Enum.Parse<FFmpegBitrateReduction>(optArgs[++i]);
+                        bitrateReduction = Enum.Parse<FFmpegBitrateReduction>(optArgs[++i], true);
                         break;
 
                     case "--ffmpeg-preset":
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("Preset value is missing");
-                        ffmpegPreset = Enum.Parse<FFmpegH264Preset>(optArgs[++i]);
+                        ffmpegPreset = Enum.Parse<FFmpegH264Preset>(optArgs[++i], true);
                         break;
 
                     //bee node

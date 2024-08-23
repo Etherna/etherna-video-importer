@@ -202,7 +202,7 @@ namespace Etherna.VideoImporter.Core
                                 $"Error: Description too long, max length: {ethernaIndexParameters.VideoDescriptionMaxLength}");
 
                         // Get and encode video from source.
-                        var video = await videoProvider.GetVideoAsync(sourceMetadata);
+                        var video = await videoProvider.BuildVideoFromMetadataAsync(sourceMetadata);
                         video.EthernaIndexId = alreadyIndexedVideo?.Id;
 
                         // Upload video and all related data.
@@ -373,6 +373,7 @@ namespace Etherna.VideoImporter.Core
                 
                 video = new Video(
                     sourceMetadata,
+                    [],
                     thumbnailFiles,
                     videoEncoding);
             }
