@@ -173,7 +173,7 @@ namespace Etherna.VideoImporter.Core.Services
                         _ => throw new InvalidOperationException()
                     },
                     v.QualityLabel,
-                    v.EntryFile.ByteSize,
+                    v.TotalByteSize,
                     v switch
                     {
                         HlsVideoVariant hlsV => hlsV.HlsSegmentFiles.Select(segment =>
@@ -217,6 +217,13 @@ namespace Etherna.VideoImporter.Core.Services
                     t.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
                     t.Width)));
             
+            //video manifest captions
+            var manifestSubtitleSources = video.SubtitleFiles.Select(s =>
+                new VideoManifestCaptionSource(
+                    s.TrackName,
+                    s.FileName,
+                    s.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here")));
+            
             //video manifest
             var videoManifest = new VideoManifest(
                 video.AspectRatio,
@@ -228,7 +235,8 @@ namespace Etherna.VideoImporter.Core.Services
                 ownerEthAddress,
                 personalData.Serialize(),
                 manifestVideoSources,
-                manifestThumbnail);
+                manifestThumbnail,
+                manifestSubtitleSources);
 
             await videoPublisherService.CreateVideoManifestChunksAsync(
                 videoManifest,
