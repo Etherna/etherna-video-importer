@@ -24,6 +24,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Constructor.
         public Video(
             VideoMetadataBase metadata,
+            SubtitleFile[] subtitleFiles,
             ThumbnailFile[] thumbnailFiles,
             VideoEncodingBase videoEncoding)
         {
@@ -34,6 +35,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 throw new ArgumentException("Must exist at least a thumbnail");
 
             Metadata = metadata;
+            SubtitleFiles = subtitleFiles;
             ThumbnailFiles = thumbnailFiles;
             VideoEncoding = videoEncoding;
         }
@@ -50,6 +52,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public string? EthernaIndexId { get; set; }
         public SwarmHash? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
+        public IEnumerable<SubtitleFile> SubtitleFiles { get; }
         public string ThumbnailBlurhash => ThumbnailFiles.First().Blurhash;
         public IEnumerable<ThumbnailFile> ThumbnailFiles { get; }
         public VideoEncodingBase VideoEncoding { get; }

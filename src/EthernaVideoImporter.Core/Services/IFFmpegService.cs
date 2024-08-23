@@ -18,6 +18,7 @@ using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using System.Threading.Tasks;
+using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace Etherna.VideoImporter.Core.Services
 {
@@ -28,9 +29,9 @@ namespace Etherna.VideoImporter.Core.Services
             BasicUUri mainFileUri,
             SwarmAddress? swarmAddress = null);
         
-        Task<FileBase[]> EncodeSubtitlesAsync(
-            VideoVariantBase sourceVariant,
-            SubtitleTrack[] subtitleTracks,
+        Task<SubtitleFile[]> EncodeSubtitlesFromSourceVariantAsync(
+            VideoVariantBase inputVariant,
+            ClosedCaptionTrackInfo[] subtitleTracks,
             string outputDirectory);
         
         Task<VideoEncodingBase> EncodeVideoAsync(

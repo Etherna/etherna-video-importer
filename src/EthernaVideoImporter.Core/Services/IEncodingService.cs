@@ -15,11 +15,16 @@
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System.Threading.Tasks;
+using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace Etherna.VideoImporter.Core.Services
 {
     public interface IEncodingService
     {
+        Task<SubtitleFile[]> EncodeSubtitlesFromSourceVariantAsync(
+            VideoVariantBase sourceVariant,
+            ClosedCaptionTrackInfo[] subtitleTracks);
+        
         Task<ThumbnailFile[]> EncodeThumbnailsAsync(
             ThumbnailFile sourceThumbnailFile);
         

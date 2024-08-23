@@ -15,6 +15,7 @@
 using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
+using Etherna.UniversalFiles.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
@@ -30,6 +31,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace Etherna.VideoImporter.Core.Services
 {
@@ -162,12 +164,47 @@ namespace Etherna.VideoImporter.Core.Services
             }
         }
 
-        public Task<FileBase[]> EncodeSubtitlesAsync(
-            VideoVariantBase sourceVariant,
-            SubtitleTrack[] subtitleTracks,
+        public async Task<SubtitleFile[]> EncodeSubtitlesFromSourceVariantAsync(
+            VideoVariantBase inputVariant,
+            ClosedCaptionTrackInfo[] subtitleTracks,
             string outputDirectory)
         {
-            throw new NotImplementedException();
+            Directory.CreateDirectory(outputDirectory);
+
+            ioService.WriteLine($"Encoding subtitles [{string.Join(", ", subtitleTracks.Select(t => t.Language.Name))}]...");
+            
+            // Extract and encode sub tracks.
+            List<SubtitleFile> encodedSubFiles = new List<SubtitleFile>();
+            for (int i = 0; i < subtitleTracks.Length; i++)
+            {
+                var outputFilePath = Path.Combine(outputDirectory, $"{i}.vtt");
+                
+                var args = new []
+                {
+                    "-i", inputVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri,
+                    "-map", $"0:s:{i}",
+                    outputFilePath
+                };
+                
+                // Run command.
+                var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
+
+                activedCommands.Add(command);
+                ioService.CancelKeyPress += ManageInterrupted;
+
+                // Waiting until end and stop console output.
+                var result = await command.Task;
+
+                // Inspect and print result.
+                if (!result.Success)
+                    throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
+                
+                encodedSubFiles.Add(await SubtitleFile.BuildNewAsync(
+                    uFileProvider.BuildNewUFile(new BasicUUri(outputFilePath, UUriKind.Local)),
+                    subtitleTracks[i].Language.Name));
+            }
+
+            return encodedSubFiles.ToArray();
         }
 
         public async Task<VideoEncodingBase> EncodeVideoAsync(

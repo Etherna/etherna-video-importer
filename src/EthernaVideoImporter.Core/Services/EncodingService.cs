@@ -24,6 +24,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace Etherna.VideoImporter.Core.Services
 {
@@ -59,9 +60,9 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Methods.
-        public async Task<FileBase[]> EncodeSubtitlesAsync(
+        public async Task<SubtitleFile[]> EncodeSubtitlesFromSourceVariantAsync(
             VideoVariantBase sourceVariant,
-            SubtitleTrack[] subtitleTracks)
+            ClosedCaptionTrackInfo[] subtitleTracks)
         {
             ArgumentNullException.ThrowIfNull(subtitleTracks, nameof(subtitleTracks));
 
@@ -70,17 +71,16 @@ namespace Etherna.VideoImporter.Core.Services
             
             var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedSubtitlesSubDirectory);
 
-            var encodedSubFiles = await ffMpegService.EncodeSubtitlesAsync(
+            var encodedSubFiles = await ffMpegService.EncodeSubtitlesFromSourceVariantAsync(
                 sourceVariant,
                 subtitleTracks,
                 outputDirectory);
             
-            foreach (var subTrack in subtitleTracks)
-                ioService.WriteLine($"Encoded {subTrack.Language} subtitles");
+            ioService.WriteLine($"Encoded subtitles");
 
             return encodedSubFiles;
         }
-        
+
         public async Task<ThumbnailFile[]> EncodeThumbnailsAsync(
             ThumbnailFile sourceThumbnailFile)
         {
@@ -88,6 +88,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             List<ThumbnailFile> thumbnails = [];
             var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedThumbSubDirectory);
+            Directory.CreateDirectory(outputDirectory);
 
             using var thumbFileStream = await sourceThumbnailFile.ReadToStreamAsync();
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);

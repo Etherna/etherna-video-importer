@@ -373,6 +373,7 @@ namespace Etherna.VideoImporter.Core
                 
                 video = new Video(
                     sourceMetadata,
+                    [],
                     thumbnailFiles,
                     videoEncoding);
             }

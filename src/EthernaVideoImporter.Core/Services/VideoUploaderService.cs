@@ -137,6 +137,17 @@ namespace Etherna.VideoImporter.Core.Services
                     postageStampIssuer: stampIssuer);
             }
             
+            //subtitle source files, exclude already uploaded Swarm files 
+            ioService.WriteLine($"Creating chunks of subtitles in progress...");
+            foreach (var subtitleFile in video.SubtitleFiles.Where(f => f.SwarmHash is null))
+            {
+                using var stream = await subtitleFile.ReadToStreamAsync();
+                subtitleFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    stream,
+                    chunksDirectory.FullName,
+                    postageStampIssuer: stampIssuer);
+            }
+            
             //new video manifest (at first without batchId. See: https://etherna.atlassian.net/browse/EVMS-8).
             //personal data
             var personalData = new VideoManifestPersonalData(
