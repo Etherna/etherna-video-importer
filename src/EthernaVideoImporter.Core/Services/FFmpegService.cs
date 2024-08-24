@@ -197,8 +197,10 @@ namespace Etherna.VideoImporter.Core.Services
                     throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
                 
                 encodedSubFiles.Add(await SubtitleFile.BuildNewAsync(
-                    uFileProvider.BuildNewUFile(new BasicUUri(outputFilePath, UUriKind.Local)),
-                    subtitleTracks[i].Language.Name));
+                    uFileProvider.BuildNewUFile(
+                        new BasicUUri(outputFilePath, UUriKind.Local)),
+                        subtitleTracks[i].Language.Name,
+                        subtitleTracks[i].Language.Code));
             }
 
             return encodedSubFiles.ToArray();

@@ -21,6 +21,7 @@ using Etherna.Sdk.Users.Index.Models;
 using Etherna.Sdk.Users.Index.Services;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
+using Etherna.VideoImporter.Core.Utilities;
 using Microsoft.Extensions.Options;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
@@ -220,7 +221,8 @@ namespace Etherna.VideoImporter.Core.Services
             //video manifest captions
             var manifestSubtitleSources = video.SubtitleFiles.Select(s =>
                 new VideoManifestCaptionSource(
-                    s.TrackName,
+                    s.Label,
+                    s.LanguageCode,
                     s.FileName,
                     s.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here")));
             
@@ -323,7 +325,7 @@ namespace Etherna.VideoImporter.Core.Services
             }
             
             ioService.WriteLine($"Chunks upload completed!");
-            ioService.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
+            ioService.WriteLine($"Published on (permalink): {UrlBuilder.BuildNormalPermalinkUrl(video.EthernaPermalinkHash.Value)}");
             
             // Fund pinning.
             if (fundPinning)

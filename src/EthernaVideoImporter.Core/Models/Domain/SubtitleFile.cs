@@ -25,18 +25,21 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         private SubtitleFile(
             long byteSize,
             string fileName,
-            string trackName,
+            string label,
+            string languageCode,
             UFile universalFile,
             SwarmHash? swarmHash)
             : base(byteSize, fileName, universalFile, swarmHash)
         {
-            TrackName = trackName;
+            Label = label;
+            LanguageCode = languageCode;
         }
 
         // Static builders.
         public static async Task<SubtitleFile> BuildNewAsync(
             BasicUFile uFile,
-            string trackName,
+            string label,
+            string langaugeCode,
             SwarmHash? swarmHash = null)
         {
             ArgumentNullException.ThrowIfNull(uFile, nameof(uFile));
@@ -49,12 +52,14 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             return new SubtitleFile(
                 byteSize,
                 fileName,
-                trackName,
+                label,
+                langaugeCode,
                 uFile,
                 swarmHash);
         }
         
         // Properties.
-        public string TrackName { get; }
+        public string Label { get; }
+        public string LanguageCode { get; }
     }
 }
