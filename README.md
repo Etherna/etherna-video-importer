@@ -49,10 +49,9 @@ Video Management Options:
   --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
   --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: Medium
 
-Bee Node Options:
-  --bee-node              Use bee native node
-  --bee-url               URL of Bee node (default: http://localhost/)
-  --bee-api-port          Port used by API (default: 1633)
+Gateway Options:
+  --bee-node              Use bee node as gateway
+  --gateway-url           Connect gateway with custom URL
 
 Json videos metadata format:
 To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
@@ -111,10 +110,9 @@ Video Management Options:
   --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
   --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: Medium
 
-Bee Node Options:
-  --bee-node              Use bee native node
-  --bee-url               URL of Bee node (default: http://localhost/)
-  --bee-api-port          Port used by API (default: 1633)
+Gateway Options:
+  --bee-node              Use bee node as gateway
+  --gateway-url           Connect gateway with custom URL
 
 Run 'evid -h' or 'evid --help' to print help.
 ```

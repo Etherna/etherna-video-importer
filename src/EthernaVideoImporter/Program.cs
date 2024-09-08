@@ -70,10 +70,9 @@ namespace Etherna.VideoImporter
               --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: {{FFmpegServiceOptions.DefaultBitrateReduction}}
               --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: {{FFmpegServiceOptions.DefaultFFmpegPreset}}
 
-            Bee Node Options:
-              --bee-node              Use bee native node
-              --bee-url               URL of Bee node (default: {{CommonConsts.BeeNodeUrl}})
-              --bee-api-port          Port used by API (default: {{CommonConsts.BeePort}})
+            Gateway Options:
+              --bee-node              Use bee node as gateway
+              --gateway-url           Connect gateway with custom URL
 
             Json videos metadata format:
             To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
@@ -134,8 +133,7 @@ namespace Etherna.VideoImporter
             var ffmpegPreset = FFmpegServiceOptions.DefaultFFmpegPreset;
 
             bool useBeeNativeNode = false;
-            string beeNodeUrl = CommonConsts.BeeNodeUrl;
-            string? beeNodeApiPortStr = null;
+            string? customGatewayUrl = null;
 
             //print help
             if (args.Length == 0)
@@ -277,20 +275,12 @@ namespace Etherna.VideoImporter
                         useBeeNativeNode = true;
                         break;
 
-                    case "--bee-url":
+                    case "--gateway-url":
                         if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Bee node value is missing");
-                        beeNodeUrl = optArgs[++i];
-                        useBeeNativeNode = true;
-                        if (!beeNodeUrl.EndsWith('/'))
-                            beeNodeUrl += "/";
-                        break;
-
-                    case "--bee-api-port":
-                        if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Bee node API port missing");
-                        beeNodeApiPortStr = optArgs[++i];
-                        useBeeNativeNode = true;
+                            throw new ArgumentException("Gateway url is missing");
+                        customGatewayUrl = optArgs[++i];
+                        if (!customGatewayUrl.EndsWith('/'))
+                            customGatewayUrl += "/";
                         break;
 
                     default:
@@ -303,15 +293,6 @@ namespace Etherna.VideoImporter
             }
 
             // Input validation.
-            //bee node api port
-            int beeNodeApiPort = CommonConsts.BeePort;
-            if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
-                !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
-            {
-                Console.WriteLine($"Invalid value for Gateway API port");
-                return;
-            }
-
             // Register etherna service clients.
             var services = new ServiceCollection();
             IEthernaUserClientsBuilder ethernaClientsBuilder;
@@ -322,6 +303,11 @@ namespace Etherna.VideoImporter
                     null,
                     11420,
                     ApiScopes,
+#if DEVENV
+                    authority: "https://localhost:44379/",
+#else
+                    authority: EthernaUserClientsBuilder.DefaultSsoUrl,
+#endif
                     httpClientName: HttpClientName,
                     configureHttpClient: c =>
                     {
@@ -333,14 +319,31 @@ namespace Etherna.VideoImporter
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
                     apiKey,
                     ApiScopes,
+#if DEVENV
+                    authority: "https://localhost:44379/",
+#else
+                    authority: EthernaUserClientsBuilder.DefaultSsoUrl,
+#endif
                     httpClientName: HttpClientName,
                     configureHttpClient: c =>
                     {
                         c.Timeout = TimeSpan.FromMinutes(30);
                     });
             }
-            ethernaClientsBuilder.AddEthernaGatewayClient()
-                                 .AddEthernaIndexClient();
+            ethernaClientsBuilder.AddEthernaGatewayClient(
+#if DEVENV
+                    gatewayBaseUrl: customGatewayUrl ?? "http://localhost:1633/"
+#else
+                    gatewayBaseUrl: customGatewayUrl ?? EthernaUserClientsBuilder.DefaultGatewayUrl
+#endif
+                    )
+                .AddEthernaIndexClient(
+#if DEVENV
+                    indexBaseUrl: "https://localhost:44357/"
+#else
+                    indexBaseUrl: EthernaUserClientsBuilder.DefaultIndexUrl
+#endif
+                    );
 
             // Setup DI.
             //core
