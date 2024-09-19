@@ -13,8 +13,6 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Etherna.Sdk.Users.Index.Models;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using M3U8Parser;
 using System;
@@ -22,26 +20,20 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public interface IParsingService
+    public interface IHlsService
     {
-        Task<ThumbnailFile[]> ParseThumbnailFromPublishedVideoManifestAsync(
-            PublishedVideoManifest publishedManifest);
-        
         Task<HlsVideoEncoding> ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
             TimeSpan duration,
             FileBase masterFile,
             SwarmAddress? masterSwarmAddress,
             MasterPlaylist masterPlaylist);
 
-        Task<VideoEncodingBase> ParseVideoEncodingFromPublishedVideoManifestAsync(
-            PublishedVideoManifest publishedManifest);
-
         Task<HlsVideoVariant> ParseVideoVariantFromHlsStreamPlaylistFileAsync(
             FileBase streamPlaylistFile,
             SwarmAddress? streamPlaylistSwarmAddress,
             int height,
             int width);
-
+        
         Task<MasterPlaylist?> TryParseHlsMasterPlaylistFromFileAsync(FileBase hlsPlaylist);
     }
 }

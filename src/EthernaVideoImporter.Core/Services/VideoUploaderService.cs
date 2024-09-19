@@ -16,9 +16,9 @@ using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
+using Etherna.Sdk.Tools.Video.Models;
+using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Clients;
-using Etherna.Sdk.Users.Index.Models;
-using Etherna.Sdk.Users.Index.Services;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Utilities;
@@ -50,7 +50,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly IHasher hasher;
         private readonly IIoService ioService;
         private readonly VideoUploaderServiceOptions options;
-        private readonly IVideoPublisherService videoPublisherService;
+        private readonly IVideoManifestService videoManifestService;
 
         // Constructor.
         public VideoUploaderService(
@@ -61,7 +61,7 @@ namespace Etherna.VideoImporter.Core.Services
             IHasher hasher,
             IIoService ioService,
             IOptions<VideoUploaderServiceOptions> options,
-            IVideoPublisherService videoPublisherService)
+            IVideoManifestService videoManifestService)
         {
             this.appVersionService = appVersionService;
             this.chunkService = chunkService;
@@ -69,7 +69,7 @@ namespace Etherna.VideoImporter.Core.Services
             this.gatewayService = gatewayService;
             this.hasher = hasher;
             this.ioService = ioService;
-            this.videoPublisherService = videoPublisherService;
+            this.videoManifestService = videoManifestService;
             this.options = options.Value;
         }
 
@@ -164,8 +164,7 @@ namespace Etherna.VideoImporter.Core.Services
                 if (video.VideoEncoding.EncodingDirectoryPath != null)
                     sourceRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, sourceRelativePath);
                     
-                return VideoManifestVideoSource.BuildFromNewContent(
-                    v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
+                return new VideoManifestVideoSource(
                     sourceRelativePath,
                     video.VideoEncoding switch
                     {
@@ -190,13 +189,13 @@ namespace Etherna.VideoImporter.Core.Services
                             })
                             .ToArray(),
                         _ => []
-                    });
+                    },
+                    v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"));
             });
             if (video.VideoEncoding.MasterFile != null)
             {
                 var masterFile = video.VideoEncoding.MasterFile;
-                manifestVideoSources = manifestVideoSources.Prepend(VideoManifestVideoSource.BuildFromNewContent(
-                    masterFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
+                manifestVideoSources = manifestVideoSources.Prepend(new VideoManifestVideoSource(
                     masterFile.FileName,
                     video.VideoEncoding switch
                     {
@@ -205,18 +204,20 @@ namespace Etherna.VideoImporter.Core.Services
                     },
                     null,
                     0, //need to be 0 with manifest v2, to be recognizable
-                    []));
+                    [],
+                    masterFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here")));
             }
             
             //video manifest thumbnail
             var manifestThumbnail = new VideoManifestImage(
                 video.AspectRatio,
                 video.ThumbnailBlurhash,
-                video.ThumbnailFiles.Select(t => VideoManifestImageSource.BuildFromNewContent(
+                video.ThumbnailFiles.Select(t =>
+                    new VideoManifestImageSource(
                     t.FileName,
                     t.ImageType,
-                    t.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"),
-                    t.Width)));
+                    t.Width,
+                    t.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"))));
             
             //video manifest captions
             var manifestSubtitleSources = video.SubtitleFiles.Select(s =>
@@ -240,7 +241,7 @@ namespace Etherna.VideoImporter.Core.Services
                 manifestThumbnail,
                 manifestSubtitleSources);
 
-            await videoPublisherService.CreateVideoManifestChunksAsync(
+            await videoManifestService.CreateVideoManifestChunksAsync(
                 videoManifest,
                 chunksDirectory.FullName,
                 postageStampIssuer: stampIssuer);
@@ -250,7 +251,7 @@ namespace Etherna.VideoImporter.Core.Services
             
             // Assign batchId to manifest, and re-create manifest chunks. Get final hash.
             videoManifest.BatchId = batchId.Value;
-            var videoManifestHash = await videoPublisherService.CreateVideoManifestChunksAsync(
+            var videoManifestHash = await videoManifestService.CreateVideoManifestChunksAsync(
                 videoManifest,
                 chunksDirectory.FullName,
                 postageStampIssuer: stampIssuer);

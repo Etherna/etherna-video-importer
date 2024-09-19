@@ -14,7 +14,7 @@
 
 using Blurhash.SkiaSharp;
 using Etherna.BeeNet.Models;
-using Etherna.Sdk.Users.Index.Models;
+using Etherna.Sdk.Tools.Video.Models;
 using Etherna.UniversalFiles;
 using SkiaSharp;
 using System;

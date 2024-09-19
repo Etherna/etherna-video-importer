@@ -14,7 +14,7 @@
 
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Services;
-using Etherna.Sdk.Users.Index.Services;
+using Etherna.Sdk.Tools.Video.Services;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
@@ -52,11 +52,11 @@ namespace Etherna.VideoImporter.Core
             else
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
             services.AddTransient<IHasher, Hasher>();
+            services.AddTransient<IHlsService, HlsService>();
             services.AddTransient<IMigrationService, MigrationService>();
-            services.AddTransient<IParsingService, ParsingService>();
             services.AddTransient<IIoService, ConsoleIoService>();
             services.AddTransient<IUFileProvider, UFileProvider>();
-            services.AddTransient<IVideoPublisherService, VideoPublisherService>();
+            services.AddTransient<IVideoManifestService, VideoManifestService>();
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             // Add singleton services.

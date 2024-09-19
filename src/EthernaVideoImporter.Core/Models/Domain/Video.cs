@@ -19,7 +19,9 @@ using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
+#pragma warning disable CA1724
     public class Video
+#pragma warning restore CA1724
     {
         // Constructor.
         public Video(
