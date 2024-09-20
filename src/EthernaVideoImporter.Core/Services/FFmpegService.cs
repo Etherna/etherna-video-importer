@@ -14,8 +14,8 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.Sdk.Tools.Video.Models;
+using Etherna.Sdk.Tools.Video.Services;
 using Etherna.UniversalFiles;
-using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;

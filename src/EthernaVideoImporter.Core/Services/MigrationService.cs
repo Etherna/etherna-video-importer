@@ -15,6 +15,7 @@
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.Sdk.Tools.Video.Models;
+using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Extensions;
