@@ -120,11 +120,11 @@ namespace Etherna.VideoImporter.Core.Services
                 masterFileSwarmAddress);
             
             // Parse master playlist.
-            var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(masterFile);
+            var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromLocalFileAsync(masterFile);
             if (masterPlaylist is null)
                 throw new InvalidOperationException("Invalid master playlist");
             
-            return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
+            return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistLocalFileAsync(
                 manifest.Duration,
                 masterFile,
                 masterFileSwarmAddress,

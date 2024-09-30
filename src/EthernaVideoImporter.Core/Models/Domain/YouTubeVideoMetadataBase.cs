@@ -28,8 +28,9 @@ namespace Etherna.VideoImporter.Core.Models.Domain
     public abstract class YouTubeVideoMetadataBase(
         IYoutubeDownloader youtubeDownloader,
         string youtubeUrl,
-        string? playlistName)
-        : VideoMetadataBase
+        string? playlistName,
+        IVideoProvider videoProvider)
+        : VideoMetadataBase(videoProvider)
     {
         // Consts.
         private readonly TimeSpan FetchRetryDelay = TimeSpan.FromMinutes(10);
@@ -38,7 +39,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         // Properties.
         public string? ChannelName { get; private set; }
         public string? PlaylistName { get; private set; } = playlistName;
-        public override string SourceName => "youtube";
         public override IEnumerable<string> SourceOldIds => Array.Empty<string>();
         public Thumbnail? Thumbnail { get; protected set; }
         public string YoutubeId

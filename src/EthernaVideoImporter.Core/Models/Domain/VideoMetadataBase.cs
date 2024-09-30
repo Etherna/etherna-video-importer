@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
-    public abstract class VideoMetadataBase
+    public abstract class VideoMetadataBase(IVideoProvider videoProvider)
     {
         // Fields.
         private string? _description;
@@ -43,7 +43,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             protected set => _duration = value;
         }
         public abstract string SourceId { get; }
-        public abstract string SourceName { get; }
+        public string SourceName => videoProvider.SourceName;
         public abstract IEnumerable<string> SourceOldIds { get; }
         public virtual string Title
         {

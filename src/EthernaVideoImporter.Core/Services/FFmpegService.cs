@@ -90,7 +90,6 @@ namespace Etherna.VideoImporter.Core.Services
             SwarmAddress? swarmAddress = null)
         {
             ArgumentNullException.ThrowIfNull(mainFileUri, nameof(mainFileUri));
-            ArgumentNullException.ThrowIfNull(uFileProvider, nameof(uFileProvider));
 
             var mainFileAbsoluteUri = mainFileUri.ToAbsoluteUri();
             var mainFile = await FileBase.BuildFromUFileAsync(
@@ -110,18 +109,18 @@ namespace Etherna.VideoImporter.Core.Services
                 //hls
                 case ".m3u8":
                 {
-                    var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(mainFile);
+                    var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromLocalFileAsync(mainFile);
                     
                     //if is a master playlist
                     if (masterPlaylist is not null) 
-                        return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
+                        return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistLocalFileAsync(
                             ffProbeResult.Format.Duration,
                             mainFile,
                             swarmAddress,
                             masterPlaylist);
                     
                     //else, this is a single stream playlist
-                    var variant = await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
+                    var variant = await hlsService.ParseVideoVariantFromHlsStreamPlaylistLocalFileAsync(
                         mainFile,
                         swarmAddress,
                         ffProbeResult.Streams.First(s => s.Height != 0).Height,
@@ -301,7 +300,7 @@ namespace Etherna.VideoImporter.Core.Services
                     {
                         var streamPlaylistFile = await FileBase.BuildFromUFileAsync(
                             uFileProvider.BuildNewUFile(new BasicUUri(varRef.filePath, UUriKind.LocalAbsolute)));
-                        variants.Add(await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
+                        variants.Add(await hlsService.ParseVideoVariantFromHlsStreamPlaylistLocalFileAsync(
                             streamPlaylistFile,
                             null,
                             varRef.height,

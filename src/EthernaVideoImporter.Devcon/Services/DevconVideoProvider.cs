@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Devcon.Services
         private readonly DevconVideoProviderOptions options = options.Value;
 
         // Properties.
-        public string SourceName => "devconFolder";
+        public string SourceName => "devcon";
 
         // Methods.
         public Task<Video> BuildVideoFromMetadataAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.BuildVideoFromMetadataAsync(
@@ -88,7 +88,8 @@ namespace Etherna.VideoImporter.Devcon.Services
                     p.jsonDto.YoutubeId,
                     p.jsonDto.SwarmHash is null ?
                         (SwarmHash?)null :
-                        new SwarmHash(p.jsonDto.SwarmHash))).Cast<VideoMetadataBase>().ToArray();
+                        new SwarmHash(p.jsonDto.SwarmHash),
+                    this)).Cast<VideoMetadataBase>().ToArray();
         }
     }
 }

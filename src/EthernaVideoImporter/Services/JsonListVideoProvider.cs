@@ -40,7 +40,7 @@ namespace Etherna.VideoImporter.Services
         private readonly JsonListVideoProviderOptions options = options.Value;
 
         // Properties.
-        public string SourceName => options.JsonMetadataUri.OriginalUri;
+        public string SourceName => "json";
 
         // Methods.
         public async Task<Video> BuildVideoFromMetadataAsync(
@@ -119,7 +119,8 @@ namespace Etherna.VideoImporter.Services
                             metadataDto.Description,
                             metadataDto.OldIds,
                             videoEncoding,
-                            thumbnail));
+                            thumbnail,
+                            this));
 
                     ioService.WriteLine($"Loaded metadata for {metadataDto.Title}");
                 }
