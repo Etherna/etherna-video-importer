@@ -1,45 +1,63 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Etherna.Sdk.Tools.Video.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
+#pragma warning disable CA1724
     public class Video
+#pragma warning restore CA1724
     {
         // Constructor.
         public Video(
             VideoMetadataBase metadata,
-            IEnumerable<FileBase> encodedFiles,
-            IEnumerable<IThumbnailFile> thumbnailFiles)
+            SubtitleFile[] subtitleFiles,
+            ThumbnailFile[] thumbnailFiles,
+            VideoEncodingBase videoEncoding)
         {
-            if (!encodedFiles.Any())
-                throw new ArgumentException("Must exist at least a stream");
+            ArgumentNullException.ThrowIfNull(thumbnailFiles, nameof(thumbnailFiles));
+            ArgumentNullException.ThrowIfNull(videoEncoding, nameof(videoEncoding));
+            
+            if (thumbnailFiles.Length == 0)
+                throw new ArgumentException("Must exist at least a thumbnail");
 
-            EncodedFiles = encodedFiles;
             Metadata = metadata;
+            SubtitleFiles = subtitleFiles;
             ThumbnailFiles = thumbnailFiles;
+            VideoEncoding = videoEncoding;
         }
 
         // Properties.
-        public IEnumerable<FileBase> EncodedFiles { get; }
+        public float AspectRatio
+        {
+            get
+            {
+                var largerVideo = VideoEncoding.Variants.MaxBy(v => v.Width) ?? throw new InvalidOperationException();
+                return (float)largerVideo.Width / largerVideo.Height;
+            }
+        }
         public string? EthernaIndexId { get; set; }
         public SwarmHash? EthernaPermalinkHash { get; set; }
         public VideoMetadataBase Metadata { get; }
-        public IEnumerable<IThumbnailFile> ThumbnailFiles { get; }
+        public IEnumerable<SubtitleFile> SubtitleFiles { get; }
+        public string ThumbnailBlurhash => ThumbnailFiles.First().Blurhash;
+        public IEnumerable<ThumbnailFile> ThumbnailFiles { get; }
+        public VideoEncodingBase VideoEncoding { get; }
     }
 }

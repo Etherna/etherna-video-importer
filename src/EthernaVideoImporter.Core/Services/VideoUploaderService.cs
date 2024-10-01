@@ -1,30 +1,36 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Hasher.Postage;
+using Etherna.BeeNet.Hashing;
+using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
-using Etherna.Sdk.Users.Clients;
+using Etherna.Sdk.Tools.Video.Models;
+using Etherna.Sdk.Tools.Video.Services;
+using Etherna.Sdk.Users.Index.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using Etherna.VideoImporter.Core.Options;
+using Etherna.VideoImporter.Core.Utilities;
 using Microsoft.Extensions.Options;
+using Nethereum.Hex.HexConvertors.Extensions;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -32,54 +38,329 @@ namespace Etherna.VideoImporter.Core.Services
     internal sealed class VideoUploaderService : IVideoUploaderService
     {
         // Const.
-        private const string ManifestFileName = "metadata.json";
-        private const string ManifestMimeType = "application/json";
-        private const string ThumbnailMimeType = "image/jpeg";
+        private const string ChunksSubDirectoryName = "chunks";
         private const int UploadMaxRetry = 10;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
-        private const string VideoMimeType = "video/mp4";
 
         // Fields.
         private readonly IAppVersionService appVersionService;
-        private readonly ICalculatorService calculatorService;
+        private readonly IChunkService chunkService;
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IGatewayService gatewayService;
+        private readonly IHasher hasher;
         private readonly IIoService ioService;
-        private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly VideoUploaderServiceOptions options;
+        private readonly IVideoManifestService videoManifestService;
 
         // Constructor.
         public VideoUploaderService(
             IAppVersionService appVersionService,
-            ICalculatorService calculatorService,
+            IChunkService chunkService,
             IEthernaUserIndexClient ethernaIndexClient,
             IGatewayService gatewayService,
+            IHasher hasher,
             IIoService ioService,
-            IOptions<VideoUploaderServiceOptions> options)
+            IOptions<VideoUploaderServiceOptions> options,
+            IVideoManifestService videoManifestService)
         {
             this.appVersionService = appVersionService;
-            this.calculatorService = calculatorService;
+            this.chunkService = chunkService;
             this.ethernaIndexClient = ethernaIndexClient;
             this.gatewayService = gatewayService;
+            this.hasher = hasher;
             this.ioService = ioService;
+            this.videoManifestService = videoManifestService;
             this.options = options.Value;
         }
 
         // Public methods.
         public async Task UploadVideoAsync(
             Video video,
-            bool pinVideo,
-            bool offerVideo,
-            string userEthAddress)
+            bool fundPinning,
+            bool fundDownload,
+            string ownerEthAddress,
+            PostageBatchId? batchId = null)
         {
             ArgumentNullException.ThrowIfNull(video, nameof(video));
+            
+            // Create chunks. Do as first thing, also to evaluate required postage batch depth.
+            var chunksDirectory = Directory.CreateDirectory(Path.Combine(CommonConsts.TempDirectory.FullName, ChunksSubDirectoryName));
+            var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
+            
+            //video source files, exclude already uploaded Swarm files
+            if (video.VideoEncoding.MasterFile is { SwarmHash: null })
+            {
+                ioService.WriteLine($"Creating chunks of master playlist in progress...");
 
-            // Create new batch.
-            //calculate batch depth and amount
-            ioService.Write("Calculating required postage batch depth... ");
-            var batchDepth = await GetMinBatchDepthAsync(video, userEthAddress);
-            ioService.WriteLine("Done");
+                using var stream = await video.VideoEncoding.MasterFile.ReadToStreamAsync();
+                video.VideoEncoding.MasterFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    stream,
+                    chunksDirectory.FullName,
+                    postageStampIssuer: stampIssuer);
+            }
+            foreach (var variant in video.VideoEncoding.Variants.Where(v => v.EntryFile.SwarmHash is null))
+            {
+                ioService.WriteLine($"Creating chunks of {variant.QualityLabel} video variant in progress...");
+                
+                //common entry file
+                using var stream = await variant.EntryFile.ReadToStreamAsync();
+                variant.EntryFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    stream,
+                    chunksDirectory.FullName,
+                    postageStampIssuer: stampIssuer);
+                
+                //additional files.
+                switch (variant)
+                {
+                    case HlsVideoVariant hlsVariant:
+                        foreach (var segment in hlsVariant.HlsSegmentFiles)
+                        {
+                            using var segStream = await segment.ReadToStreamAsync();
+                            segment.SwarmHash = await chunkService.WriteDataChunksAsync(
+                                segStream,
+                                chunksDirectory.FullName,
+                                postageStampIssuer: stampIssuer);
+                        }
+                        break;
+                    case SingleFileVideoVariant: break;
+                    default: throw new InvalidOperationException();
+                }
+            }
+            
+            //thumbnail source files, exclude already uploaded Swarm files 
+            ioService.WriteLine($"Creating chunks of thumbnail in progress...");
+            foreach (var thumbnailFile in video.ThumbnailFiles.Where(f => f.SwarmHash is null))
+            {
+                using var stream = await thumbnailFile.ReadToStreamAsync();
+                thumbnailFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    stream,
+                    chunksDirectory.FullName,
+                    postageStampIssuer: stampIssuer);
+            }
+            
+            //subtitle source files, exclude already uploaded Swarm files 
+            ioService.WriteLine($"Creating chunks of subtitles in progress...");
+            foreach (var subtitleFile in video.SubtitleFiles.Where(f => f.SwarmHash is null))
+            {
+                using var stream = await subtitleFile.ReadToStreamAsync();
+                subtitleFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    stream,
+                    chunksDirectory.FullName,
+                    postageStampIssuer: stampIssuer);
+            }
+            
+            //new video manifest (at first without batchId. See: https://etherna.atlassian.net/browse/EVMS-8).
+            //personal data
+            var personalData = new VideoManifestPersonalData(
+                CommonConsts.ImporterIdentifier,
+                appVersionService.CurrentVersion.ToString(),
+                video.Metadata.SourceName,
+                hasher.ComputeHash(video.Metadata.SourceId).ToHex());
+            
+            //video manifest video sources
+            var manifestVideoSources = video.VideoEncoding.Variants.Select(v =>
+            {
+                var sourceRelativePath = v.EntryFile.UUri.OriginalUri;
+                if (video.VideoEncoding.EncodingDirectoryPath != null)
+                    sourceRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, sourceRelativePath);
+                    
+                return new VideoManifestVideoSource(
+                    sourceRelativePath,
+                    video.VideoEncoding switch
+                    {
+                        Mp4VideoEncoding _ => VideoType.Mp4,
+                        HlsVideoEncoding _ => VideoType.Hls,
+                        _ => throw new InvalidOperationException()
+                    },
+                    v.QualityLabel,
+                    v.TotalByteSize,
+                    v switch
+                    {
+                        HlsVideoVariant hlsV => hlsV.HlsSegmentFiles.Select(segment =>
+                            {
+                                var segmentRelativePath = segment.UUri.OriginalUri;
+                                if (video.VideoEncoding.EncodingDirectoryPath != null)
+                                    segmentRelativePath = Path.GetRelativePath(video.VideoEncoding.EncodingDirectoryPath, segmentRelativePath);
+                                
+                                return new VideoManifestVideoSourceAdditionalFile(
+                                    segmentRelativePath,
+                                    segment.SwarmHash ??
+                                    throw new InvalidOperationException("Swarm hash can't be null here"));
+                            })
+                            .ToArray(),
+                        _ => []
+                    },
+                    v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"));
+            });
+            if (video.VideoEncoding.MasterFile != null)
+            {
+                var masterFile = video.VideoEncoding.MasterFile;
+                manifestVideoSources = manifestVideoSources.Prepend(new VideoManifestVideoSource(
+                    masterFile.FileName,
+                    video.VideoEncoding switch
+                    {
+                        HlsVideoEncoding _ => VideoType.Hls,
+                        _ => throw new InvalidOperationException()
+                    },
+                    null,
+                    0, //need to be 0 with manifest v2, to be recognizable
+                    [],
+                    masterFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here")));
+            }
+            
+            //video manifest thumbnail
+            var manifestThumbnail = new VideoManifestImage(
+                video.AspectRatio,
+                video.ThumbnailBlurhash,
+                video.ThumbnailFiles.Select(t =>
+                    new VideoManifestImageSource(
+                    t.FileName,
+                    t.ImageType,
+                    t.Width,
+                    t.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"))));
+            
+            //video manifest captions
+            var manifestSubtitleSources = video.SubtitleFiles.Select(s =>
+                new VideoManifestCaptionSource(
+                    s.Label,
+                    s.LanguageCode,
+                    s.FileName,
+                    s.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here")));
+            
+            //video manifest
+            var videoManifest = new VideoManifest(
+                video.AspectRatio,
+                batchId: null,
+                DateTimeOffset.Now,
+                video.Metadata.Description,
+                video.Metadata.Duration,
+                video.Metadata.Title,
+                ownerEthAddress,
+                personalData.Serialize(),
+                manifestVideoSources,
+                manifestThumbnail,
+                manifestSubtitleSources);
 
+            await videoManifestService.CreateVideoManifestChunksAsync(
+                videoManifest,
+                chunksDirectory.FullName,
+                postageStampIssuer: stampIssuer);
+            
+            // Create new batch if required.
+            batchId ??= await CreatePostageBatchAsync(stampIssuer.Buckets.RequiredPostageBatchDepth);
+            
+            // Assign batchId to manifest, and re-create manifest chunks. Get final hash.
+            videoManifest.BatchId = batchId.Value;
+            var videoManifestHash = await videoManifestService.CreateVideoManifestChunksAsync(
+                videoManifest,
+                chunksDirectory.FullName,
+                postageStampIssuer: stampIssuer);
+            
+            video.EthernaPermalinkHash = videoManifestHash;
+            
+            // Upload chunks. Pin only video manifest hash, if required.
+            var chunkFiles = chunkService.GetAllChunkFilesInDirectory(chunksDirectory.FullName);
+            
+            ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
+            
+            //required to not bypass bee local storage
+            var tagInfo = await gatewayService.CreateTagAsync(batchId.Value);
+            
+            //required to pre-pin the root chunk on same node owning the postage batch. Doesn't imply user's pinning.
+            await gatewayService.AnnounceChunksUploadAsync(videoManifestHash, batchId.Value);
+            
+            int totalUploaded = 0;
+            var uploadStartDateTime = DateTime.UtcNow;
+            for (int i = 0; i < UploadMaxRetry && totalUploaded < chunkFiles.Length; i++)
+            {
+                // Skip with dry run.
+                if (options.IsDryRun)
+                    break;
+                
+                // Create websocket.
+                using var chunkUploaderWs = await gatewayService.GetChunkUploaderWebSocketAsync(batchId.Value, tagInfo.Id);
+
+                try
+                {
+                    var lastUpdateDateTime = DateTime.UtcNow;
+                    
+                    for (int j = totalUploaded; j < chunkFiles.Length; j++)
+                    {
+                        var now = DateTime.UtcNow;
+                        if (now - lastUpdateDateTime > TimeSpan.FromSeconds(1))
+                        {
+                            PrintProgressLine(
+                                "Uploading chunks",
+                                totalUploaded,
+                                chunkFiles.Length,
+                                uploadStartDateTime);
+                            lastUpdateDateTime = now;
+                        }
+
+                        var chunkPath = chunkFiles[j];
+                        var chunk = SwarmChunk.BuildFromSpanAndData(
+                            Path.GetFileNameWithoutExtension(chunkPath),
+                            await File.ReadAllBytesAsync(chunkPath));
+                        
+                        await chunkUploaderWs.SendChunkAsync(chunk, CancellationToken.None);
+
+                        totalUploaded++;
+                    }
+                    ioService.WriteLine(null, false);
+                }
+                catch (Exception e) when (e is WebSocketException or OperationCanceledException)
+                {
+                    ioService.WriteErrorLine($"Error uploading chunks");
+                    ioService.WriteLine(e.ToString());
+
+                    if (i + 1 < UploadMaxRetry)
+                    {
+                        Console.WriteLine("Retry...");
+                        await Task.Delay(UploadRetryTimeSpan);
+                    }
+                }
+                finally
+                {
+                    await chunkUploaderWs.CloseAsync();
+                }
+            }
+            
+            ioService.WriteLine($"Chunks upload completed!");
+            ioService.WriteLine($"Published on (permalink): {UrlBuilder.BuildNormalPermalinkUrl(video.EthernaPermalinkHash.Value)}");
+            
+            // Fund pinning.
+            if (fundPinning)
+            {
+                await gatewayService.FundResourcePinningAsync(videoManifestHash);
+                ioService.WriteLine("Funded video pinning");
+            }
+            
+            // Fund downloads.
+            if (fundDownload)
+            {
+                await gatewayService.FundResourceDownloadAsync(videoManifestHash);
+                ioService.WriteLine("Funded public download");
+            }
+
+            // List on index.
+            if (!options.IsDryRun)
+            {
+                if (video.EthernaIndexId is null)
+                    video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(video.EthernaPermalinkHash!.Value);
+                else
+                    await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkHash!.Value);
+            }
+            else
+            {
+                video.EthernaIndexId = "0000000";
+            }
+
+            ioService.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
+        }
+
+        // Helpers.
+        private async Task<PostageBatchId> CreatePostageBatchAsync(int batchDepth)
+        {
             var currentPrice = await gatewayService.GetChainPriceAsync();
             ioService.WriteLine($"Current chain price: {currentPrice.ToPlurString()}");
             
@@ -118,195 +399,33 @@ namespace Etherna.VideoImporter.Core.Services
             //create batch
             var batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
             ioService.WriteLine($"Postage batch: {batchId}");
-
-            // Upload video files.
-            foreach (var encodedFile in video.EncodedFiles.OfType<SourceFile>())
-            {
-                ioService.WriteLine(encodedFile switch
-                {
-                    AudioSourceFile _ => "Uploading audio track in progress...",
-                    VideoSourceFile evf => $"Uploading video track {evf.VideoQualityLabel} in progress...",
-                    _ => throw new InvalidOperationException()
-                });
-
-                var uploadSucceeded = false;
-                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
-                {
-                    try
-                    {
-                        encodedFile.SetSwarmHash(await gatewayService.UploadFileAsync(
-                            batchId,
-                            (await encodedFile.ReadToStreamAsync()).Stream,
-                            encodedFile.TryGetFileName(),
-                            VideoMimeType,
-                            pinVideo));
-                        uploadSucceeded = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        ioService.WriteErrorLine("Error uploading video file");
-                        ioService.PrintException(ex);
-                        if (i + 1 < UploadMaxRetry)
-                        {
-                            ioService.WriteLine("Retry...");
-                            await Task.Delay(UploadRetryTimeSpan);
-                        }
-                    }
-                }
-                if (!uploadSucceeded)
-                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
-
-                if (offerVideo)
-                    await gatewayService.FundResourceDownloadAsync(encodedFile.SwarmHash!.Value);
-            }
-
-            // Upload thumbnail.
-            ioService.WriteLine("Uploading thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<SourceFile>())
-            {
-                var uploadSucceeded = false;
-                SwarmHash thumbnailReference = default;
-                for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
-                {
-                    try
-                    {
-                        thumbnailReference = await gatewayService.UploadFileAsync(
-                            batchId,
-                            (await thumbnailFile.ReadToStreamAsync()).Stream,
-                            thumbnailFile.TryGetFileName(),
-                            ThumbnailMimeType,
-                            pinVideo);
-                        uploadSucceeded = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        ioService.WriteErrorLine("Error uploading thumbnail file");
-                        ioService.PrintException(ex);
-                        if (i + 1 < UploadMaxRetry)
-                        {
-                            ioService.WriteLine("Retry...");
-                            await Task.Delay(UploadRetryTimeSpan);
-                        }
-                    }
-                }
-                if (!uploadSucceeded)
-                    throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
-
-                thumbnailFile.SetSwarmHash(thumbnailReference);
-
-                if (offerVideo)
-                    await gatewayService.FundResourceDownloadAsync(thumbnailReference);
-            }
-
-            // Upload manifest.
-            var metadataVideo = await ManifestDto.BuildNewAsync(video, batchId, userEthAddress, appVersionService.CurrentVersion);
-            video.EthernaPermalinkHash = await UploadVideoManifestAsync(metadataVideo, pinVideo, offerVideo);
-
-            ioService.WriteLine($"Published with swarm hash (permalink): {video.EthernaPermalinkHash}");
-
-            // List on index.
-            if (video.EthernaIndexId is null)
-                video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(video.EthernaPermalinkHash!.Value);
-            else
-                await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkHash!.Value);
-
-            ioService.WriteLine($"Listed on etherna index with Id: {video.EthernaIndexId}");
+            return batchId;
         }
 
-        public async Task<SwarmHash> UploadVideoManifestAsync(
-            ManifestDto videoManifest,
-            bool pinManifest,
-            bool offerManifest)
+        private void PrintProgressLine(string message, long uploadedChunks, long totalChunks, DateTime startDateTime)
         {
-            ArgumentNullException.ThrowIfNull(videoManifest, nameof(videoManifest));
-
-            // Upload manifest.
-            var uploadSucceeded = false;
-            SwarmHash manifestReference = default;
-            for (int i = 0; i < UploadMaxRetry && !uploadSucceeded; i++)
+            // Calculate ETA.
+            var elapsedTime = DateTime.UtcNow - startDateTime;
+            TimeSpan? eta = null;
+            var progressStatus = (double)uploadedChunks / totalChunks;
+            if (progressStatus != 0)
             {
-                try
-                {
-                    var serializedManifest = JsonSerializer.Serialize(videoManifest, jsonSerializerOptions);
-                    using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
-
-                    manifestReference = await gatewayService.UploadFileAsync(
-                        videoManifest.BatchId,
-                        manifestStream,
-                        ManifestFileName,
-                        ManifestMimeType,
-                        pinManifest);
-                    uploadSucceeded = true;
-                }
-                catch (Exception ex)
-                {
-                    ioService.WriteErrorLine("Error uploading manifest file");
-                    ioService.PrintException(ex);
-                    if (i + 1 < UploadMaxRetry)
-                    {
-                        ioService.WriteLine("Retry...");
-                        await Task.Delay(UploadRetryTimeSpan);
-                    }
-                }
+                var totalRequiredTime = TimeSpan.FromSeconds(elapsedTime.TotalSeconds / progressStatus);
+                eta = totalRequiredTime - elapsedTime;
             }
-            if (!uploadSucceeded)
-                throw new InvalidOperationException($"Can't upload file after {UploadMaxRetry} retries");
 
-            if (offerManifest)
-                await gatewayService.FundResourceDownloadAsync(manifestReference);
+            // Print update.
+            var strBuilder = new StringBuilder();
 
-            return manifestReference;
-        }
-        
-        // Helpers.
-        private async Task<int> GetMinBatchDepthAsync(
-            Video video,
-            string userEthAddress)
-        {
-            var buckets = new uint[PostageStampIssuer.BucketsSize];
-            var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance, buckets);
-            
-            //evaluate video encoded files
-            foreach (var encodedFile in video.EncodedFiles.OfType<SourceFile>())
-            {
-                var (stream, _) = await encodedFile.ReadToStreamAsync();
-                await calculatorService.EvaluateFileUploadAsync(
-                    stream,
-                    VideoMimeType,
-                    encodedFile.TryGetFileName(),
-                    postageStampIssuer: stampIssuer);
-                await stream.DisposeAsync();
-            }
-            
-            //evaluate thumbnail files
-            foreach (var thumbnailFile in video.ThumbnailFiles.OfType<SourceFile>())
-            {
-                var (stream, _) = await thumbnailFile.ReadToStreamAsync();
-                await calculatorService.EvaluateFileUploadAsync(
-                    stream,
-                    ThumbnailMimeType,
-                    thumbnailFile.TryGetFileName(),
-                    postageStampIssuer: stampIssuer);
-                await stream.DisposeAsync();
-            }
-            
-            //evaluate manifest
-            var manifest = await ManifestDto.BuildNewAsync(
-                video,
-                PostageBatchId.Zero,
-                userEthAddress,
-                appVersionService.CurrentVersion,
-                allowFakeReferences: true);
-            var serializedManifest = JsonSerializer.Serialize(manifest, jsonSerializerOptions);
-            using var manifestStream = new MemoryStream(Encoding.UTF8.GetBytes(serializedManifest));
+            strBuilder.Append(CultureInfo.InvariantCulture,
+                $"{message} ({(progressStatus * 100):N2}%) {uploadedChunks} chunks of {totalChunks}.");
 
-            var result = await calculatorService.EvaluateFileUploadAsync(
-                manifestStream,
-                ManifestMimeType,
-                ManifestFileName,
-                postageStampIssuer: stampIssuer);
+            if (eta is not null)
+                strBuilder.Append(CultureInfo.InvariantCulture, $" ETA: {eta:hh\\:mm\\:ss}");
 
-            return result.RequiredPostageBatchDepth;
+            strBuilder.Append('\r');
+
+            ioService.Write(strBuilder.ToString());
         }
     }
 }

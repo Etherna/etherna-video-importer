@@ -1,20 +1,19 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.ManifestDtos;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -25,27 +24,18 @@ namespace Etherna.VideoImporter.Core.Services
     public interface IVideoUploaderService
     {
         /// <summary>
-        /// Start to upload all video data (manifest, video with all avaiable resolutions, thumbnail, index).
+        /// Start to upload all video data (manifest, video with all available resolutions, thumbnail, index).
         /// </summary>
         /// <param name="video">Video data</param>
-        /// <param name="pinVideo">Pin video</param>
-        /// <param name="offerVideo">Offer video contents for free</param>
+        /// <param name="fundPinning">Pin video</param>
+        /// <param name="fundDownload">Offer video contents for free</param>
+        /// <param name="ownerEthAddress">Owner eth address</param>
+        /// <param name="batchId">Use existing batch id</param>
         public Task UploadVideoAsync(
             Video video,
-            bool pinVideo,
-            bool offerVideo,
-            string userEthAddress);
-
-        /// <summary>
-        /// Upload a new video manifest
-        /// </summary>
-        /// <param name="videoManifest">The video manifest</param>
-        /// <param name="pinManifest">True if need to pin manifest</param>
-        /// <param name="offerManifest">Offer manifest for free</param>
-        /// <returns>The new manifest hash</returns>
-        Task<SwarmHash> UploadVideoManifestAsync(
-            ManifestDto videoManifest,
-            bool pinManifest,
-            bool offerManifest);
+            bool fundPinning,
+            bool fundDownload,
+            string ownerEthAddress,
+            PostageBatchId? batchId = null);
     }
 }

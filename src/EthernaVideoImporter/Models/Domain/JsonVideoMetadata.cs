@@ -1,18 +1,20 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Tools.Video.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 
@@ -22,27 +24,28 @@ namespace Etherna.VideoImporter.Models.Domain
     {
         // Constructors.
         internal JsonVideoMetadata(
-            string id,
+            string sourceId,
             string title,
             string description,
             IEnumerable<string>? oldIds,
-            VideoSourceFile sourceVideo,
-            ThumbnailSourceFile? sourceThumbnail)
+            VideoEncodingBase videoEncoding,
+            ThumbnailFile sourceThumbnail,
+            IVideoProvider videoProvider) :
+            base(videoProvider)
         {
-            Id = id;
             Description = description;
-            Duration = sourceVideo.Duration;
-            OldIds = oldIds ?? Array.Empty<string>();
-            OriginVideoQualityLabel = sourceVideo.VideoQualityLabel;
+            Duration = videoEncoding.Duration;
+            SourceId = sourceId;
+            SourceOldIds = oldIds ?? Array.Empty<string>();
             SourceThumbnail = sourceThumbnail;
-            SourceVideo = sourceVideo;
+            VideoEncoding = videoEncoding;
             Title = title;
         }
 
         // Properties.
-        public override string Id { get; }
-        public override IEnumerable<string> OldIds { get; }
-        public ThumbnailSourceFile? SourceThumbnail { get; }
-        public VideoSourceFile SourceVideo { get; }
+        public override string SourceId { get; }
+        public override IEnumerable<string> SourceOldIds { get; }
+        public ThumbnailFile SourceThumbnail { get; }
+        public VideoEncodingBase VideoEncoding { get; }
     }
 }

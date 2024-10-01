@@ -1,19 +1,20 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.Sdk.Users.Native;
+using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core;
+using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
@@ -34,6 +35,11 @@ namespace Etherna.VideoImporter.Devcon
         // Consts.
         private static readonly string[] ApiScopes = ["userApi.gateway", "userApi.index"];
         private static readonly string HelpText = $"""
+            Tool to import videos on Etherna from Devcon archive.
+            
+                Program distributed under AGPLv3 license. Copyright since 2022 by Etherna SA.
+                You can find source code at: https://github.com/Etherna/etherna-video-importer
+            
             Usage:  evid MD_FOLDER [OPTIONS]
 
             General Options:
@@ -41,6 +47,7 @@ namespace Etherna.VideoImporter.Devcon
               -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
+              --dry                   Run in dry mode. Any action on swarm gateway or index is performed read-only
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)
@@ -50,12 +57,12 @@ namespace Etherna.VideoImporter.Devcon
               -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
               --remove-unrecognized   Remove indexed videos not generated with this tool
               -u, --unpin             Try to unpin contents removed from index
-              -c, --preset-codec      Preset of codec used for encoder (see ffmpeg documentation). Default: {FFmpegServiceOptions.DefaultPresetCodec}
+              --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: {FFmpegServiceOptions.DefaultBitrateReduction}
+              --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: {FFmpegServiceOptions.DefaultFFmpegPreset}
 
-            Bee Node Options:
-              --bee-node              Use bee native node
-              --bee-url               URL of Bee node (default: {CommonConsts.BeeNodeUrl})
-              --bee-api-port          Port used by API (default: {CommonConsts.BeePort})
+            Gateway Options:
+              --bee-node              Use bee node as gateway
+              --gateway-url           Connect gateway with custom URL
 
             Run 'evid -h' or 'evid --help' to print help.
             """;
@@ -71,6 +78,7 @@ namespace Etherna.VideoImporter.Devcon
             string? customFFMpegFolderPath = null;
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
+            bool isDryRun = false;
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
@@ -80,11 +88,11 @@ namespace Etherna.VideoImporter.Devcon
             bool removeUnrecognizedVideos = false;
             bool unpinRemovedVideos = false;
             bool includeAudioTrack = false; //temporary disabled until https://etherna.atlassian.net/browse/EVI-21
-            FFmpegH264Preset presetCodec = FFmpegServiceOptions.DefaultPresetCodec;
+            var bitrateReduction = FFmpegBitrateReduction.Normal;
+            var ffmpegPreset = FFmpegServiceOptions.DefaultFFmpegPreset;
 
             bool useBeeNativeNode = false;
-            string beeNodeUrl = CommonConsts.BeeNodeUrl;
-            string? beeNodeApiPortStr = null;
+            string? customGatewayUrl = null;
 
             //print help
             if (args.Length == 0)
@@ -141,6 +149,11 @@ namespace Etherna.VideoImporter.Devcon
                     case "--auto-purchase":
                         autoPurchaseBatches = true;
                         break;
+                    
+                    case "--dry":
+                        Console.WriteLine("Dry Run");
+                        isDryRun = true;
+                        break;
 
                     //video management
                     case "-t":
@@ -180,12 +193,17 @@ namespace Etherna.VideoImporter.Devcon
                     case "--unpin":
                         unpinRemovedVideos = true;
                         break;
-
-                    case "-c":
-                    case "--preset-codec":
+                    
+                    case "--bitrate-reduction":
                         if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Preset Codec value is missing");
-                        presetCodec = Enum.Parse<FFmpegH264Preset>(optArgs[++i]);
+                            throw new ArgumentException("Bitrate reduction value is missing");
+                        bitrateReduction = Enum.Parse<FFmpegBitrateReduction>(optArgs[++i], true);
+                        break;
+
+                    case "--ffmpeg-preset":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Preset value is missing");
+                        ffmpegPreset = Enum.Parse<FFmpegH264Preset>(optArgs[++i], true);
                         break;
 
                     //bee node
@@ -193,35 +211,17 @@ namespace Etherna.VideoImporter.Devcon
                         useBeeNativeNode = true;
                         break;
 
-                    case "--bee-url":
+                    case "--gateway-url":
                         if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Bee node value is missing");
-                        beeNodeUrl = optArgs[++i];
-                        useBeeNativeNode = true;
-                        if (!beeNodeUrl.EndsWith('/'))
-                            beeNodeUrl += "/";
-                        break;
-
-                    case "--bee-api-port":
-                        if (optArgs.Length == i + 1)
-                            throw new ArgumentException("Bee node API port missing");
-                        beeNodeApiPortStr = optArgs[++i];
-                        useBeeNativeNode = true;
+                            throw new ArgumentException("Gateway url is missing");
+                        customGatewayUrl = optArgs[++i];
+                        if (!customGatewayUrl.EndsWith('/'))
+                            customGatewayUrl += "/";
                         break;
 
                     default:
                         throw new ArgumentException(optArgs[i] + " is not a valid option");
                 }
-            }
-
-            // Input validation.
-            //bee node api port
-            int beeNodeApiPort = CommonConsts.BeePort;
-            if (!string.IsNullOrEmpty(beeNodeApiPortStr) &&
-                !int.TryParse(beeNodeApiPortStr, CultureInfo.InvariantCulture, out beeNodeApiPort))
-            {
-                Console.WriteLine($"Invalid value for Gateway API port");
-                return;
             }
 
             // Register etherna service clients.
@@ -230,13 +230,17 @@ namespace Etherna.VideoImporter.Devcon
             if (apiKey is null) //"code" grant flow
             {
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithCodeAuth(
-                    CommonConsts.EthernaSsoUrl,
                     CommonConsts.EthernaVideoImporterClientId,
                     null,
                     11420,
                     ApiScopes,
-                    HttpClientName,
-                    c =>
+#if DEVENV
+                    authority: "https://localhost:44379/",
+#else
+                    authority: EthernaUserClientsBuilder.DefaultSsoUrl,
+#endif
+                    httpClientName: HttpClientName,
+                    configureHttpClient: c =>
                     {
                         c.Timeout = TimeSpan.FromMinutes(30);
                     });
@@ -244,33 +248,59 @@ namespace Etherna.VideoImporter.Devcon
             else //"password" grant flow
             {
                 ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
-                    CommonConsts.EthernaSsoUrl,
                     apiKey,
                     ApiScopes,
-                    HttpClientName,
-                    c =>
+#if DEVENV
+                    authority: "https://localhost:44379/",
+#else
+                    authority: EthernaUserClientsBuilder.DefaultSsoUrl,
+#endif
+                    httpClientName: HttpClientName,
+                    configureHttpClient: c =>
                     {
                         c.Timeout = TimeSpan.FromMinutes(30);
                     });
             }
-            ethernaClientsBuilder.AddEthernaGatewayClient(new Uri(CommonConsts.EthernaGatewayUrl))
-                                 .AddEthernaIndexClient(new Uri(CommonConsts.EthernaIndexUrl));
+            ethernaClientsBuilder.AddEthernaGatewayClient(
+#if DEVENV
+                    gatewayBaseUrl: customGatewayUrl ?? "http://localhost:1633/"
+#else
+                    gatewayBaseUrl: customGatewayUrl ?? EthernaUserClientsBuilder.DefaultGatewayUrl
+#endif
+                    )
+                .AddEthernaIndexClient(
+#if DEVENV
+                    indexBaseUrl: "https://localhost:44357/"
+#else
+                    indexBaseUrl: EthernaUserClientsBuilder.DefaultIndexUrl
+#endif
+                    );
 
             // Setup DI.
             //core
             services.AddCoreServices(
+                cleanerOptions =>
+                {
+                    cleanerOptions.IsDryRun = isDryRun;
+                },
                 encoderOptions =>
                 {
                     encoderOptions.IncludeAudioTrack = includeAudioTrack;
                 },
                 ffMpegOptions =>
                 {
+                    ffMpegOptions.BitrateReduction = bitrateReduction;
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
-                    ffMpegOptions.PresetCodec = presetCodec;
+                    ffMpegOptions.Preset = ffmpegPreset;
+                },
+                gatewayOptions =>
+                {
+                    gatewayOptions.IsDryRun = isDryRun;
                 },
                 uploaderOptions =>
                 {
                     uploaderOptions.AcceptPurchaseOfAllBatches = autoPurchaseBatches;
+                    uploaderOptions.IsDryRun = isDryRun;
 
                     if (!string.IsNullOrEmpty(ttlPostageStampStr))
                     {
@@ -283,22 +313,23 @@ namespace Etherna.VideoImporter.Devcon
                 useBeeNativeNode);
             
             //source provider
-            services.Configure<MdVideoProviderOptions>(options =>
+            services.Configure<DevconVideoProviderOptions>(options =>
             {
-                options.MdSourceFolderPath = mdSourceFolderPath;
+                options.DevconSourceFolderPath = mdSourceFolderPath;
             });
-            services.AddSingleton<IValidateOptions<MdVideoProviderOptions>, MdVideoProviderOptionsValidation>();
+            services.AddSingleton<IValidateOptions<DevconVideoProviderOptions>, DevconVideoProviderOptionsValidation>();
             services.AddTransient<IYoutubeClient, YoutubeClient>();
             services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
-            services.AddTransient<IVideoProvider, MdVideoProvider>();
+            services.AddTransient<IVideoProvider, DevconVideoProvider>();
             
             //result reporter
-            services.Configure<MdResultReporterOptions>(options =>
+            services.Configure<DevconResultReporterOptions>(options =>
             {
-                options.MdResultFolderPath = mdSourceFolderPath;
+                options.IsDryRun = isDryRun;
+                options.ResultFolderPath = mdSourceFolderPath;
             });
-            services.AddSingleton<IValidateOptions<MdResultReporterOptions>, MdResultReporterOptionsValidation>();
-            services.AddTransient<IResultReporterService, MdResultReporterService>();
+            services.AddSingleton<IValidateOptions<DevconResultReporterOptions>, DevconResultReporterOptionsValidation>();
+            services.AddTransient<IResultReporterService, DevconResultReporterService>();
 
             var serviceProvider = services.BuildServiceProvider();
 
