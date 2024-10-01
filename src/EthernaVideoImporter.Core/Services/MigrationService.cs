@@ -49,7 +49,7 @@ namespace Etherna.VideoImporter.Core.Services
             return new Version(personalData.ClientVersion) switch
             {
                 { Major: 0, Minor: <= 2 } => OperationType.ImportAll,
-                { Major: 0, Minor: 3, Revision: < 9} => OperationType.ImportAll,
+                { Major: 0, Minor: 3, Revision: <= 8} => OperationType.ImportAll,
                 _ => alreadyIndexedVideo.HasEqualMetadata(sourceMetadata, hasher) ?
                     OperationType.Skip : OperationType.UpdateManifest
             };
