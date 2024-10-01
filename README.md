@@ -6,7 +6,7 @@ Tool to import videos on Etherna from different sources.
 ## Instructions
 Download and extract binaries from [release page](https://github.com/Etherna/etherna-video-importer/releases).
 
-Currently exists two versions:
+Currently, exists two versions:
 * `EthernaVideoImporter` for a generic use
 * `EthernaVideoImporter.Devcon` to import specifically Devcon Archive's videos
 
@@ -19,6 +19,11 @@ To run the importer you need to download [FFmpeg and FFprobe](https://ffmpeg.org
 
 **EthernaVideoImporter's help**
 ```
+Tool to import videos on Etherna from different sources.
+
+    Program distributed under AGPLv3 license. Copyright since 2022 by Etherna SA.
+    You can find source code at: https://github.com/Etherna/etherna-video-importer
+
 Usage:  evi COMMAND SOURCE_URI [SOURCE_URI, ...] [OPTIONS]
 
 Commands:
@@ -31,6 +36,7 @@ General Options:
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
   -w, --write-file        Write published videos result to a JSON file
+  --dry                   Run in dry mode. Any action on swarm gateway or index is performed read-only
 
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
@@ -40,12 +46,12 @@ Video Management Options:
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
-  -c, --preset-codec      Preset of codec used for encoder (see ffmpeg documentation). Default: medium
+  --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
+  --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: Medium
 
-Bee Node Options:
-  --bee-node              Use bee native node
-  --bee-url               URL of Bee node (default: http://localhost/)
-  --bee-api-port          Port used by API (default: 1633)
+Gateway Options:
+  --bee-node              Use bee node as gateway
+  --gateway-url           Connect gateway with custom URL
 
 Json videos metadata format:
 To import from a video list you need a metadata descriptor file. Metadata is a JSON file with the following structure:
@@ -79,6 +85,11 @@ Run 'evi -h' or 'evi --help' to print help.
 
 **EthernaVideoImporter.Devcon's help**
 ```
+Tool to import videos on Etherna from Devcon archive.
+
+    Program distributed under AGPLv3 license. Copyright since 2022 by Etherna SA.
+    You can find source code at: https://github.com/Etherna/etherna-video-importer
+
 Usage:  evid MD_FOLDER [OPTIONS]
 
 General Options:
@@ -86,6 +97,7 @@ General Options:
   -f, --ffmpeg-path       Path to FFmpeg folder (default: search to <app_dir>/FFmpeg or global install)
   -i, --ignore-update     Ignore new version of EthernaVideoImporter
   -a, --auto-purchase     Accept automatically purchase of all batches
+  --dry                   Run in dry mode. Any action on swarm gateway or index is performed read-only
 
 Video Management Options:
   -t, --ttl               TTL (days) Postage Stamp (default: 365 days)
@@ -95,20 +107,27 @@ Video Management Options:
   -m, --remove-missing    Remove indexed videos generated with this tool but missing from source
   --remove-unrecognized   Remove indexed videos not generated with this tool
   -u, --unpin             Try to unpin contents removed from index
-  -c, --preset-codec      Preset of codec used for encoder (ultrafast, superfast, fast, medium, slow, slower) default: medium
+  --bitrate-reduction     Reduce bitrate from HLS standard. [None, Low, Normal, High, Extreme, Insane]. Default: Normal
+  --ffmpeg-preset         Preset option with ffmpeg (https://trac.ffmpeg.org/wiki/Encode/H.264#Preset). Default: Medium
 
-Bee Node Options:
-  --bee-node              Use bee native node
-  --bee-url               URL of Bee node (default: http://localhost/)
-  --bee-api-port          Port used by API (default: 1633)
+Gateway Options:
+  --bee-node              Use bee node as gateway
+  --gateway-url           Connect gateway with custom URL
 
 Run 'evid -h' or 'evid --help' to print help.
 ```
 
-# Issue reports
+## Issue reports
 If you've discovered a bug, or have an idea for a new feature, please report it to our issue manager based on Jira https://etherna.atlassian.net/projects/EVI.
 
 Detailed reports with stack traces, actual and expected behaviours are welcome.
 
-# Questions? Problems?
+## Questions? Problems?
 For questions or problems please write an email to [info@etherna.io](mailto:info@etherna.io).
+
+## License
+
+![AGPL Logo](https://www.gnu.org/graphics/agplv3-with-text-162x68.png)
+
+We use the GNU Affero General Public License v3 (AGPL-3.0) for this project.
+If you require a custom license, you can contact us at [license@etherna.io](mailto:license@etherna.io).

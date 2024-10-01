@@ -1,16 +1,16 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
 using System;
 using System.IO;
@@ -18,16 +18,13 @@ using System.Runtime.InteropServices;
 
 namespace Etherna.VideoImporter.Core
 {
-    public sealed class CommonConsts
+    public static class CommonConsts
     {
         public const int BeePort = 1633;
         public const string BeeNodeUrl = "http://localhost/";
         public static readonly string DefaultFFmpegFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FFmpeg");
         public const int DownloadMaxRetry = 3;
         public static readonly TimeSpan DownloadTimespanRetry = TimeSpan.FromMilliseconds(3500);
-        public const string EthernaIndexUrl = "https://index.etherna.io/";
-        public const string EthernaGatewayUrl = "https://gateway.etherna.io/";
-        public const string EthernaSsoUrl = "https://sso.etherna.io/";
         public const string EthernaVideoImporterClientId = "ethernaVideoImporterId";
         public static string FFmpegBinaryName
         {
@@ -58,6 +55,7 @@ namespace Etherna.VideoImporter.Core
             }
         }
         public const string ImporterIdentifier = "EthernaImporter";
-        public static DirectoryInfo TempDirectory { get; } = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), ImporterIdentifier));
+        public static DirectoryInfo TempDirectory { get; } = Directory.CreateDirectory(
+            Path.Combine(Path.GetTempPath(), ImporterIdentifier, Guid.NewGuid().ToString()));
     }
 }

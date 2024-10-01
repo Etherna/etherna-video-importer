@@ -1,63 +1,248 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.BeeNet.Models;
+using Etherna.Sdk.Tools.Video.Models;
+using Etherna.Sdk.Tools.Video.Services;
+using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    internal sealed class FFmpegService : IFFmpegService
+    internal sealed partial class FFmpegService : IFFmpegService
     {
+        // Consts.
+        [GeneratedRegex(@"\s*Duration: (?<d>\d{2}:\d{2}:\d{2}\.\d{2})")]
+        private static partial Regex DurationRegex();
+        private readonly Dictionary<int, int> HlsBitrateByArea;
+        private const string HlsMasterPlaylistName = "master.m3u8";
+        private const string HlsStreamPlaylistName = "playlist.m3u8";
+        
         // Fields.
         private readonly List<Command> activedCommands = new();
-        private readonly IIoService ioService;
         private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly FFmpegServiceOptions options;
         private string? ffMpegBinaryPath;
         private string? ffProbeBinaryPath;
+        private readonly IGatewayService gatewayService;
+        private readonly IHlsService hlsService;
+        private readonly IIoService ioService;
+        private readonly IUFileProvider uFileProvider;
 
-        // Constructor.
         public FFmpegService(
+            IGatewayService gatewayService,
+            IHlsService hlsService,
             IIoService ioService,
-            IOptions<FFmpegServiceOptions> options)
+            IOptions<FFmpegServiceOptions> options,
+            IUFileProvider uFileProvider)
         {
+            this.gatewayService = gatewayService;
+            this.hlsService = hlsService;
             this.ioService = ioService;
             this.options = options.Value;
+            this.uFileProvider = uFileProvider;
+            
+            // Init tables.
+            //source: https://developer.apple.com/documentation/http-live-streaming/hls-authoring-specification-for-apple-devices#Video
+            var hlsBitrateByHeight = new Dictionary<int, int>
+            {
+                [0] = 145,
+                [234] = 145,
+                [360] = 365,
+                [432] = 915, //avg of suggested
+                [540] = 2000,
+                [720] = 3750, //avg of suggested
+                [1080] = 6900 //avg of suggested
+            };
+            HlsBitrateByArea = hlsBitrateByHeight.ToDictionary(
+                pair => pair.Key * pair.Key * 16 / 9, //apple example is with 16:9,
+                pair => pair.Value);
         }
 
         // Methods.
-        public async Task<IEnumerable<(string filePath, int height, int width)>> EncodeVideosAsync(
-            VideoSourceFile sourceVideoFile,
-            IEnumerable<int> outputHeights)
+        public async Task<VideoEncodingBase> DecodeVideoEncodingFromUUriAsync(
+            BasicUUri mainFileUri,
+            SwarmAddress? swarmAddress = null)
         {
-            // Compose FFmpeg command args.
-            var args = BuildFFmpegCommandArgs(
-                sourceVideoFile,
-                outputHeights,
-                out IEnumerable<(string filePath, int height, int width)> outputs);
+            ArgumentNullException.ThrowIfNull(mainFileUri, nameof(mainFileUri));
 
-            ioService.WriteLine($"Encoding resolutions [{outputs.Select(o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((r, h) => $"{r}, {h}")}]...");
+            var mainFileAbsoluteUri = mainFileUri.ToAbsoluteUri();
+            var mainFile = await FileBase.BuildFromUFileAsync(
+                uFileProvider.BuildNewUFile(mainFileAbsoluteUri));
+            var ffProbeResult = await GetVideoInfoAsync(mainFileAbsoluteUri.OriginalUri);
+            
+            // Get main file directory.
+            var masterFileDirectory = mainFileUri.TryGetParentDirectoryAsAbsoluteUri();
+            if (masterFileDirectory is null)
+                throw new InvalidOperationException($"Can't get parent directory of {mainFileUri.OriginalUri}");
+
+            if (swarmAddress is not null)
+                mainFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(swarmAddress.Value);
+            
+            switch (Path.GetExtension(mainFile.FileName).ToLowerInvariant())
+            {
+                //hls
+                case ".m3u8":
+                {
+                    var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(mainFile);
+                    
+                    //if is a master playlist
+                    if (masterPlaylist is not null) 
+                        return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
+                            ffProbeResult.Format.Duration,
+                            mainFile,
+                            swarmAddress,
+                            masterPlaylist);
+                    
+                    //else, this is a single stream playlist
+                    var variant = await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
+                        mainFile,
+                        swarmAddress,
+                        ffProbeResult.Streams.First(s => s.Height != 0).Height,
+                        ffProbeResult.Streams.First(s => s.Height != 0).Width);
+                    return new HlsVideoEncoding(
+                        ffProbeResult.Format.Duration,
+                        masterFileDirectory.OriginalUri,
+                        null,
+                        [variant]);
+                }
+                
+                //mp4
+                case ".mp4":
+                    return new Mp4VideoEncoding(
+                        ffProbeResult.Format.Duration,
+                        masterFileDirectory.OriginalUri,
+                        [
+                            new SingleFileVideoVariant(
+                                mainFile,
+                                ffProbeResult.Streams.First(s => s.Height != 0).Height,
+                                ffProbeResult.Streams.First(s => s.Height != 0).Width)
+                        ]
+                    );
+                
+                //mpeg dash
+                case ".mpd": throw new NotImplementedException();
+
+                //all other encodings from a single file
+                default:
+                    return new UndefinedVideoEncoding(
+                        ffProbeResult.Format.Duration,
+                        masterFileDirectory.OriginalUri,
+                        [
+                            new SingleFileVideoVariant(
+                                mainFile,
+                                ffProbeResult.Streams.First(s => s.Height != 0).Height,
+                                ffProbeResult.Streams.First(s => s.Height != 0).Width)
+                        ]
+                    );
+            }
+        }
+
+        public async Task<SubtitleFile[]> EncodeSubtitlesFromSourceVariantAsync(
+            VideoVariantBase inputVariant,
+            ClosedCaptionTrackInfo[] subtitleTracks,
+            string outputDirectory)
+        {
+            Directory.CreateDirectory(outputDirectory);
+            
+            // Extract and encode sub tracks.
+            List<SubtitleFile> encodedSubFiles = new List<SubtitleFile>();
+            for (int i = 0; i < subtitleTracks.Length; i++)
+            {
+                var outputFilePath = Path.Combine(outputDirectory, $"{i}.vtt");
+                
+                var args = new []
+                {
+                    "-i", inputVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri,
+                    "-map", $"0:s:{i}",
+                    outputFilePath
+                };
+                
+                // Run command.
+                var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
+
+                activedCommands.Add(command);
+                ioService.CancelKeyPress += ManageInterrupted;
+
+                // Waiting until end and stop console output.
+                var result = await command.Task;
+
+                // Inspect and print result.
+                if (!result.Success)
+                    throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
+                
+                encodedSubFiles.Add(await SubtitleFile.BuildNewAsync(
+                    uFileProvider.BuildNewUFile(
+                        new BasicUUri(outputFilePath, UUriKind.Local)),
+                        subtitleTracks[i].Language.Name,
+                        subtitleTracks[i].Language.Code));
+            }
+
+            return encodedSubFiles.ToArray();
+        }
+
+        public async Task<VideoEncodingBase> EncodeVideoAsync(
+            VideoVariantBase inputVideoVariant,
+            int[] outputHeights,
+            VideoType outputType,
+            string outputDirectory)
+        {
+            Directory.CreateDirectory(outputDirectory);
+            
+            // Compose FFmpeg command args.
+            TimeSpan? duration = default;
+            List<string> args;
+            string? masterPlaylistPath = default;
+            (string filePath, int height, int width)[] outputVariantRefs;
+            switch (outputType)
+            {
+                case VideoType.Dash: throw new NotImplementedException();
+                case VideoType.Hls:
+                    args = BuildHlsFFmpegCommandArgs(
+                        inputVideoVariant,
+                        outputHeights,
+                        outputDirectory,
+                        out masterPlaylistPath,
+                        out outputVariantRefs);
+                    break;
+                case VideoType.Mp4:
+                    args = BuildMp4FFmpegCommandArgs(
+                        inputVideoVariant,
+                        outputHeights,
+                        outputDirectory,
+                        out outputVariantRefs);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Can't encode to {outputType}");
+            }
+
+            ioService.WriteLine($"Encoding variants [{outputVariantRefs.Select(
+                o => o.height.ToString(CultureInfo.InvariantCulture)).Aggregate((a, h) => $"{a}, {h}")}]...");
 
             // Run FFmpeg command.
             var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
@@ -75,8 +260,18 @@ namespace Etherna.VideoImporter.Core.Services
                  */
                 foreach (var line in command.GetOutputAndErrorLines())
                 {
-                    if (line.StartsWith("frame=", StringComparison.InvariantCulture))
+                    var trimmedLine = line.TrimStart();
+                    if (trimmedLine.StartsWith("frame=", StringComparison.InvariantCulture))
                         ioService.Write(line + '\r');
+                    else if (duration is null)
+                    {
+                        var durationMatch = DurationRegex().Match(trimmedLine);
+                        if (durationMatch.Success)
+                        {
+                            var durationStr = durationMatch.Groups["d"].Value;
+                            duration = TimeSpan.Parse(durationStr, CultureInfo.InvariantCulture);
+                        }
+                    }
                 }
             });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -85,28 +280,74 @@ namespace Etherna.VideoImporter.Core.Services
             var result = await command.Task;
 
             ioService.Write(new string(' ', ioService.BufferWidth));
-            ioService.SetCursorPosition(0, ioService.CursorTop - 1);
+            ioService.SetCursorPosition(0, Math.Max(0, ioService.CursorTop - 1));
             ioService.WriteLine(null, false);
 
-            // Inspect and print result.
+            // Validate result.
             if (!result.Success)
                 throw new InvalidOperationException($"Command failed with exit code {result.ExitCode}: {result.StandardError}");
-            return outputs;
+            if (!duration.HasValue)
+                throw new InvalidOperationException($"Didn't identify duration from ffmpeg outputs");
+
+            switch (outputType)
+            {
+                case VideoType.Dash:
+                    throw new NotImplementedException();
+                case VideoType.Hls:
+                {
+                    List<HlsVideoVariant> variants = [];
+                    foreach (var varRef in outputVariantRefs)
+                    {
+                        var streamPlaylistFile = await FileBase.BuildFromUFileAsync(
+                            uFileProvider.BuildNewUFile(new BasicUUri(varRef.filePath, UUriKind.LocalAbsolute)));
+                        variants.Add(await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
+                            streamPlaylistFile,
+                            null,
+                            varRef.height,
+                            varRef.width));
+                    }
+                    return new HlsVideoEncoding(
+                        duration.Value,
+                        outputDirectory,
+                        await FileBase.BuildFromUFileAsync(uFileProvider.BuildNewUFile(new BasicUUri(
+                            masterPlaylistPath ?? throw new InvalidOperationException("Master playlist path can't be null here"),
+                            UUriKind.LocalAbsolute))),
+                        variants.ToArray());
+                }
+                case VideoType.Mp4:
+                {
+                    List<SingleFileVideoVariant> variants = [];
+                    foreach (var varRef in outputVariantRefs)
+                    {
+                        var variantFile = await FileBase.BuildFromUFileAsync(
+                            uFileProvider.BuildNewUFile(new BasicUUri(varRef.filePath, UUriKind.LocalAbsolute)));
+                        variants.Add(new SingleFileVideoVariant(variantFile, varRef.height, varRef.width));
+                    }
+                    return new Mp4VideoEncoding(
+                        duration.Value,
+                        outputDirectory,
+                        variants.ToArray());
+                }
+                default:
+                    throw new InvalidOperationException($"Can't encode to {outputType}");
+            }
         }
         
-        public async Task<string> ExtractThumbnailAsync(VideoSourceFile videoSourceFile)
+        public async Task<string> ExtractThumbnailAsync(VideoVariantBase inputVideoVariant)
         {
             ioService.WriteLine($"Extract random thumbnail");
 
             // Run FFmpeg command.
-            var outputThumbnailFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{Guid.NewGuid()}_thumbnail.jpg");
+            var outputThumbnailFilePath = Path.Combine(
+                CommonConsts.TempDirectory.FullName,
+                $"input_{inputVideoVariant.Width}x{inputVideoVariant.Height}.jpg");
             var args = new[] {
-                "-i", videoSourceFile.FileUri.ToAbsoluteUri().Item1,
+                "-i", inputVideoVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri,
                 "-vf", "select='eq(pict_type\\,I)',random",
                 "-vframes", "1",
                 outputThumbnailFilePath
             };
-            var command = Command.Run(await GetFFmpegBinaryPathAsync(), args);
+            var command = Command.Run(await GetFFmpegBinaryPathAsync(), args.Cast<object>());
 
             activedCommands.Add(command);
             ioService.CancelKeyPress += ManageInterrupted;
@@ -141,15 +382,15 @@ namespace Etherna.VideoImporter.Core.Services
 
         public async Task<FFProbeResultDto> GetVideoInfoAsync(string videoFileAbsoluteUri)
         {
-            var args = new string[] {
+            var args = new[] {
                 $"-v", "error",
-                "-show_entries", "format=duration,size",
+                "-show_entries", "format=duration",
                 "-show_entries", "stream=width,height",
                 "-of", "json",
                 "-sexagesimal",
                 videoFileAbsoluteUri};
 
-            var command = Command.Run(await GetFFprobeBinaryPathAsync(), args);
+            var command = Command.Run(await GetFFprobeBinaryPathAsync(), args.Cast<object>());
             command.Wait();
             var result = command.Result;
 
@@ -172,86 +413,153 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         // Helpers.
-        private void AppendOutputFFmpegCommandArgs(List<string> args, int height, int width, string outputFilePath)
+        [SuppressMessage("ReSharper", "AppendToCollectionExpression")]
+        private List<string> BuildHlsFFmpegCommandArgs(
+            VideoVariantBase inputVariant,
+            int[] outputHeights,
+            string outputDirectory,
+            out string masterPlaylistPath,
+            out (string filePath, int height, int width)[] outputVariantRefs)
         {
-            //audio codec
-            args.Add("-c:a"); args.Add("aac");
-
-            //video codec
-            args.Add("-c:v"); args.Add("libx264");
-
-            //preset
-            args.Add("-preset"); args.Add(options.PresetCodec.ToString().ToLowerInvariant());
-
-            //flags
-            args.Add("-movflags"); args.Add("faststart");
-
-            //filters
-            args.Add("-vf");
-            {
-                var filters = new List<string>
+            // Define resolutions.
+            var resolutionRatio = (decimal)inputVariant.Width / inputVariant.Height;
+            var outputResolutions = outputHeights
+                .Where(height => height <= inputVariant.Height) //don't upscale
+                .Select(height =>
                 {
-                    //scale
-                    $"scale=w={width}:h={height}"
-                };
+                    var scaledWidth = (int)Math.Round(height * resolutionRatio, 0);
+                    switch (scaledWidth % 4)
+                    {
+                        case 1: scaledWidth--; break;
+                        case 2: scaledWidth += 2; break;
+                        case 3: scaledWidth++; break;
+                    }
 
-                args.Add($"{filters.Aggregate((r, f) => $"{r},{f}")}");
+                    return (height, width: scaledWidth);
+                }).ToArray();
+            
+            // Report references.
+            masterPlaylistPath = Path.Combine(outputDirectory, HlsMasterPlaylistName);
+            outputVariantRefs = outputResolutions.Select(res => (
+                Path.Combine(outputDirectory, $"{res.height}p", HlsStreamPlaylistName),
+                res.height,
+                res.width)).ToArray();
+            
+            // Build FFmpeg args.
+            List<string> args = [];
+
+            args.Add("-i"); args.Add(inputVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri);      //input
+            foreach (var _ in outputResolutions)                                                    //map input to streams
+            {
+                args.Add("-map"); args.Add("0:v:0");
+                args.Add("-map"); args.Add("0:a:0");
             }
-
-            //logs
-            args.Add("-loglevel"); args.Add("info");
-
-            //output
-            args.Add(outputFilePath);
+            for (int i = 0; i < outputResolutions.Length; i++)                                      //build output streams
+            {
+                args.Add($"-s:v:{i}"); args.Add($"{outputResolutions[i].width}x{outputResolutions[i].height}");
+                args.Add($"-b:v:{i}"); args.Add(GetH264BitrateArg(outputResolutions[i].height, outputResolutions[i].width));
+            }   
+            args.Add("-preset"); args.Add(options.Preset.ToString().ToLowerInvariant());            //preset
+            args.Add("-c:a"); args.Add("aac");                                                      //audio codec
+            args.Add("-c:v"); args.Add("libx264");                                                  //video codec
+            args.Add("-f"); args.Add("hls");                                                        //hls format
+            args.Add("-hls_time"); args.Add("6");                                                   //segment duration
+            args.Add("-hls_list_size"); args.Add("0");                                              //keep all segments
+            args.Add("-hls_playlist_type"); args.Add("vod");                                        //video on demand
+            args.Add("-hls_segment_filename"); args.Add(Path.Combine(outputDirectory, "%v/%d.ts")); //segments filename
+            args.Add("-var_stream_map");                                                            //map output streams
+            args.Add(string.Join(' ', outputResolutions.Select(
+                (res, i) => $"v:{i},a:{i},name:{res.height}p")));
+            args.Add("-master_pl_name"); args.Add(HlsMasterPlaylistName);                           //master playlist name
+            args.Add(Path.Combine(outputDirectory, "%v", HlsStreamPlaylistName));                   //stream playlist names
+            
+            return args;
         }
 
         /// <summary>
         /// Build FFmpeg command args to encode current source video
         /// </summary>
-        /// <param name="sourceVideoFile">Input video file</param>
-        /// <param name="outputs">Output video files info</param>
+        /// <param name="inputVariant">Input video variant</param>
+        /// <param name="outputHeights">Required output video heights</param>
+        /// <param name="outputDirectory">The destination directory for encoded files</param>
+        /// <param name="outputVariantRefs">Output video variant references</param>
         /// <returns>FFmpeg args list</returns>
-        private List<string> BuildFFmpegCommandArgs(
-            VideoSourceFile sourceVideoFile,
-            IEnumerable<int> outputHeights,
-            out IEnumerable<(string filePath, int height, int width)> outputs)
+        private List<string> BuildMp4FFmpegCommandArgs(
+            VideoVariantBase inputVariant,
+            int[] outputHeights,
+            string outputDirectory,
+            out (string filePath, int height, int width)[] outputVariantRefs)
         {
+            // Define resolutions.
+            var resolutionRatio = (decimal)inputVariant.Width / inputVariant.Height;
+            var outputResolutions = outputHeights
+                .Where(height => height <= inputVariant.Height) //don't upscale
+                .Select(height =>
+                {
+                    var scaledWidth = (int)Math.Round(height * resolutionRatio, 0);
+                    switch (scaledWidth % 4)
+                    {
+                        case 1: scaledWidth--; break;
+                        case 2: scaledWidth += 2; break;
+                        case 3: scaledWidth++; break;
+                    }
+
+                    return (height, width: scaledWidth);
+                }).ToArray();
+            
             // Build FFmpeg args.
             var args = new List<string>();
-            var fileNameGuid = Guid.NewGuid();
-            var resolutionRatio = (decimal)sourceVideoFile.Width / sourceVideoFile.Height;
-            var outputsList = new List<(string filePath, int height, int width)>();
+            var outputVariantRefsList = new List<(string filePath, int height, int width)>();
+            
+            args.Add("-i"); args.Add(inputVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri); //input
 
-            //input
-            args.Add("-i"); args.Add(sourceVideoFile.FileUri.ToAbsoluteUri().Item1);
-
-            //all output streams
-            foreach (var height in outputHeights)
+            //all output variants
+            foreach (var (height, width) in outputResolutions)
             {
-                // Don't upscale, skip in case.
-                if (sourceVideoFile.Height < height)
-                    continue;
-
-                // Build output stream args.
-                var outputFilePath = Path.Combine(CommonConsts.TempDirectory.FullName, $"{fileNameGuid}_{height}.mp4");
-
-                var scaledWidth = (int)Math.Round(height * resolutionRatio, 0);
-                switch (scaledWidth % 4)
+                args.Add("-c:a"); args.Add("aac");                                             //audio codec
+                args.Add("-c:v"); args.Add("libx264");                                         //video codec
+                args.Add("-preset"); args.Add(options.Preset.ToString().ToLowerInvariant());   //preset
+                args.Add("-movflags"); args.Add("faststart");                                  //flags
+                args.Add("-vf");                                                               //filters
                 {
-                    case 1: scaledWidth--; break;
-                    case 2: scaledWidth += 2; break;
-                    case 3: scaledWidth++; break;
+                    string[] filters = [$"scale=w={width}:h={height}"];
+                    args.Add($"{filters.Aggregate((r, f) => $"{r},{f}")}");
                 }
-
-                AppendOutputFFmpegCommandArgs(args, height, scaledWidth, outputFilePath);
+                var outputFilePath = Path.Combine(outputDirectory, $"{height}.mp4"); //output
+                args.Add(outputFilePath);
 
                 // Add output info.
-                outputsList.Add((outputFilePath, height, scaledWidth));
+                outputVariantRefsList.Add((outputFilePath, height, width));
             }
 
             // Return values.
-            outputs = outputsList;
+            outputVariantRefs = outputVariantRefsList.ToArray();
             return args;
+        }
+
+        private string GetH264BitrateArg(int height, int width)
+        {
+            int FindBitrateValue(int area)
+            {
+                //exact match, return it
+                if (HlsBitrateByArea.TryGetValue(area, out int value))
+                    return value;
+            
+                //if area is bigger than any in table, extend bitrate proportionally with last value
+                var maxKey = HlsBitrateByArea.Keys.Max();
+                if (maxKey < area)
+                    return area * HlsBitrateByArea[maxKey] / maxKey;
+            
+                //else, create linear interpolation between prev and next value
+                var floorKey = HlsBitrateByArea.Keys.OrderDescending().First(k => k < area);
+                var ceilingKey = HlsBitrateByArea.Keys.Order().First(k => k > area);
+
+                return (int)(((long)HlsBitrateByArea[ceilingKey] - HlsBitrateByArea[floorKey]) * (area - floorKey) /
+                    (ceilingKey - floorKey) + HlsBitrateByArea[floorKey]);
+            }
+
+            var bitrate = FindBitrateValue(height * width) / (int)options.BitrateReduction;
+            return bitrate + "k";
         }
 
         /// <summary>
@@ -261,8 +569,12 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="fallbackFolderPath">A default fallback folder path</param>
         /// <param name="binaryName">Binary file to check</param>
         /// <param name="binaryTestArgs">Optional binary args to test with global invoke</param>
-        /// <returns>The binary path, null if doesn't exist</returns>
-        private static async Task<string?> TryFindBinaryPathAsync(string? customFolderPath, string fallbackFolderPath, string binaryName, params object[] binaryTestArgs)
+        /// <returns>The binary path, null if it doesn't exist</returns>
+        private static async Task<string?> TryFindBinaryPathAsync(
+            string? customFolderPath,
+            string fallbackFolderPath,
+            string binaryName,
+            params object[] binaryTestArgs)
         {
             // If present, take custom folder and ignore others.
             if (customFolderPath is not null)
@@ -285,7 +597,7 @@ namespace Etherna.VideoImporter.Core.Services
                 if (result.Success)
                     return binaryName;
             }
-            catch (System.ComponentModel.Win32Exception) { }
+            catch (Win32Exception) { }
 
             // Not found.
             return null;

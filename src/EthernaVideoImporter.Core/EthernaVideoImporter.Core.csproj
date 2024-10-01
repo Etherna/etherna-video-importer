@@ -24,15 +24,15 @@
 
   <ItemGroup>
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
-    <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.3.10" />
-    <PackageReference Include="EthernaSdk.Users.Native" Version="0.4.0-alpha.52" />
-    <PackageReference Include="GitVersion.MsBuild" Version="5.12.0">
+    <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.4.4" />
+    <PackageReference Include="EthernaSdk.Users.Gateway" Version="0.4.0-alpha.141" />
+    <PackageReference Include="EthernaSdk.Users.Index" Version="0.4.0-alpha.141" />
+    <PackageReference Include="GitVersion.MsBuild" Version="6.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Keccak256" Version="1.0.0" />
     <PackageReference Include="MedallionShell" Version="1.6.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
@@ -43,6 +43,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\COPYING">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="..\..\README.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

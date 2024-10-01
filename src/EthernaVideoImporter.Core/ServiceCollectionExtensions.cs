@@ -1,22 +1,28 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet;
+using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Services;
+using Etherna.Sdk.Tools.Video.Services;
+using Etherna.UniversalFiles;
+using Etherna.UniversalFiles.Extensions;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Net.Http;
 
 namespace Etherna.VideoImporter.Core
 {
@@ -24,32 +30,48 @@ namespace Etherna.VideoImporter.Core
     {
         public static void AddCoreServices(
             this IServiceCollection services,
+            Action<CleanerVideoServiceOptions> configureCleanerOptions,
             Action<EncoderServiceOptions> configureEncoderOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
+            Action<GatewayServiceOptions> configureGatewayOptions,
             Action<VideoUploaderServiceOptions> configureVideoUploaderOptions,
             bool useBeeNativeNode)
         {
             // Configure options.
+            services.Configure(configureCleanerOptions);
             services.Configure(configureEncoderOptions);
             services.Configure(configureFFmpegOptions);
+            services.Configure(configureGatewayOptions);
             services.Configure(configureVideoUploaderOptions);
 
             // Add transient services.
             services.AddTransient<IAppVersionService, AppVersionService>();
-            services.AddTransient<ICalculatorService, CalculatorService>();
+            services.AddTransient<IChunkService, ChunkService>();
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
-            services.AddTransient<IEncoderService, EncoderService>();
+            services.AddTransient<IEncodingService, EncodingService>();
             services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
             if (useBeeNativeNode)
                 services.AddTransient<IGatewayService, BeeGatewayService>();
             else
                 services.AddTransient<IGatewayService, EthernaGatewayService>();
+            services.AddTransient<IHasher, Hasher>();
+            services.AddTransient<IHlsService, HlsService>();
             services.AddTransient<IMigrationService, MigrationService>();
             services.AddTransient<IIoService, ConsoleIoService>();
+            services.AddTransient<IVideoManifestService, VideoManifestService>();
             services.AddTransient<IVideoUploaderService, VideoUploaderService>();
 
             // Add singleton services.
             services.AddSingleton<IFFmpegService, FFmpegService>();
+            services.AddSingleton<IUFileProvider>(sp =>
+            {
+                var beeClient = sp.GetRequiredService<IBeeClient>();
+                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+
+                var provider = new UFileProvider(httpClientFactory);
+                provider.UseSwarmUFiles(beeClient);
+                return provider;
+            });
         }
     }
 }

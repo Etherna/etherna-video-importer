@@ -1,32 +1,38 @@
 ﻿// Copyright 2022-present Etherna SA
+// This file is part of Etherna Video Importer.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
+// GNU Affero General Public License as published by the Free Software Foundation,
+// either version 3 of the License, or (at your option) any later version.
 // 
-//     http://www.apache.org/licenses/LICENSE-2.0
+// Etherna Video Importer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+// without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Affero General Public License for more details.
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
+// If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet;
 using Etherna.BeeNet.Models;
-using System.Collections.Generic;
-using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
     public interface IGatewayService
     {
+        // Properties.
+        IBeeClient BeeClient { get; }
+        
+        // Methods.
         /// <summary>
         /// Create a new batch.
         /// </summary>
         /// <param name="amount">amount</param>
         /// <param name="batchDepth">batch depth</param>
         Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth);
+
+        Task<TagInfo> CreateTagAsync(PostageBatchId postageBatchId);
 
         /// <summary>
         /// Delete pin.
@@ -35,9 +41,22 @@ namespace Etherna.VideoImporter.Core.Services
         Task DefundResourcePinningAsync(SwarmHash hash);
 
         /// <summary>
+        /// Offer the content to all users.
+        /// </summary>
+        /// <param name="hash">Resource hash</param>
+        Task FundResourceDownloadAsync(SwarmHash hash);
+
+        Task FundResourcePinningAsync(SwarmHash hash);
+
+        /// <summary>
         /// Get the current price.
         /// </summary>
         Task<BzzBalance> GetChainPriceAsync();
+
+        Task<ChunkUploaderWebSocket> GetChunkUploaderWebSocketAsync(
+            PostageBatchId batchId,
+            TagId? tagId = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get usable batch.
@@ -45,22 +64,13 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="batchId">batch id</param>
         Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
-        /// <summary>
-        /// Offer the content to all users.
-        /// </summary>
-        /// <param name="hash">Resource hash</param>
-        Task FundResourceDownloadAsync(SwarmHash hash);
+        Task<SwarmHash> ResolveSwarmAddressToHashAsync(SwarmAddress address);
 
-        /// <summary>
-        /// Get all pins.
-        /// </summary>
-        Task<IEnumerable<SwarmHash>> GetPinnedResourcesAsync();
-
-        Task<SwarmHash> UploadFileAsync(
+        Task UploadChunkAsync(
             PostageBatchId batchId,
-            Stream content,
-            string? name,
-            string? contentType,
-            bool swarmPin);
+            SwarmChunk chunk,
+            bool fundPinning = false);
+
+        Task AnnounceChunksUploadAsync(SwarmHash rootHash, PostageBatchId batchId);
     }
 }
