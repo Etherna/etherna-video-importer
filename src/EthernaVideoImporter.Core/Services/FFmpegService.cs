@@ -109,18 +109,18 @@ namespace Etherna.VideoImporter.Core.Services
                 //hls
                 case ".m3u8":
                 {
-                    var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromLocalFileAsync(mainFile);
+                    var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(mainFile);
                     
                     //if is a master playlist
                     if (masterPlaylist is not null) 
-                        return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistLocalFileAsync(
+                        return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
                             ffProbeResult.Format.Duration,
                             mainFile,
                             swarmAddress,
                             masterPlaylist);
                     
                     //else, this is a single stream playlist
-                    var variant = await hlsService.ParseVideoVariantFromHlsStreamPlaylistLocalFileAsync(
+                    var variant = await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
                         mainFile,
                         swarmAddress,
                         ffProbeResult.Streams.First(s => s.Height != 0).Height,
@@ -300,7 +300,7 @@ namespace Etherna.VideoImporter.Core.Services
                     {
                         var streamPlaylistFile = await FileBase.BuildFromUFileAsync(
                             uFileProvider.BuildNewUFile(new BasicUUri(varRef.filePath, UUriKind.LocalAbsolute)));
-                        variants.Add(await hlsService.ParseVideoVariantFromHlsStreamPlaylistLocalFileAsync(
+                        variants.Add(await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
                             streamPlaylistFile,
                             null,
                             varRef.height,

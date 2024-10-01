@@ -376,7 +376,10 @@ namespace Etherna.VideoImporter.Core
                     sourceMetadata,
                     [],
                     thumbnailFiles.ToArray(),
-                    videoEncoding);
+                    videoEncoding)
+                {
+                    EthernaIndexId = alreadyIndexedVideo.Id
+                };
             }
             catch { return null; }
 

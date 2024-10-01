@@ -60,6 +60,7 @@ namespace Etherna.VideoImporter.Core.Services
             var thumbnailSwarmFile = uFileProvider.BuildNewUFile(new SwarmUUri(thumbSourceUri));
             var thumbnailLocalFile = await uFileProvider.ToLocalUFileAsync(
                 thumbnailSwarmFile,
+                allowedUriKinds: UUriKind.Online,
                 baseDirectory: manifestHash.ToString());
 
             var thumbnailHash = await gatewayService.ResolveSwarmAddressToHashAsync(
@@ -113,18 +114,18 @@ namespace Etherna.VideoImporter.Core.Services
             var masterFileSource = manifest.VideoSources.Single(
                 s => s.Metadata.TotalSourceSize == 0);
             
-            var masterFile = await FileBase.BuildFromUFileAsync(
-                uFileProvider.BuildNewUFile(new SwarmUUri(masterFileSource.Uri)));
             var masterFileSwarmAddress = masterFileSource.Uri.ToSwarmAddress(manifestHash);
+            var masterFile = await FileBase.BuildFromUFileAsync(
+                uFileProvider.BuildNewUFile(new SwarmUUri(masterFileSwarmAddress)));
             masterFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(
                 masterFileSwarmAddress);
             
             // Parse master playlist.
-            var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromLocalFileAsync(masterFile);
+            var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(masterFile);
             if (masterPlaylist is null)
                 throw new InvalidOperationException("Invalid master playlist");
             
-            return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistLocalFileAsync(
+            return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
                 manifest.Duration,
                 masterFile,
                 masterFileSwarmAddress,
