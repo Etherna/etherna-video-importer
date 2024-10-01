@@ -28,7 +28,7 @@ namespace Etherna.VideoImporter.Core.Extensions
             ArgumentNullException.ThrowIfNull(indexedVideo, nameof(indexedVideo));
             ArgumentNullException.ThrowIfNull(metadata, nameof(metadata));
 
-            if (indexedVideo.LastValidManifest is null)
+            if (indexedVideo.LastValidManifest?.Manifest is null)
                 return false;
 
             var indexedManifest = indexedVideo.LastValidManifest.Manifest;

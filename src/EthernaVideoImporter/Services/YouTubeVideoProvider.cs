@@ -30,26 +30,17 @@ using Video = Etherna.VideoImporter.Core.Models.Domain.Video;
 
 namespace Etherna.VideoImporter.Services
 {
-    internal sealed class YouTubeVideoProvider : IVideoProvider
+    internal sealed class YouTubeVideoProvider(
+        IIoService ioService,
+        IOptions<YouTubeVideoProviderOptions> options,
+        IYoutubeDownloader youtubeDownloader)
+        : IVideoProvider
     {
         // Fields.
-        private readonly IIoService ioService;
-        private readonly YouTubeVideoProviderOptions options;
-        private readonly IYoutubeDownloader youtubeDownloader;
-
-        // Constructor.
-        public YouTubeVideoProvider(
-            IIoService ioService,
-            IOptions<YouTubeVideoProviderOptions> options,
-            IYoutubeDownloader youtubeDownloader)
-        {
-            this.ioService = ioService;
-            this.options = options.Value;
-            this.youtubeDownloader = youtubeDownloader;
-        }
+        private readonly YouTubeVideoProviderOptions options = options.Value;
 
         // Properties.
-        public string SourceName => "YouTube";
+        public string SourceName => "youtube";
 
         // Methods.
         public Task<Video> BuildVideoFromMetadataAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.BuildVideoFromMetadataAsync(
@@ -109,7 +100,9 @@ namespace Etherna.VideoImporter.Services
                 
             return youtubeVideos.Select(v => new YouTubeVideoMetadata(
                 youtubeDownloader,
-                v.Url));
+                v.Url,
+                null,
+                this));
         }
 
         private async Task<IEnumerable<YouTubeVideoMetadata>> GetVideosMetadataFromPlaylistAsync(
@@ -123,7 +116,8 @@ namespace Etherna.VideoImporter.Services
             return youtubeVideos.Select(v => new YouTubeVideoMetadata(
                 youtubeDownloader,
                 v.Url,
-                playlistName: youtubePlaylist.Title));
+                playlistName: youtubePlaylist.Title,
+                this));
         }
 
         private Task<YouTubeVideoMetadata> GetVideoMetadataFromSingleVideoAsync(
@@ -133,7 +127,9 @@ namespace Etherna.VideoImporter.Services
 
             return Task.FromResult(new YouTubeVideoMetadata(
                 youtubeDownloader,
-                sourceUrl));
+                sourceUrl,
+                null,
+                this));
         }
     }
 }

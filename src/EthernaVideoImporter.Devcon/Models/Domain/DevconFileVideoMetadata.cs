@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using System;
 using System.Collections.Generic;
@@ -33,8 +34,9 @@ namespace Etherna.VideoImporter.Devcon.Models.Domain
             string devconFileRelativePath,
             IYoutubeDownloader youtubeDownloader,
             string youtubeId,
-            SwarmHash? swarmHash)
-            : base(youtubeDownloader, "https://youtu.be/" + youtubeId, null)
+            SwarmHash? swarmHash,
+            IVideoProvider videoProvider)
+            : base(youtubeDownloader, "https://youtu.be/" + youtubeId, null, videoProvider)
         {
             if (string.IsNullOrWhiteSpace(devconFileRelativePath))
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(devconFileRelativePath));

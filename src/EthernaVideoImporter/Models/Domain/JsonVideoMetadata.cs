@@ -12,7 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Tools.Video.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Services;
 using System;
 using System.Collections.Generic;
 
@@ -27,7 +29,9 @@ namespace Etherna.VideoImporter.Models.Domain
             string description,
             IEnumerable<string>? oldIds,
             VideoEncodingBase videoEncoding,
-            ThumbnailFile sourceThumbnail)
+            ThumbnailFile sourceThumbnail,
+            IVideoProvider videoProvider) :
+            base(videoProvider)
         {
             Description = description;
             Duration = videoEncoding.Duration;
@@ -40,7 +44,6 @@ namespace Etherna.VideoImporter.Models.Domain
 
         // Properties.
         public override string SourceId { get; }
-        public override string SourceName => "json";
         public override IEnumerable<string> SourceOldIds { get; }
         public ThumbnailFile SourceThumbnail { get; }
         public VideoEncodingBase VideoEncoding { get; }

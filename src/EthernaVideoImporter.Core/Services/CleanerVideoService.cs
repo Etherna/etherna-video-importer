@@ -47,7 +47,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             ioService.WriteLine($"Start removing videos not generated with this tool");
 
-            var exogenousVideos = indexedVideos.Where(v => v.LastValidManifest?.Manifest.PersonalData?.ClientName != CommonConsts.ImporterIdentifier);
+            var exogenousVideos = indexedVideos.Where(v => v.LastValidManifest?.Manifest?.PersonalData?.ClientName != CommonConsts.ImporterIdentifier);
 
             var deindexedVideos = 0;
             foreach (var video in exogenousVideos)
@@ -83,8 +83,8 @@ namespace Etherna.VideoImporter.Core.Services
             // - The indexed source id is not listed into any current imported source id  (has been removed from source)
             var sourceRemovedVideos = indexedVideos
                 .Where(indexedVideo =>
-                    indexedVideo.LastValidManifest?.Manifest.PersonalData?.ClientName == CommonConsts.ImporterIdentifier &&
-                    indexedVideo.LastValidManifest?.Manifest.PersonalData?.SourceProviderName == sourceProviderName &&
+                    indexedVideo.LastValidManifest?.Manifest?.PersonalData?.ClientName == CommonConsts.ImporterIdentifier &&
+                    indexedVideo.LastValidManifest.Manifest.PersonalData.SourceProviderName == sourceProviderName &&
                     !videosMetadataFromSource.Any(sourceMeta => sourceMeta.AllSourceIds
                         .Select(id => hasher.ComputeHash(id).ToHex()) //get hashed version of all source Ids
                         .Contains(indexedVideo.LastValidManifest!.Manifest.PersonalData!.SourceVideoId)));

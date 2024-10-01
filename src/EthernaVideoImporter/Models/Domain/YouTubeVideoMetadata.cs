@@ -13,6 +13,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 
 namespace Etherna.VideoImporter.Models.Domain
@@ -23,8 +24,9 @@ namespace Etherna.VideoImporter.Models.Domain
         internal YouTubeVideoMetadata(
             IYoutubeDownloader youtubeDownloader,
             string youtubeUrl,
-            string? playlistName = null)
-            : base(youtubeDownloader, youtubeUrl, playlistName)
+            string? playlistName,
+            IVideoProvider videoProvider)
+            : base(youtubeDownloader, youtubeUrl, playlistName, videoProvider)
         { }
 
         // Properties.

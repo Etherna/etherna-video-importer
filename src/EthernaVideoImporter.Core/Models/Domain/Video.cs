@@ -13,13 +13,16 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Etherna.Sdk.Tools.Video.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Etherna.VideoImporter.Core.Models.Domain
 {
+#pragma warning disable CA1724
     public class Video
+#pragma warning restore CA1724
     {
         // Constructor.
         public Video(

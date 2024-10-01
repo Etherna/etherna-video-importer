@@ -13,9 +13,9 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
-using Etherna.Sdk.Users.Index.Models;
+using Etherna.Sdk.Tools.Video.Models;
+using Etherna.Sdk.Tools.Video.Services;
 using Etherna.UniversalFiles;
-using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
@@ -49,19 +49,20 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly FFmpegServiceOptions options;
         private string? ffMpegBinaryPath;
         private string? ffProbeBinaryPath;
-        private readonly IParsingService parsingService;
         private readonly IGatewayService gatewayService;
+        private readonly IHlsService hlsService;
         private readonly IIoService ioService;
         private readonly IUFileProvider uFileProvider;
 
-        public FFmpegService(IParsingService parsingService,
+        public FFmpegService(
             IGatewayService gatewayService,
+            IHlsService hlsService,
             IIoService ioService,
             IOptions<FFmpegServiceOptions> options,
             IUFileProvider uFileProvider)
         {
-            this.parsingService = parsingService;
             this.gatewayService = gatewayService;
+            this.hlsService = hlsService;
             this.ioService = ioService;
             this.options = options.Value;
             this.uFileProvider = uFileProvider;
@@ -89,7 +90,6 @@ namespace Etherna.VideoImporter.Core.Services
             SwarmAddress? swarmAddress = null)
         {
             ArgumentNullException.ThrowIfNull(mainFileUri, nameof(mainFileUri));
-            ArgumentNullException.ThrowIfNull(uFileProvider, nameof(uFileProvider));
 
             var mainFileAbsoluteUri = mainFileUri.ToAbsoluteUri();
             var mainFile = await FileBase.BuildFromUFileAsync(
@@ -109,18 +109,18 @@ namespace Etherna.VideoImporter.Core.Services
                 //hls
                 case ".m3u8":
                 {
-                    var masterPlaylist = await parsingService.TryParseHlsMasterPlaylistFromFileAsync(mainFile);
+                    var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(mainFile);
                     
                     //if is a master playlist
                     if (masterPlaylist is not null) 
-                        return await parsingService.ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
+                        return await hlsService.ParseVideoEncodingFromHlsMasterPlaylistFileAsync(
                             ffProbeResult.Format.Duration,
                             mainFile,
                             swarmAddress,
                             masterPlaylist);
                     
                     //else, this is a single stream playlist
-                    var variant = await parsingService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
+                    var variant = await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
                         mainFile,
                         swarmAddress,
                         ffProbeResult.Streams.First(s => s.Height != 0).Height,
@@ -300,7 +300,7 @@ namespace Etherna.VideoImporter.Core.Services
                     {
                         var streamPlaylistFile = await FileBase.BuildFromUFileAsync(
                             uFileProvider.BuildNewUFile(new BasicUUri(varRef.filePath, UUriKind.LocalAbsolute)));
-                        variants.Add(await parsingService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
+                        variants.Add(await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
                             streamPlaylistFile,
                             null,
                             varRef.height,
