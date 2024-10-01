@@ -113,7 +113,14 @@ namespace Etherna.VideoImporter.Core
             // Get information from etherna index.
             ioService.WriteLine("Reading user videos from etherna index... (it may take a while)");
 
-            var userVideosOnIndex = await ethernaIndexClient.GetAllVideosByOwnerAsync(userEthAddress);
+            var userVideosOnIndex = await ethernaIndexClient.GetAllVideosByOwnerAsync(
+                userEthAddress,
+                iv =>
+                {
+                    ioService.WriteLine(iv.LastValidManifest?.Manifest is null
+                        ? "    Found video with invalid manifest"
+                        : $"    Found video: \"{iv.LastValidManifest.Manifest.Title}\"");
+                });
             var ethernaIndexParameters = await ethernaIndexClient.GetIndexParametersAsync();
 
             ioService.WriteLine($"Found {userVideosOnIndex.Length} videos already published on etherna index");
