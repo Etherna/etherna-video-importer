@@ -21,8 +21,8 @@
   <ItemGroup>
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
     <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.4.4" />
-    <PackageReference Include="EthernaSdk.Users.Gateway" Version="0.4.0-alpha.143" />
-    <PackageReference Include="EthernaSdk.Users.Index" Version="0.4.0-alpha.143" />
+    <PackageReference Include="EthernaSdk.Users.Gateway" Version="0.4.0-alpha.145" />
+    <PackageReference Include="EthernaSdk.Users.Index" Version="0.4.0-alpha.145" />
     <PackageReference Include="GitVersion.MsBuild" Version="6.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

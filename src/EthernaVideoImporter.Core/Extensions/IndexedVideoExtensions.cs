@@ -27,15 +27,10 @@ namespace Etherna.VideoImporter.Core.Extensions
             ArgumentNullException.ThrowIfNull(hasher, nameof(hasher));
             ArgumentNullException.ThrowIfNull(indexedVideo, nameof(indexedVideo));
             ArgumentNullException.ThrowIfNull(metadata, nameof(metadata));
-
-            if (indexedVideo.LastValidManifest?.Manifest is null)
-                return false;
-
-            var indexedManifest = indexedVideo.LastValidManifest.Manifest;
             
-            return indexedManifest.PersonalData?.SourceVideoId == hasher.ComputeHash(metadata.SourceId).ToHex() &&
-                   indexedManifest.Title == metadata.Title &&
-                   indexedManifest.Description == metadata.Description;
+            return indexedVideo.PersonalData?.SourceVideoId == hasher.ComputeHash(metadata.SourceId).ToHex() &&
+                   indexedVideo.Title == metadata.Title &&
+                   indexedVideo.Description == metadata.Description;
         }
     }
 }
