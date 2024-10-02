@@ -23,8 +23,11 @@ using Etherna.VideoImporter.Devcon.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -48,6 +51,7 @@ namespace Etherna.VideoImporter.Devcon
               -i, --ignore-update     Ignore new version of EthernaVideoImporter
               -a, --auto-purchase     Accept automatically purchase of all batches
               --dry                   Run in dry mode. Any action on swarm gateway or index is performed read-only
+              --yt-cookies            List of cookies to use with YouTube requests, divided by ';'
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)
@@ -79,6 +83,7 @@ namespace Etherna.VideoImporter.Devcon
             bool ignoreUpdate = false;
             bool autoPurchaseBatches = false;
             bool isDryRun = false;
+            string? ytCookies = null;
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
@@ -153,6 +158,12 @@ namespace Etherna.VideoImporter.Devcon
                     case "--dry":
                         Console.WriteLine("Dry Run");
                         isDryRun = true;
+                        break;
+                    
+                    case "--yt-cookies":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("YT cookies are missing");
+                        ytCookies = optArgs[++i];
                         break;
 
                     //video management
@@ -318,7 +329,28 @@ namespace Etherna.VideoImporter.Devcon
                 options.DevconSourceFolderPath = mdSourceFolderPath;
             });
             services.AddSingleton<IValidateOptions<DevconVideoProviderOptions>, DevconVideoProviderOptionsValidation>();
-            services.AddTransient<IYoutubeClient, YoutubeClient>();
+            services.AddTransient<IYoutubeClient>(_ =>
+            {
+                List<Cookie> cookies = [];
+                if (ytCookies is not null)
+                {
+                    cookies.AddRange(ytCookies.Split(';').Select(c =>
+                    {
+                        var cStr = c.Trim();
+                        var eqIndex = cStr.IndexOf('=');
+                        if (eqIndex < 0)
+                            throw new InvalidOperationException($"Invalid cookie {cStr}");
+                        var cKey = cStr[..eqIndex];
+                        var cValue = cStr[(eqIndex + 1)..];
+
+                        return new Cookie(cKey, cValue)
+                        {
+                            Domain = "youtube.com",
+                        };
+                    }));
+                }
+                return new YoutubeClient(cookies);
+            });
             services.AddTransient<IYoutubeDownloader, YoutubeDownloader>();
             services.AddTransient<IVideoProvider, DevconVideoProvider>();
             
