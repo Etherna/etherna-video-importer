@@ -44,10 +44,11 @@ namespace Etherna.VideoImporter.Core.Services
             if (string.IsNullOrWhiteSpace(alreadyIndexedVideo.PersonalData?.ClientVersion))
                 return OperationType.ImportAll;
 
-            return new Version(alreadyIndexedVideo.PersonalData.ClientVersion) switch
+            var version = new Version(alreadyIndexedVideo.PersonalData.ClientVersion);
+            return version switch
             {
                 { Major: 0, Minor: <= 2 } => OperationType.ImportAll,
-                { Major: 0, Minor: 3, Revision: <= 8} => OperationType.ImportAll,
+                { Major: 0, Minor: 3, Build: <= 8} => OperationType.ImportAll,
                 _ => alreadyIndexedVideo.HasEqualMetadata(sourceMetadata, hasher) ?
                     OperationType.Skip : OperationType.UpdateManifest
             };
