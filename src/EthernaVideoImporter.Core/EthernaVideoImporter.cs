@@ -16,6 +16,8 @@ using Etherna.Authentication;
 using Etherna.Authentication.Native;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Etherna.Sdk.Tools.Video.Models;
+using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
@@ -43,6 +45,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
         private readonly IResultReporterService resultReporterService;
+        private readonly IVideoManifestService videoManifestService;
         private readonly IVideoUploaderService videoUploaderService;
         private readonly IVideoProvider videoProvider;
 
@@ -57,6 +60,7 @@ namespace Etherna.VideoImporter.Core
             IIoService ioService,
             IMigrationService migrationService,
             IResultReporterService resultReporterService,
+            IVideoManifestService videoManifestService,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
@@ -73,6 +77,7 @@ namespace Etherna.VideoImporter.Core
             this.ioService = ioService;
             this.migrationService = migrationService;
             this.resultReporterService = resultReporterService;
+            this.videoManifestService = videoManifestService;
             this.videoProvider = videoProvider;
             this.videoUploaderService = videoUploaderService;
         }
@@ -143,9 +148,9 @@ namespace Etherna.VideoImporter.Core
                         .Select(id => hasher.ComputeHash(id).ToHex());
                     
                     var alreadyIndexedVideo = userVideosOnIndex.FirstOrDefault(
-                        indexedVideo => indexedVideo.LastValidManifest?.Manifest?.PersonalData?.SourceVideoId is not null &&
-                                        indexedVideo.LastValidManifest.Manifest.PersonalData.SourceProviderName == videoProvider.SourceName &&
-                                        allVideoIdHashes.Contains(indexedVideo.LastValidManifest.Manifest.PersonalData.SourceVideoId));
+                        indexedVideo => indexedVideo.PersonalData?.SourceVideoId is not null &&
+                                        indexedVideo.PersonalData.SourceProviderName == videoProvider.SourceName &&
+                                        allVideoIdHashes.Contains(indexedVideo.PersonalData.SourceVideoId));
                     
                     // Try to minimize operations as much as possible.
                     if (alreadyIndexedVideo is not null && !forceVideoUpload)
@@ -165,7 +170,7 @@ namespace Etherna.VideoImporter.Core
                                 importResult = VideoImportResultSucceeded.Skipped(
                                     sourceMetadata,
                                     alreadyIndexedVideo.Id,
-                                    alreadyIndexedVideo.LastValidManifest!.Hash);
+                                    alreadyIndexedVideo.LastValidManifestHash!.Value);
                                 break;
                             
                             case OperationType.UpdateManifest:
@@ -354,23 +359,35 @@ namespace Etherna.VideoImporter.Core
             bool fundDownload,
             bool fundPinning)
         {
-            if (alreadyIndexedVideo.LastValidManifest?.Manifest is null)
+            if (!alreadyIndexedVideo.LastValidManifestHash.HasValue)
                 return null;
             
+            // Try to get last valid manifest.
+            PublishedVideoManifest lastValidManifest;
+            try
+            {
+                lastValidManifest = await videoManifestService.GetPublishedVideoManifestAsync(
+                    alreadyIndexedVideo.LastValidManifestHash.Value).ConfigureAwait(false);
+            }
+            catch { return null; }
+            if (lastValidManifest.Manifest is null)
+                return null;
+            
+            // Get file references.
             Video video;
             try
             {
                 // Download thumbnail.
                 List<ThumbnailFile> thumbnailFiles = [];
-                foreach (var thumbnailSource in alreadyIndexedVideo.LastValidManifest.Manifest.Thumbnail.Sources)
+                foreach (var thumbnailSource in lastValidManifest.Manifest.Thumbnail.Sources)
                     thumbnailFiles.Add(await migrationService.DownloadThumbnailFile(
-                        alreadyIndexedVideo.LastValidManifest.Hash,
+                        lastValidManifest.Hash,
                         thumbnailSource.Uri));
 
                 // Download encoded video.
                 var videoEncoding = await migrationService.DownloadVideoEncodingFromManifestAsync(
-                    alreadyIndexedVideo.LastValidManifest.Hash,
-                    alreadyIndexedVideo.LastValidManifest.Manifest);
+                    lastValidManifest.Hash,
+                    lastValidManifest.Manifest);
                 
                 video = new Video(
                     sourceMetadata,
@@ -389,7 +406,7 @@ namespace Etherna.VideoImporter.Core
                 fundPinning,
                 fundDownload,
                 userEthAddress,
-                alreadyIndexedVideo.LastValidManifest.Manifest.BatchId);
+                lastValidManifest.Manifest.BatchId);
 
             return video.EthernaPermalinkHash;
         }
