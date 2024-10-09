@@ -40,16 +40,15 @@ namespace Etherna.VideoImporter.Core.Services
         {
             ArgumentNullException.ThrowIfNull(alreadyIndexedVideo, nameof(alreadyIndexedVideo));
             
-            var personalData = alreadyIndexedVideo.LastValidManifest?.Manifest?.PersonalData;
-            
             // If client version is missing (0.1.x or 0.2.x).
-            if (string.IsNullOrWhiteSpace(personalData?.ClientVersion))
+            if (string.IsNullOrWhiteSpace(alreadyIndexedVideo.PersonalData?.ClientVersion))
                 return OperationType.ImportAll;
 
-            return new Version(personalData.ClientVersion) switch
+            var version = new Version(alreadyIndexedVideo.PersonalData.ClientVersion);
+            return version switch
             {
                 { Major: 0, Minor: <= 2 } => OperationType.ImportAll,
-                { Major: 0, Minor: 3, Revision: < 9} => OperationType.ImportAll,
+                { Major: 0, Minor: 3, Build: <= 8} => OperationType.ImportAll,
                 _ => alreadyIndexedVideo.HasEqualMetadata(sourceMetadata, hasher) ?
                     OperationType.Skip : OperationType.UpdateManifest
             };
