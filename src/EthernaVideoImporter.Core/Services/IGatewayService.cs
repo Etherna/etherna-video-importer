@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Tools;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -53,7 +54,7 @@ namespace Etherna.VideoImporter.Core.Services
         /// </summary>
         Task<BzzBalance> GetChainPriceAsync();
 
-        Task<ChunkUploaderWebSocket> GetChunkUploaderWebSocketAsync(
+        Task<IChunkWebSocketUploader> GetChunkUploaderWebSocketAsync(
             PostageBatchId batchId,
             TagId? tagId = null,
             CancellationToken cancellationToken = default);

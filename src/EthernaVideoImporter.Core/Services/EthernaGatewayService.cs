@@ -13,11 +13,13 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Tools;
 using Etherna.Sdk.Gateway.GenClients;
 using Etherna.Sdk.Users.Gateway.Clients;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -30,10 +32,17 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Const.
         private readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
+        private ushort ChunkBatchMaxSize = 1000;
 
         // Methods.
         public override async Task<BzzBalance> GetChainPriceAsync() =>
             (await ethernaGatewayClient.GetChainStateAsync()).CurrentPrice;
+
+        public override Task<IChunkWebSocketUploader> GetChunkUploaderWebSocketAsync(
+            PostageBatchId batchId,
+            TagId? tagId = null,
+            CancellationToken cancellationToken = default) =>
+            ethernaGatewayClient.GetChunkTurboUploaderWebSocketAsync(batchId, tagId, ChunkBatchMaxSize, cancellationToken);
 
         public override async Task<bool> IsBatchUsableAsync(PostageBatchId batchId) =>
             (await ethernaGatewayClient.GetPostageBatchAsync(batchId)).IsUsable;

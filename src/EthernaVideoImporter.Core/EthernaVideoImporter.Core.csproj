@@ -20,9 +20,9 @@
 
   <ItemGroup>
     <PackageReference Include="Blurhash.SkiaSharp" Version="2.0.0" />
-    <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.4.4" />
-    <PackageReference Include="EthernaSdk.Users.Gateway" Version="0.4.0-alpha.145" />
-    <PackageReference Include="EthernaSdk.Users.Index" Version="0.4.0-alpha.145" />
+    <PackageReference Include="Etherna.YoutubeDownloader.Converter" Version="6.4.5" />
+    <PackageReference Include="EthernaSdk.Users.Gateway" Version="0.4.0-alpha.154" />
+    <PackageReference Include="EthernaSdk.Users.Index" Version="0.4.0-alpha.154" />
     <PackageReference Include="GitVersion.MsBuild" Version="6.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -30,7 +30,7 @@
     <PackageReference Include="Keccak256" Version="1.0.0" />
     <PackageReference Include="MedallionShell" Version="1.6.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
