@@ -76,8 +76,8 @@ namespace Etherna.VideoImporter.Core.Services
                 [360] = 365,
                 [432] = 915, //avg of suggested
                 [540] = 2000,
-                [720] = 3750, //avg of suggested
-                [1080] = 6900 //avg of suggested
+                [720] = 3000, //lower of suggested
+                [1080] = 6000 //lower of suggested
             };
             HlsBitrateByArea = hlsBitrateByHeight.ToDictionary(
                 pair => pair.Key * pair.Key * 16 / 9, //apple example is with 16:9,
