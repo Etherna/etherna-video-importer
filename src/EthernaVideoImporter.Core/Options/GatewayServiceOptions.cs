@@ -18,5 +18,6 @@ namespace Etherna.VideoImporter.Core.Options
     {
         // Properties.
         public bool IsDryRun { get; set; }
+        public bool UseBeeApi { get; set; }
     }
 }
