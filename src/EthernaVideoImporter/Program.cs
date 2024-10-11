@@ -374,6 +374,7 @@ namespace Etherna.VideoImporter
                 gatewayOptions =>
                 {
                     gatewayOptions.IsDryRun = isDryRun;
+                    gatewayOptions.UseBeeApi = useBeeNativeNode;
                 },
                 uploaderOptions =>
                 {
@@ -387,8 +388,7 @@ namespace Etherna.VideoImporter
                         else
                             throw new ArgumentException($"Invalid value for TTL Postage Stamp");
                     }
-                },
-                useBeeNativeNode);
+                });
 
             //source provider
             switch (sourceType)

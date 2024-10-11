@@ -22,9 +22,6 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public interface IGatewayService
     {
-        // Properties.
-        IBeeClient BeeClient { get; }
-        
         // Methods.
         /// <summary>
         /// Create a new batch.
