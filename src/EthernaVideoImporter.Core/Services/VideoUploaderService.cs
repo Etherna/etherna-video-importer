@@ -265,9 +265,11 @@ namespace Etherna.VideoImporter.Core.Services
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
             
             //required to not bypass bee local storage
-            var tagInfo = await gatewayService.CreateTagAsync(batchId.Value);
+            var tagInfo = await gatewayService.CreateTagAsync(videoManifestHash, batchId.Value);
             
-            //required to pre-pin the root chunk on same node owning the postage batch. Doesn't imply user's pinning.
+            // Required to pre-pin the root chunk on same node owning the postage batch.
+            // Doesn't actual pin the content. It's needed to pre-allocate the right node
+            // for the successive pinning on gateway db.
             await gatewayService.AnnounceChunksUploadAsync(videoManifestHash, batchId.Value);
             
             int totalUploaded = 0;
@@ -333,9 +335,6 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             }
             
-            ioService.WriteLine($"Chunks upload completed!");
-            ioService.WriteLine($"Published on (permalink): {UrlBuilder.BuildNormalPermalinkUrl(video.EthernaPermalinkHash.Value)}");
-            
             // Fund pinning.
             if (fundPinning)
             {
@@ -362,6 +361,10 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             }
             
+            // Update tag info and delete it to indicate end of upload.
+            await gatewayService.UpdateTagInfoAsync(tagInfo.Id, videoManifestHash, batchId.Value);
+            await gatewayService.DeleteTagAsync(tagInfo.Id, batchId.Value);
+            
             // Fund downloads.
             if (fundDownload)
             {
@@ -376,6 +379,10 @@ namespace Etherna.VideoImporter.Core.Services
                     ioService.PrintException(e);
                 }
             }
+            
+            // Upload completed.
+            ioService.WriteLine($"Chunks upload completed!");
+            ioService.WriteLine($"Published on (permalink): {UrlBuilder.BuildNormalPermalinkUrl(video.EthernaPermalinkHash.Value)}");
 
             // List on index.
             if (!options.IsDryRun)
