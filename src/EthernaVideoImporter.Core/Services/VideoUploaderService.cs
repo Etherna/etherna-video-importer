@@ -25,12 +25,13 @@ using Etherna.VideoImporter.Core.Utilities;
 using Microsoft.Extensions.Options;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -39,7 +40,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Const.
         private const string ChunksSubDirectoryName = "chunks";
-        private const int UploadMaxRetry = 10;
+        private const int BeeMaxRetry = 10;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
@@ -271,7 +272,7 @@ namespace Etherna.VideoImporter.Core.Services
             
             int totalUploaded = 0;
             var uploadStartDateTime = DateTime.UtcNow;
-            for (int i = 0; i < UploadMaxRetry && totalUploaded < chunkFiles.Length; i++)
+            for (int i = 0; i < BeeMaxRetry && totalUploaded < chunkFiles.Length; i++)
             {
                 // Skip with dry run.
                 if (options.IsDryRun)
@@ -296,15 +297,22 @@ namespace Etherna.VideoImporter.Core.Services
                                 uploadStartDateTime);
                             lastUpdateDateTime = now;
                         }
-
-                        var chunkPath = chunkFiles[j];
-                        var chunk = SwarmChunk.BuildFromSpanAndData(
-                            Path.GetFileNameWithoutExtension(chunkPath),
-                            await File.ReadAllBytesAsync(chunkPath));
                         
-                        await chunkUploaderWs.SendChunkAsync(chunk, CancellationToken.None);
+                        var chunkBatchFiles = chunkFiles.Skip(totalUploaded).Take(GatewayService.ChunkBatchMaxSize).ToArray();
 
-                        totalUploaded++;
+                        List<SwarmChunk> chunkBatch = [];
+                        foreach (var chunkPath in chunkBatchFiles)
+                        {
+                            chunkBatch.Add(SwarmChunk.BuildFromSpanAndData(
+                                Path.GetFileNameWithoutExtension(chunkPath),
+                                await File.ReadAllBytesAsync(chunkPath)));
+                        }
+                        
+                        await chunkUploaderWs.SendChunkBatchAsync(
+                            chunkBatch.ToArray(),
+                            totalUploaded + chunkBatchFiles.Length == chunkFiles.Length);
+                        
+                        totalUploaded += chunkBatchFiles.Length;
                     }
                     ioService.WriteLine(null, false);
                 }
@@ -313,7 +321,7 @@ namespace Etherna.VideoImporter.Core.Services
                     ioService.WriteErrorLine($"Error uploading chunks");
                     ioService.WriteLine(e.ToString());
 
-                    if (i + 1 < UploadMaxRetry)
+                    if (i + 1 < BeeMaxRetry)
                     {
                         Console.WriteLine("Retry...");
                         await Task.Delay(UploadRetryTimeSpan);
@@ -331,15 +339,42 @@ namespace Etherna.VideoImporter.Core.Services
             // Fund pinning.
             if (fundPinning)
             {
-                await gatewayService.FundResourcePinningAsync(videoManifestHash);
-                ioService.WriteLine("Funded video pinning");
+                for (int i = 0; i < BeeMaxRetry; i++)
+                {
+                    try
+                    {
+                        await gatewayService.FundResourcePinningAsync(videoManifestHash);
+                        ioService.WriteLine("Funded video pinning");
+                        
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        ioService.WriteError("Error funding video pinning");
+                        ioService.PrintException(e);
+
+                        if (i + 1 < BeeMaxRetry)
+                        {
+                            Console.WriteLine("Retry...");
+                            await Task.Delay(UploadRetryTimeSpan);
+                        }
+                    }
+                }
             }
             
             // Fund downloads.
             if (fundDownload)
             {
-                await gatewayService.FundResourceDownloadAsync(videoManifestHash);
-                ioService.WriteLine("Funded public download");
+                try
+                {
+                    await gatewayService.FundResourceDownloadAsync(videoManifestHash);
+                    ioService.WriteLine("Funded public download");
+                }
+                catch (Exception e)
+                {
+                    ioService.WriteError("Error funding public download");
+                    ioService.PrintException(e);
+                }
             }
 
             // List on index.

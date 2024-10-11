@@ -25,17 +25,17 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    public abstract class GatewayService(
+    public sealed class GatewayService(
         IEthernaUserGatewayClient ethernaGatewayClient,
         IIoService ioService,
         IOptions<GatewayServiceOptions> options)
         : IGatewayService
     {
         // Consts.
-        private static readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
-        private static readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
-        private static readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
-        private const ushort ChunkBatchMaxSize = 1000;
+        public static readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
+        public static readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
+        public static readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
+        public const ushort ChunkBatchMaxSize = 1000;
 
         // Fields.
         private readonly GatewayServiceOptions options = options.Value;
@@ -190,8 +190,8 @@ namespace Etherna.VideoImporter.Core.Services
             await ethernaGatewayClient.BeeClient.UploadChunkAsync(batchId, dataStream, fundPinning);
         }
 
-        // Protected methods.
-        protected async Task WaitForBatchUsableAsync(PostageBatchId batchId)
+        // Helpers.
+        private async Task WaitForBatchUsableAsync(PostageBatchId batchId)
         {
             var batchStartWait = DateTime.UtcNow;
             bool batchIsUsable;
