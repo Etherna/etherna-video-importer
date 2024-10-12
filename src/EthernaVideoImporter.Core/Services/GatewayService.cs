@@ -118,11 +118,11 @@ namespace Etherna.VideoImporter.Core.Services
             }
         }
 
-        public Task<TagInfo> CreateTagAsync(PostageBatchId postageBatchId)
+        public Task<TagInfo> CreateTagAsync(SwarmHash hash, PostageBatchId batchId)
         {
             if (options.IsDryRun)
                 return Task.FromResult(new TagInfo(new TagId(0), DateTimeOffset.UtcNow, 0, 0, 0, 0, 0));
-            return ethernaGatewayClient.BeeClient.CreateTagAsync(postageBatchId);
+            return ethernaGatewayClient.BeeClient.CreateTagAsync(hash, batchId);
         }
 
         public Task DefundResourcePinningAsync(SwarmHash hash)
@@ -132,6 +132,13 @@ namespace Etherna.VideoImporter.Core.Services
             if (options.UseBeeApi)
                 return ethernaGatewayClient.BeeClient.DeletePinAsync(hash);
             return ethernaGatewayClient.DefundResourcePinningAsync(hash);
+        }
+
+        public Task DeleteTagAsync(TagId tagId, PostageBatchId batchId)
+        {
+            if (options.IsDryRun)
+                return Task.CompletedTask;
+            return ethernaGatewayClient.BeeClient.DeleteTagAsync(tagId, batchId);
         }
 
         public Task FundResourceDownloadAsync(SwarmHash hash)
@@ -179,7 +186,18 @@ namespace Etherna.VideoImporter.Core.Services
         public async Task<SwarmHash> ResolveSwarmAddressToHashAsync(SwarmAddress address) =>
             (await ethernaGatewayClient.BeeClient.ResolveAddressToChunkReferenceAsync(address)).Hash;
 
-        public async Task UploadChunkAsync(PostageBatchId batchId, SwarmChunk chunk, bool fundPinning = false)
+        public Task UpdateTagInfoAsync(TagId tagId, SwarmHash rootHash, PostageBatchId batchId)
+        {
+            if (options.IsDryRun)
+                return Task.CompletedTask;
+            return ethernaGatewayClient.BeeClient.UpdateTagAsync(tagId, batchId, rootHash);
+        }
+
+        public async Task UploadChunkAsync(
+            PostageBatchId batchId,
+            SwarmChunk chunk,
+            bool fundPinning = false,
+            TagId? tagId = null)
         {
             ArgumentNullException.ThrowIfNull(chunk, nameof(chunk));
 
@@ -187,7 +205,11 @@ namespace Etherna.VideoImporter.Core.Services
                 return;
             
             using var dataStream = new MemoryStream(chunk.Data.ToArray());
-            await ethernaGatewayClient.BeeClient.UploadChunkAsync(batchId, dataStream, fundPinning);
+            await ethernaGatewayClient.BeeClient.UploadChunkAsync(
+                batchId,
+                dataStream,
+                swarmPin: fundPinning,
+                tagId: tagId);
         }
 
         // Helpers.

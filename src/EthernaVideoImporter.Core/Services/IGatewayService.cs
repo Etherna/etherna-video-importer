@@ -12,7 +12,6 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Tools;
 using System.Threading;
@@ -23,6 +22,8 @@ namespace Etherna.VideoImporter.Core.Services
     public interface IGatewayService
     {
         // Methods.
+        Task AnnounceChunksUploadAsync(SwarmHash rootHash, PostageBatchId batchId);
+        
         /// <summary>
         /// Create a new batch.
         /// </summary>
@@ -30,13 +31,15 @@ namespace Etherna.VideoImporter.Core.Services
         /// <param name="batchDepth">batch depth</param>
         Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth);
 
-        Task<TagInfo> CreateTagAsync(PostageBatchId postageBatchId);
+        Task<TagInfo> CreateTagAsync(SwarmHash hash, PostageBatchId batchId);
 
         /// <summary>
         /// Delete pin.
         /// </summary>
         /// <param name="hash">Resource hash</param>
         Task DefundResourcePinningAsync(SwarmHash hash);
+
+        Task DeleteTagAsync(TagId tagId, PostageBatchId batchId);
 
         /// <summary>
         /// Offer the content to all users.
@@ -63,12 +66,13 @@ namespace Etherna.VideoImporter.Core.Services
         Task<bool> IsBatchUsableAsync(PostageBatchId batchId);
 
         Task<SwarmHash> ResolveSwarmAddressToHashAsync(SwarmAddress address);
+        
+        Task UpdateTagInfoAsync(TagId tagId, SwarmHash rootHash, PostageBatchId batchId);
 
         Task UploadChunkAsync(
             PostageBatchId batchId,
             SwarmChunk chunk,
-            bool fundPinning = false);
-
-        Task AnnounceChunksUploadAsync(SwarmHash rootHash, PostageBatchId batchId);
+            bool fundPinning = false,
+            TagId? tagId = null);
     }
 }

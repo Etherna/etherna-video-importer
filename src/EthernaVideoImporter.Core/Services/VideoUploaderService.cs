@@ -26,7 +26,6 @@ using Microsoft.Extensions.Options;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -36,7 +35,16 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    internal sealed class VideoUploaderService : IVideoUploaderService
+    internal sealed class VideoUploaderService(
+        IAppVersionService appVersionService,
+        IChunkService chunkService,
+        IEthernaUserIndexClient ethernaIndexClient,
+        IGatewayService gatewayService,
+        IHasher hasher,
+        IIoService ioService,
+        IOptions<VideoUploaderServiceOptions> options,
+        IVideoManifestService videoManifestService)
+        : IVideoUploaderService
     {
         // Const.
         private const string ChunksSubDirectoryName = "chunks";
@@ -44,35 +52,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
-        private readonly IAppVersionService appVersionService;
-        private readonly IChunkService chunkService;
-        private readonly IEthernaUserIndexClient ethernaIndexClient;
-        private readonly IGatewayService gatewayService;
-        private readonly IHasher hasher;
-        private readonly IIoService ioService;
-        private readonly VideoUploaderServiceOptions options;
-        private readonly IVideoManifestService videoManifestService;
-
-        // Constructor.
-        public VideoUploaderService(
-            IAppVersionService appVersionService,
-            IChunkService chunkService,
-            IEthernaUserIndexClient ethernaIndexClient,
-            IGatewayService gatewayService,
-            IHasher hasher,
-            IIoService ioService,
-            IOptions<VideoUploaderServiceOptions> options,
-            IVideoManifestService videoManifestService)
-        {
-            this.appVersionService = appVersionService;
-            this.chunkService = chunkService;
-            this.ethernaIndexClient = ethernaIndexClient;
-            this.gatewayService = gatewayService;
-            this.hasher = hasher;
-            this.ioService = ioService;
-            this.videoManifestService = videoManifestService;
-            this.options = options.Value;
-        }
+        private readonly VideoUploaderServiceOptions options = options.Value;
 
         // Public methods.
         public async Task UploadVideoAsync(
@@ -265,9 +245,11 @@ namespace Etherna.VideoImporter.Core.Services
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
             
             //required to not bypass bee local storage
-            var tagInfo = await gatewayService.CreateTagAsync(batchId.Value);
+            var tagInfo = await gatewayService.CreateTagAsync(videoManifestHash, batchId.Value);
             
-            //required to pre-pin the root chunk on same node owning the postage batch. Doesn't imply user's pinning.
+            // Required to pre-pin the root chunk on same node owning the postage batch.
+            // Doesn't actual pin the content. It's needed to pre-allocate the right node
+            // for the successive pinning on gateway db.
             await gatewayService.AnnounceChunksUploadAsync(videoManifestHash, batchId.Value);
             
             int totalUploaded = 0;
@@ -333,9 +315,6 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             }
             
-            ioService.WriteLine($"Chunks upload completed!");
-            ioService.WriteLine($"Published on (permalink): {UrlBuilder.BuildNormalPermalinkUrl(video.EthernaPermalinkHash.Value)}");
-            
             // Fund pinning.
             if (fundPinning)
             {
@@ -362,6 +341,10 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             }
             
+            // Update tag info and delete it to indicate end of upload.
+            await gatewayService.UpdateTagInfoAsync(tagInfo.Id, videoManifestHash, batchId.Value);
+            await gatewayService.DeleteTagAsync(tagInfo.Id, batchId.Value);
+            
             // Fund downloads.
             if (fundDownload)
             {
@@ -376,6 +359,10 @@ namespace Etherna.VideoImporter.Core.Services
                     ioService.PrintException(e);
                 }
             }
+            
+            // Upload completed.
+            ioService.WriteLine($"Chunks upload completed!");
+            ioService.WriteLine($"Published on (permalink): {UrlBuilder.BuildNormalPermalinkUrl(video.EthernaPermalinkHash.Value)}");
 
             // List on index.
             if (!options.IsDryRun)
