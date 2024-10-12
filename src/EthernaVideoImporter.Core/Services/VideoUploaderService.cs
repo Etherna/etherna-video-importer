@@ -26,7 +26,6 @@ using Microsoft.Extensions.Options;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -36,7 +35,16 @@ using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    internal sealed class VideoUploaderService : IVideoUploaderService
+    internal sealed class VideoUploaderService(
+        IAppVersionService appVersionService,
+        IChunkService chunkService,
+        IEthernaUserIndexClient ethernaIndexClient,
+        IGatewayService gatewayService,
+        IHasher hasher,
+        IIoService ioService,
+        IOptions<VideoUploaderServiceOptions> options,
+        IVideoManifestService videoManifestService)
+        : IVideoUploaderService
     {
         // Const.
         private const string ChunksSubDirectoryName = "chunks";
@@ -44,35 +52,7 @@ namespace Etherna.VideoImporter.Core.Services
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
-        private readonly IAppVersionService appVersionService;
-        private readonly IChunkService chunkService;
-        private readonly IEthernaUserIndexClient ethernaIndexClient;
-        private readonly IGatewayService gatewayService;
-        private readonly IHasher hasher;
-        private readonly IIoService ioService;
-        private readonly VideoUploaderServiceOptions options;
-        private readonly IVideoManifestService videoManifestService;
-
-        // Constructor.
-        public VideoUploaderService(
-            IAppVersionService appVersionService,
-            IChunkService chunkService,
-            IEthernaUserIndexClient ethernaIndexClient,
-            IGatewayService gatewayService,
-            IHasher hasher,
-            IIoService ioService,
-            IOptions<VideoUploaderServiceOptions> options,
-            IVideoManifestService videoManifestService)
-        {
-            this.appVersionService = appVersionService;
-            this.chunkService = chunkService;
-            this.ethernaIndexClient = ethernaIndexClient;
-            this.gatewayService = gatewayService;
-            this.hasher = hasher;
-            this.ioService = ioService;
-            this.videoManifestService = videoManifestService;
-            this.options = options.Value;
-        }
+        private readonly VideoUploaderServiceOptions options = options.Value;
 
         // Public methods.
         public async Task UploadVideoAsync(
