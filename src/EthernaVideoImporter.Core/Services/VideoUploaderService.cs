@@ -244,13 +244,13 @@ namespace Etherna.VideoImporter.Core.Services
             
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
             
-            //required to not bypass bee local storage
-            var tagInfo = await gatewayService.CreateTagAsync(videoManifestHash, batchId.Value);
+            // //required to not bypass bee local storage
+            // var tagInfo = await gatewayService.CreateTagAsync(videoManifestHash, batchId.Value);
             
-            // Required to pre-pin the root chunk on same node owning the postage batch.
-            // Doesn't actual pin the content. It's needed to pre-allocate the right node
-            // for the successive pinning on gateway db.
-            await gatewayService.AnnounceChunksUploadAsync(videoManifestHash, batchId.Value);
+            // // Required to pre-pin the root chunk on same node owning the postage batch.
+            // // Doesn't actual pin the content. It's needed to pre-allocate the right node
+            // // for the successive pinning on gateway db.
+            // await gatewayService.AnnounceChunksUploadAsync(videoManifestHash, batchId.Value);
             
             int totalUploaded = 0;
             var uploadStartDateTime = DateTime.UtcNow;
@@ -261,13 +261,13 @@ namespace Etherna.VideoImporter.Core.Services
                     break;
                 
                 // Create websocket.
-                using var chunkUploaderWs = await gatewayService.GetChunkUploaderWebSocketAsync(batchId.Value, tagInfo.Id);
+                using var chunkUploaderWs = await gatewayService.GetChunkUploaderWebSocketAsync(batchId.Value);
 
                 try
                 {
                     var lastUpdateDateTime = DateTime.UtcNow;
                     
-                    for (int j = totalUploaded; j < chunkFiles.Length; j++)
+                    while (totalUploaded < chunkFiles.Length)
                     {
                         var now = DateTime.UtcNow;
                         if (now - lastUpdateDateTime > TimeSpan.FromSeconds(1))
@@ -316,34 +316,34 @@ namespace Etherna.VideoImporter.Core.Services
             }
             
             // Fund pinning.
-            if (fundPinning)
-            {
-                for (int i = 0; i < BeeMaxRetry; i++)
-                {
-                    try
-                    {
-                        await gatewayService.FundResourcePinningAsync(videoManifestHash);
-                        ioService.WriteLine("Funded video pinning");
-                        
-                        break;
-                    }
-                    catch (Exception e)
-                    {
-                        ioService.WriteError("Error funding video pinning");
-                        ioService.PrintException(e);
-
-                        if (i + 1 < BeeMaxRetry)
-                        {
-                            Console.WriteLine("Retry...");
-                            await Task.Delay(UploadRetryTimeSpan);
-                        }
-                    }
-                }
-            }
+            // if (fundPinning)
+            // {
+            //     for (int i = 0; i < BeeMaxRetry; i++)
+            //     {
+            //         try
+            //         {
+            //             await gatewayService.FundResourcePinningAsync(videoManifestHash);
+            //             ioService.WriteLine("Funded video pinning");
+            //             
+            //             break;
+            //         }
+            //         catch (Exception e)
+            //         {
+            //             ioService.WriteError("Error funding video pinning");
+            //             ioService.PrintException(e);
+            //
+            //             if (i + 1 < BeeMaxRetry)
+            //             {
+            //                 Console.WriteLine("Retry...");
+            //                 await Task.Delay(UploadRetryTimeSpan);
+            //             }
+            //         }
+            //     }
+            // }
             
-            // Update tag info and delete it to indicate end of upload.
-            await gatewayService.UpdateTagInfoAsync(tagInfo.Id, videoManifestHash, batchId.Value);
-            await gatewayService.DeleteTagAsync(tagInfo.Id, batchId.Value);
+            // // Update tag info and delete it to indicate end of upload.
+            // await gatewayService.UpdateTagInfoAsync(tagInfo.Id, videoManifestHash, batchId.Value);
+            // await gatewayService.DeleteTagAsync(tagInfo.Id, batchId.Value);
             
             // Fund downloads.
             if (fundDownload)
