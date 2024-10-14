@@ -47,8 +47,9 @@ namespace Etherna.VideoImporter.Core.Services
         : IVideoUploaderService
     {
         // Const.
-        private const string ChunksSubDirectoryName = "chunks";
         private const int BeeMaxRetry = 10;
+        private const string ChunksSubDirectoryName = "chunks";
+        private const ushort CompactLevel = ushort.MaxValue;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
@@ -77,6 +78,7 @@ namespace Etherna.VideoImporter.Core.Services
                 video.VideoEncoding.MasterFile.SwarmHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
+                    compactLevel: CompactLevel,
                     postageStampIssuer: stampIssuer);
             }
             foreach (var variant in video.VideoEncoding.Variants.Where(v => v.EntryFile.SwarmHash is null))
@@ -88,6 +90,7 @@ namespace Etherna.VideoImporter.Core.Services
                 variant.EntryFile.SwarmHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
+                    compactLevel: CompactLevel,
                     postageStampIssuer: stampIssuer);
                 
                 //additional files.
@@ -100,6 +103,7 @@ namespace Etherna.VideoImporter.Core.Services
                             segment.SwarmHash = await chunkService.WriteDataChunksAsync(
                                 segStream,
                                 chunksDirectory.FullName,
+                                compactLevel: CompactLevel,
                                 postageStampIssuer: stampIssuer);
                         }
                         break;
@@ -116,6 +120,7 @@ namespace Etherna.VideoImporter.Core.Services
                 thumbnailFile.SwarmHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
+                    compactLevel: CompactLevel,
                     postageStampIssuer: stampIssuer);
             }
             
@@ -127,6 +132,7 @@ namespace Etherna.VideoImporter.Core.Services
                 subtitleFile.SwarmHash = await chunkService.WriteDataChunksAsync(
                     stream,
                     chunksDirectory.FullName,
+                    compactLevel: CompactLevel,
                     postageStampIssuer: stampIssuer);
             }
             
@@ -225,6 +231,7 @@ namespace Etherna.VideoImporter.Core.Services
             await videoManifestService.CreateVideoManifestChunksAsync(
                 videoManifest,
                 chunksDirectory.FullName,
+                compactLevel: CompactLevel,
                 postageStampIssuer: stampIssuer);
             
             // Create new batch if required.
@@ -235,6 +242,7 @@ namespace Etherna.VideoImporter.Core.Services
             var videoManifestHash = await videoManifestService.CreateVideoManifestChunksAsync(
                 videoManifest,
                 chunksDirectory.FullName,
+                compactLevel: CompactLevel,
                 postageStampIssuer: stampIssuer);
             
             video.EthernaPermalinkHash = videoManifestHash;
