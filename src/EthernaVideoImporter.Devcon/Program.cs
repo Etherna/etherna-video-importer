@@ -76,7 +76,7 @@ namespace Etherna.VideoImporter.Devcon
         static async Task Main(string[] args)
         {
             // Parse arguments.
-            string mdSourceFolderPath;
+            string jsonSourceFolderPath;
 
             string? apiKey = null;
             string? customFFMpegFolderPath = null;
@@ -116,12 +116,12 @@ namespace Etherna.VideoImporter.Devcon
                 }
             }
 
-            //md source folder
-            mdSourceFolderPath = args[0];
-            if (!Directory.Exists(mdSourceFolderPath))
+            //json source folder
+            jsonSourceFolderPath = args[0];
+            if (!Directory.Exists(jsonSourceFolderPath))
             {
-                Console.WriteLine($"Not found MD directory path {mdSourceFolderPath}");
-                throw new ArgumentException("Not found MD directory path");
+                Console.WriteLine($"Not found Json directory path {jsonSourceFolderPath}");
+                throw new ArgumentException("Not found Json directory path");
             }
 
             //options
@@ -326,7 +326,7 @@ namespace Etherna.VideoImporter.Devcon
             //source provider
             services.Configure<DevconVideoProviderOptions>(options =>
             {
-                options.DevconSourceFolderPath = mdSourceFolderPath;
+                options.DevconSourceFolderPath = jsonSourceFolderPath;
             });
             services.AddSingleton<IValidateOptions<DevconVideoProviderOptions>, DevconVideoProviderOptionsValidation>();
             services.AddTransient<IYoutubeClient>(_ =>
@@ -358,7 +358,7 @@ namespace Etherna.VideoImporter.Devcon
             services.Configure<DevconResultReporterOptions>(options =>
             {
                 options.IsDryRun = isDryRun;
-                options.ResultFolderPath = mdSourceFolderPath;
+                options.ResultFolderPath = jsonSourceFolderPath;
             });
             services.AddSingleton<IValidateOptions<DevconResultReporterOptions>, DevconResultReporterOptionsValidation>();
             services.AddTransient<IResultReporterService, DevconResultReporterService>();
