@@ -23,6 +23,11 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Methods.
         Task AnnounceChunksUploadAsync(SwarmHash rootHash, PostageBatchId batchId);
+
+        Task ChunksBulkUploadAsync(
+            SwarmChunk[] chunks,
+            PostageBatchId batchId,
+            bool swarmPin = false);
         
         /// <summary>
         /// Create a new batch.

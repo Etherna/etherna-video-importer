@@ -259,9 +259,6 @@ namespace Etherna.VideoImporter.Core.Services
                 // Skip with dry run.
                 if (options.IsDryRun)
                     break;
-                
-                // Create websocket.
-                using var chunkUploaderWs = await gatewayService.GetChunkUploaderWebSocketAsync(batchId.Value);
 
                 try
                 {
@@ -289,10 +286,10 @@ namespace Etherna.VideoImporter.Core.Services
                                 Path.GetFileNameWithoutExtension(chunkPath),
                                 await File.ReadAllBytesAsync(chunkPath)));
                         }
-                        
-                        await chunkUploaderWs.SendChunkBatchAsync(
+
+                        await gatewayService.ChunksBulkUploadAsync(
                             chunkBatch.ToArray(),
-                            totalUploaded + chunkBatchFiles.Length == chunkFiles.Length);
+                            batchId.Value);
                         
                         totalUploaded += chunkBatchFiles.Length;
                     }
@@ -308,10 +305,6 @@ namespace Etherna.VideoImporter.Core.Services
                         Console.WriteLine("Retry...");
                         await Task.Delay(UploadRetryTimeSpan);
                     }
-                }
-                finally
-                {
-                    await chunkUploaderWs.CloseAsync();
                 }
             }
             

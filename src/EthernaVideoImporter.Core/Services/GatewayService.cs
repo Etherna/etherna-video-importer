@@ -35,7 +35,7 @@ namespace Etherna.VideoImporter.Core.Services
         public static readonly TimeSpan BatchCheckTimeSpan = new(0, 0, 0, 5);
         public static readonly TimeSpan BatchCreationTimeout = new(0, 0, 10, 0);
         public static readonly TimeSpan BatchUsableTimeout = new(0, 0, 10, 0);
-        public const ushort ChunkBatchMaxSize = 1000;
+        public const ushort ChunkBatchMaxSize = 100;
 
         // Fields.
         private readonly GatewayServiceOptions options = options.Value;
@@ -48,6 +48,32 @@ namespace Etherna.VideoImporter.Core.Services
             if (options.UseBeeApi)
                 return Task.CompletedTask; //not required because it's a single node, but no reason to fail
             return ethernaGatewayClient.AnnounceChunksUploadAsync(rootHash, batchId);
+        }
+
+        public async Task ChunksBulkUploadAsync(
+            SwarmChunk[] chunks,
+            PostageBatchId batchId,
+            bool swarmPin = false)
+        {
+            ArgumentNullException.ThrowIfNull(chunks, nameof(chunks));
+            
+            if (options.IsDryRun)
+                return;
+            // if (options.UseBeeApi)
+            // {
+            //     foreach (var chunk in chunks)
+            //     {
+            //         using var memoryStream = new MemoryStream(chunk.GetSpanAndData());
+            //         
+            //         await ethernaGatewayClient.UploadChunkAsync(
+            //             batchId,
+            //             memoryStream,
+            //             swarmPin);
+            //     }
+            //     return;
+            // }
+
+            await ethernaGatewayClient.ChunksBulkUploadAsync(chunks, batchId);
         }
 
         public async Task<PostageBatchId> CreatePostageBatchAsync(BzzBalance amount, int batchDepth)
