@@ -295,10 +295,13 @@ namespace Etherna.VideoImporter.Core.Services
                     }
                     ioService.WriteLine(null, false);
                 }
-                catch (Exception e) when (e is WebSocketException or OperationCanceledException)
+                catch (Exception e) when (
+                    e is InvalidOperationException
+                        or WebSocketException
+                        or OperationCanceledException)
                 {
                     ioService.WriteErrorLine($"Error uploading chunks");
-                    ioService.WriteLine(e.ToString());
+                    ioService.PrintException(e);
 
                     if (i + 1 < BeeMaxRetry)
                     {
