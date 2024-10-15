@@ -167,9 +167,10 @@ namespace Etherna.VideoImporter.Core.Utilities
                     ioService.WriteLine(null, false);
                     break;
                 }
-                catch
+                catch (Exception e)
                 {
                     ioService.WriteLine(null, false);
+                    ioService.PrintException(e);
                     if (i + 1 < CommonConsts.DownloadMaxRetry)
                     {
                         ioService.PrintTimeStamp();
