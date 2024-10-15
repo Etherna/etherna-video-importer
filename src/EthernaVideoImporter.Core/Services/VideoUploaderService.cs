@@ -254,7 +254,7 @@ namespace Etherna.VideoImporter.Core.Services
             
             int totalUploaded = 0;
             var uploadStartDateTime = DateTime.UtcNow;
-            for (int i = 0; i < BeeMaxRetry && totalUploaded < chunkFiles.Length; i++)
+            for (int retry = 0; retry < BeeMaxRetry && totalUploaded < chunkFiles.Length; retry++)
             {
                 // Skip with dry run.
                 if (options.IsDryRun)
@@ -290,6 +290,7 @@ namespace Etherna.VideoImporter.Core.Services
                         await gatewayService.ChunksBulkUploadAsync(
                             chunkBatch.ToArray(),
                             batchId.Value);
+                        retry = 0;
                         
                         totalUploaded += chunkBatchFiles.Length;
                     }
@@ -303,7 +304,7 @@ namespace Etherna.VideoImporter.Core.Services
                     ioService.WriteErrorLine($"Error uploading chunks");
                     ioService.PrintException(e);
 
-                    if (i + 1 < BeeMaxRetry)
+                    if (retry + 1 < BeeMaxRetry)
                     {
                         Console.WriteLine("Retry...");
                         await Task.Delay(UploadRetryTimeSpan);
