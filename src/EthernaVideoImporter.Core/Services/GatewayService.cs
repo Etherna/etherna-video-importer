@@ -59,19 +59,19 @@ namespace Etherna.VideoImporter.Core.Services
             
             if (options.IsDryRun)
                 return;
-            // if (options.UseBeeApi)
-            // {
-            //     foreach (var chunk in chunks)
-            //     {
-            //         using var memoryStream = new MemoryStream(chunk.GetSpanAndData());
-            //         
-            //         await ethernaGatewayClient.UploadChunkAsync(
-            //             batchId,
-            //             memoryStream,
-            //             swarmPin);
-            //     }
-            //     return;
-            // }
+            if (options.UseBeeApi)
+            {
+                foreach (var chunk in chunks)
+                {
+                    using var memoryStream = new MemoryStream(chunk.GetSpanAndData());
+                    
+                    await ethernaGatewayClient.UploadChunkAsync(
+                        batchId,
+                        memoryStream,
+                        swarmPin);
+                }
+                return;
+            }
 
             await ethernaGatewayClient.ChunksBulkUploadAsync(chunks, batchId);
         }
