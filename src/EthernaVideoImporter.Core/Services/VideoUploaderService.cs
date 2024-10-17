@@ -20,6 +20,7 @@ using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Utilities;
 using Microsoft.Extensions.Options;
@@ -47,7 +48,6 @@ namespace Etherna.VideoImporter.Core.Services
         : IVideoUploaderService
     {
         // Const.
-        private const string ChunksSubDirectoryName = "chunks";
         private const int BeeMaxRetry = 10;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
@@ -60,12 +60,13 @@ namespace Etherna.VideoImporter.Core.Services
             bool fundPinning,
             bool fundDownload,
             string ownerEthAddress,
+            ProjectDirectory projectDirectory,
             PostageBatchId? batchId = null)
         {
             ArgumentNullException.ThrowIfNull(video, nameof(video));
             
             // Create chunks. Do as first thing, also to evaluate required postage batch depth.
-            var chunksDirectory = Directory.CreateDirectory(Path.Combine(CommonConsts.TempDirectory.FullName, ChunksSubDirectoryName));
+            var chunksDirectory = projectDirectory.ChunksDirectory.CreateDirectory();
             var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
             
             //video source files, exclude already uploaded Swarm files

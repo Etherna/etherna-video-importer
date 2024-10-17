@@ -16,6 +16,7 @@ using Etherna.BeeNet.Models;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.UniversalFiles;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
@@ -333,13 +334,15 @@ namespace Etherna.VideoImporter.Core.Services
             }
         }
         
-        public async Task<string> ExtractThumbnailAsync(VideoVariantBase inputVideoVariant)
+        public async Task<string> ExtractThumbnailAsync(
+            VideoVariantBase inputVideoVariant,
+            ProjectDirectory projectDirectory)
         {
             ioService.WriteLine($"Extract random thumbnail");
 
             // Run FFmpeg command.
             var outputThumbnailFilePath = Path.Combine(
-                CommonConsts.TempDirectory.FullName,
+                projectDirectory.DirPath,
                 $"input_{inputVideoVariant.Width}x{inputVideoVariant.Height}.jpg");
             var args = new[] {
                 "-i", inputVideoVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri,

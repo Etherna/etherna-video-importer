@@ -1,4 +1,4 @@
-﻿// Copyright 2022-present Etherna SA
+// Copyright 2022-present Etherna SA
 // This file is part of Etherna Video Importer.
 // 
 // Etherna Video Importer is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,23 +12,26 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.VideoImporter.Core.Models.Domain;
-using Etherna.VideoImporter.Core.Models.Domain.Directories;
-using System.Threading.Tasks;
+using System.IO;
 
-namespace Etherna.VideoImporter.Core.Services
+namespace Etherna.VideoImporter.Core.Models.Domain.Directories
 {
-    public interface IVideoProvider
+    public abstract class DirectoryBase(string dirPath)
     {
+        // Constructors.
+        protected DirectoryBase(string parentDirPath, string dirName)
+            : this(Path.Combine(parentDirPath, dirName))
+        { }
+
         // Properties.
-        string SourceName { get; }
+        public string DirPath { get; } = dirPath;
 
         // Methods.
-        Task<Video> BuildVideoFromMetadataAsync(
-            VideoMetadataBase videoMetadata,
-            ProjectDirectory projectDirectory);
+        public DirectoryInfo CreateDirectory() =>
+            Directory.CreateDirectory(DirPath);
         
-        Task<VideoMetadataBase[]> GetVideosMetadataAsync(
-            WorkingDirectory workingDirectory);
+        public void Delete() => Directory.Delete(DirPath, true);
+        
+        public bool Exists() => Directory.Exists(DirPath);
     }
 }

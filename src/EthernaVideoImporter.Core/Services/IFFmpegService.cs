@@ -16,6 +16,7 @@ using Etherna.BeeNet.Models;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using System.Threading.Tasks;
 using YoutubeExplode.Videos.ClosedCaptions;
@@ -41,7 +42,8 @@ namespace Etherna.VideoImporter.Core.Services
             string outputDirectory);
         
         Task<string> ExtractThumbnailAsync(
-            VideoVariantBase inputVideoVariant);
+            VideoVariantBase inputVideoVariant,
+            ProjectDirectory projectDirectory);
         
         Task<string> GetFFmpegBinaryPathAsync();
         
