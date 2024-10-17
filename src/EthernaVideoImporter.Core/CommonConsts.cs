@@ -20,8 +20,6 @@ namespace Etherna.VideoImporter.Core
 {
     public static class CommonConsts
     {
-        public const int BeePort = 1633;
-        public const string BeeNodeUrl = "http://localhost/";
         public static readonly string DefaultFFmpegFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FFmpeg");
         public const int DownloadMaxRetry = 3;
         public static readonly TimeSpan DownloadTimespanRetry = TimeSpan.FromMilliseconds(3500);
@@ -32,9 +30,9 @@ namespace Etherna.VideoImporter.Core
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     return "ffmpeg.exe";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     return "ffmpeg";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                     return "ffmpeg";
 
                 throw new InvalidOperationException("OS not supported");
@@ -46,16 +44,14 @@ namespace Etherna.VideoImporter.Core
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     return "ffprobe.exe";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     return "ffprobe";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                     return "ffprobe";
 
                 throw new InvalidOperationException("OS not supported");
             }
         }
         public const string ImporterIdentifier = "EthernaImporter";
-        public static DirectoryInfo TempDirectory { get; } = Directory.CreateDirectory(
-            Path.Combine(Path.GetTempPath(), ImporterIdentifier, Guid.NewGuid().ToString()));
     }
 }

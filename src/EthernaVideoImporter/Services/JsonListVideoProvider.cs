@@ -14,6 +14,7 @@
 
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Models.Domain;
 using Etherna.VideoImporter.Models.SourceDtos;
@@ -44,18 +45,21 @@ namespace Etherna.VideoImporter.Services
 
         // Methods.
         public async Task<Video> BuildVideoFromMetadataAsync(
-            VideoMetadataBase videoMetadata)
+            VideoMetadataBase videoMetadata,
+            ProjectDirectory projectDirectory)
         {
             var sourceVideoMetadata = videoMetadata as JsonVideoMetadata 
                 ?? throw new ArgumentException($"Metadata must be of type {nameof(JsonVideoMetadata)}", nameof(videoMetadata));
 
             // Transcode video resolutions.
             var encodedVideoFiles = await encodingService.EncodeVideoAsync(
-                sourceVideoMetadata.VideoEncoding);
+                sourceVideoMetadata.VideoEncoding,
+                projectDirectory.EncodedDirectory);
 
             // Transcode thumbnail resolutions.
             var thumbnailFiles = await encodingService.EncodeThumbnailsAsync(
-                sourceVideoMetadata.SourceThumbnail);
+                sourceVideoMetadata.SourceThumbnail,
+                projectDirectory.EncodedDirectory);
 
             return new Video(
                 videoMetadata,
@@ -64,7 +68,8 @@ namespace Etherna.VideoImporter.Services
                 encodedVideoFiles);
         }
 
-        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()
+        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync(
+            WorkingDirectory workingDirectory)
         {
             // Read json list.
             string jsonData = await uFileProvider.BuildNewUFile(options.JsonMetadataUri).ReadToStringAsync();
@@ -100,7 +105,9 @@ namespace Etherna.VideoImporter.Services
                     {
                         thumbnail = await ThumbnailFile.BuildNewAsync(
                             uFileProvider.BuildNewUFile(new BasicUUri(
-                                await ffMpegService.ExtractThumbnailAsync(videoEncoding.BestVariant),
+                                await ffMpegService.ExtractThumbnailAsync(
+                                    videoEncoding.BestVariant,
+                                    workingDirectory.NewProjectDirectory()),
                                 UUriKind.LocalAbsolute)));
                     }
                     else

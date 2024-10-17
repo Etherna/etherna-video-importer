@@ -52,6 +52,7 @@ namespace Etherna.VideoImporter.Devcon
               -a, --auto-purchase     Accept automatically purchase of all batches
               --dry                   Run in dry mode. Any action on swarm gateway or index is performed read-only
               --yt-cookies            List of cookies to use with YouTube requests, divided by ';'
+              --working-dir           Use custom working directory
 
             Video Management Options:
               -t, --ttl               TTL (days) Postage Stamp (default: {VideoUploaderServiceOptions.DefaultTtlPostageStamp.TotalDays} days)
@@ -84,6 +85,7 @@ namespace Etherna.VideoImporter.Devcon
             bool autoPurchaseBatches = false;
             bool isDryRun = false;
             string? ytCookies = null;
+            string? customWorkingDirectory = null;
 
             string? ttlPostageStampStr = null;
             bool offerVideos = false;
@@ -164,6 +166,12 @@ namespace Etherna.VideoImporter.Devcon
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("YT cookies are missing");
                         ytCookies = optArgs[++i];
+                        break;
+                    
+                    case "--working-dir":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("Working directory is missing");
+                        customWorkingDirectory = optArgs[++i];
                         break;
 
                     //video management
@@ -290,6 +298,10 @@ namespace Etherna.VideoImporter.Devcon
             // Setup DI.
             //core
             services.AddCoreServices(
+                videoImporterOptions =>
+                {
+                    videoImporterOptions.CustomWorkingDirectory = customWorkingDirectory;
+                },
                 cleanerOptions =>
                 {
                     cleanerOptions.IsDryRun = isDryRun;

@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using System.Threading.Tasks;
 
 namespace Etherna.VideoImporter.Core.Services
@@ -36,6 +37,7 @@ namespace Etherna.VideoImporter.Core.Services
             bool fundPinning,
             bool fundDownload,
             string ownerEthAddress,
+            ProjectDirectory projectDirectory,
             PostageBatchId? batchId = null);
     }
 }

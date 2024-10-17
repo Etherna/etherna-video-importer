@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Services;
 using Etherna.VideoImporter.Core.Utilities;
 using Etherna.VideoImporter.Devcon.Models.Domain;
@@ -42,11 +43,16 @@ namespace Etherna.VideoImporter.Devcon.Services
         public string SourceName => "devcon";
 
         // Methods.
-        public Task<Video> BuildVideoFromMetadataAsync(VideoMetadataBase videoMetadata) => youtubeDownloader.BuildVideoFromMetadataAsync(
-            true,
-            videoMetadata as DevconFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(DevconFileVideoMetadata)}", nameof(videoMetadata)));
+        public Task<Video> BuildVideoFromMetadataAsync(
+            VideoMetadataBase videoMetadata,
+            ProjectDirectory projectDirectory) =>
+            youtubeDownloader.BuildVideoFromMetadataAsync(
+                true,
+                videoMetadata as DevconFileVideoMetadata ?? throw new ArgumentException($"Metadata bust be of type {nameof(DevconFileVideoMetadata)}", nameof(videoMetadata)),
+                projectDirectory);
 
-        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync()
+        public async Task<VideoMetadataBase[]> GetVideosMetadataAsync(
+            WorkingDirectory workingDirectory)
         {
             var jsonFilesPaths = Directory.GetFiles(options.DevconSourceFolderPath, "*.json", SearchOption.AllDirectories);
 

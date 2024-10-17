@@ -30,6 +30,7 @@ namespace Etherna.VideoImporter.Core
     {
         public static void AddCoreServices(
             this IServiceCollection services,
+            Action<EthernaVideoImporterOptions> configureVideoImporterOptions,
             Action<CleanerVideoServiceOptions> configureCleanerOptions,
             Action<EncoderServiceOptions> configureEncoderOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
@@ -41,6 +42,7 @@ namespace Etherna.VideoImporter.Core
             services.Configure(configureEncoderOptions);
             services.Configure(configureFFmpegOptions);
             services.Configure(configureGatewayOptions);
+            services.Configure(configureVideoImporterOptions);
             services.Configure(configureVideoUploaderOptions);
 
             // Add transient services.
