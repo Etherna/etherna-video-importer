@@ -242,7 +242,7 @@ namespace Etherna.VideoImporter.Core.Services
         private async Task WaitForBatchUsableAsync(PostageBatchId batchId)
         {
             var batchStartWait = DateTime.UtcNow;
-            bool batchIsUsable;
+            var batchIsUsable = false;
             do
             {
                 //timeout throw exception
@@ -253,7 +253,13 @@ namespace Etherna.VideoImporter.Core.Services
                     throw ex;
                 }
 
-                batchIsUsable = await IsBatchUsableAsync(batchId);
+                try
+                {
+                    batchIsUsable = await IsBatchUsableAsync(batchId);
+                }
+                catch (EthernaGatewayApiException e) when
+                    (e.StatusCode == 504) //single request timeout
+                { }
 
                 //waiting for batch usable
                 await Task.Delay(BatchCheckTimeSpan);
