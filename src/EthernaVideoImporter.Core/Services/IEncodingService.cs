@@ -14,6 +14,7 @@
 
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using System.Threading.Tasks;
 using YoutubeExplode.Videos.ClosedCaptions;
 
@@ -23,17 +24,21 @@ namespace Etherna.VideoImporter.Core.Services
     {
         Task<SubtitleFile[]> EncodeSubtitlesFromSourceVariantAsync(
             VideoVariantBase sourceVariant,
-            ClosedCaptionTrackInfo[] subtitleTracks);
+            ClosedCaptionTrackInfo[] subtitleTracks,
+            EncodedDirectory encodedDirectory);
         
         Task<ThumbnailFile[]> EncodeThumbnailsAsync(
-            ThumbnailFile sourceThumbnailFile);
+            ThumbnailFile sourceThumbnailFile,
+            EncodedDirectory encodedDirectory);
         
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoEncodingBase sourceEncoding,
+            EncodedDirectory encodedDirectory,
             VideoType outputEncoding = EncodingService.DefaultVideoType);
         
         Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase sourceVariant,
+            EncodedDirectory encodedDirectory,
             VideoType outputEncoding = EncodingService.DefaultVideoType);
     }
 }

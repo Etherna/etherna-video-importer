@@ -30,18 +30,19 @@ namespace Etherna.VideoImporter.Core
     {
         public static void AddCoreServices(
             this IServiceCollection services,
+            Action<EthernaVideoImporterOptions> configureVideoImporterOptions,
             Action<CleanerVideoServiceOptions> configureCleanerOptions,
             Action<EncoderServiceOptions> configureEncoderOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
             Action<GatewayServiceOptions> configureGatewayOptions,
-            Action<VideoUploaderServiceOptions> configureVideoUploaderOptions,
-            bool useBeeNativeNode)
+            Action<VideoUploaderServiceOptions> configureVideoUploaderOptions)
         {
             // Configure options.
             services.Configure(configureCleanerOptions);
             services.Configure(configureEncoderOptions);
             services.Configure(configureFFmpegOptions);
             services.Configure(configureGatewayOptions);
+            services.Configure(configureVideoImporterOptions);
             services.Configure(configureVideoUploaderOptions);
 
             // Add transient services.
@@ -50,10 +51,7 @@ namespace Etherna.VideoImporter.Core
             services.AddTransient<ICleanerVideoService, CleanerVideoService>();
             services.AddTransient<IEncodingService, EncodingService>();
             services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
-            if (useBeeNativeNode)
-                services.AddTransient<IGatewayService, BeeGatewayService>();
-            else
-                services.AddTransient<IGatewayService, EthernaGatewayService>();
+            services.AddTransient<IGatewayService, GatewayService>();
             services.AddTransient<IHasher, Hasher>();
             services.AddTransient<IHlsService, HlsService>();
             services.AddTransient<IMigrationService, MigrationService>();

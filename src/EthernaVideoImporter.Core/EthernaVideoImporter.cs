@@ -21,12 +21,16 @@ using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Models.ModelView;
+using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
+using Microsoft.Extensions.Options;
 using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Video = Etherna.VideoImporter.Core.Models.Domain.Video;
@@ -44,6 +48,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IHasher hasher;
         private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
+        private readonly EthernaVideoImporterOptions options;
         private readonly IResultReporterService resultReporterService;
         private readonly IVideoManifestService videoManifestService;
         private readonly IVideoUploaderService videoUploaderService;
@@ -59,12 +64,14 @@ namespace Etherna.VideoImporter.Core
             IHasher hasher,
             IIoService ioService,
             IMigrationService migrationService,
+            IOptions<EthernaVideoImporterOptions> options,
             IResultReporterService resultReporterService,
             IVideoManifestService videoManifestService,
             IVideoProvider videoProvider,
             IVideoUploaderService videoUploaderService)
         {
             ArgumentNullException.ThrowIfNull(cleanerVideoService, nameof(cleanerVideoService));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
             ArgumentNullException.ThrowIfNull(videoProvider, nameof(videoProvider));
             ArgumentNullException.ThrowIfNull(videoUploaderService, nameof(videoUploaderService));
 
@@ -76,6 +83,7 @@ namespace Etherna.VideoImporter.Core
             this.hasher = hasher;
             this.ioService = ioService;
             this.migrationService = migrationService;
+            this.options = options.Value;
             this.resultReporterService = resultReporterService;
             this.videoManifestService = videoManifestService;
             this.videoProvider = videoProvider;
@@ -106,11 +114,17 @@ namespace Etherna.VideoImporter.Core
             var userName = await ethernaOpenIdConnectClient.GetUsernameAsync();
 
             ioService.WriteLine($"User {userName} authenticated");
+            
+            // Create workspace.
+            var workingDirectory = new WorkingDirectory(
+                options.CustomWorkingDirectory ??
+                Path.Combine(Path.GetTempPath(), "etherna-importer"));
+            workingDirectory.CreateDirectory();
 
             // Get videos info.
             ioService.WriteLine($"Get videos metadata from {videoProvider.SourceName}");
 
-            var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync();
+            var sourceVideosMetadata = await videoProvider.GetVideosMetadataAsync(workingDirectory);
             var totalSourceVideo = sourceVideosMetadata.Length;
 
             ioService.WriteLine($"Found {totalSourceVideo} valid distinct videos from source");
@@ -131,6 +145,7 @@ namespace Etherna.VideoImporter.Core
             foreach (var (sourceMetadata, i) in sourceVideosMetadata.Select((m, i) => (m, i)))
             {
                 VideoImportResultBase? importResult = null;
+                var projectDirectory = workingDirectory.NewProjectDirectory();
 
                 try
                 {
@@ -181,7 +196,8 @@ namespace Etherna.VideoImporter.Core
                                     sourceMetadata,
                                     userEthAddress,
                                     fundDownload,
-                                    fundPinning);
+                                    fundPinning,
+                                    projectDirectory);
 
                                 if (updatedPermalinkHash != null)
                                     importResult = VideoImportResultSucceeded.ManifestUpdated(
@@ -204,11 +220,18 @@ namespace Etherna.VideoImporter.Core
                                 $"Error: Description too long, max length: {ethernaIndexParameters.VideoDescriptionMaxLength}");
 
                         // Get and encode video from source.
-                        var video = await videoProvider.BuildVideoFromMetadataAsync(sourceMetadata);
+                        var video = await videoProvider.BuildVideoFromMetadataAsync(
+                            sourceMetadata,
+                            projectDirectory);
                         video.EthernaIndexId = alreadyIndexedVideo?.Id;
 
                         // Upload video and all related data.
-                        await videoUploaderService.UploadVideoAsync(video, fundPinning, fundDownload, userEthAddress);
+                        await videoUploaderService.UploadVideoAsync(
+                            video,
+                            fundPinning,
+                            fundDownload,
+                            userEthAddress,
+                            projectDirectory);
 
                         importResult = VideoImportResultSucceeded.FullUploaded(
                             sourceMetadata,
@@ -230,17 +253,14 @@ namespace Etherna.VideoImporter.Core
                 {
                     try
                     {
-                        // Clear tmp folder for next import.
-                        foreach (var file in CommonConsts.TempDirectory.GetFiles())
-                            file.Delete();
-                        foreach (var dir in CommonConsts.TempDirectory.GetDirectories())
-                            dir.Delete(true);
+                        if (projectDirectory.Exists())
+                            projectDirectory.Delete();
                     }
                     catch (Exception e)
                     {
-                        ioService.WriteErrorLine(
-                            $"Warning: unable to delete some files in \"{CommonConsts.TempDirectory.FullName}\".");
                         ioService.PrintException(e);
+                        ioService.WriteErrorLine(
+                            $"Warning: unable to delete some files in \"{projectDirectory.DirPath}\".");
                     }
                 }
                 
@@ -260,9 +280,6 @@ namespace Etherna.VideoImporter.Core
                     ioService.PrintException(ex);
                 }
             }
-            
-            // Delete temporary directory.
-            CommonConsts.TempDirectory.Delete(true);
 
             // Clean up user channel on etherna index.
             if (removeMissingVideosFromSource)
@@ -357,7 +374,8 @@ namespace Etherna.VideoImporter.Core
             VideoMetadataBase sourceMetadata,
             string userEthAddress,
             bool fundDownload,
-            bool fundPinning)
+            bool fundPinning,
+            ProjectDirectory projectDirectory)
         {
             if (!alreadyIndexedVideo.LastValidManifestHash.HasValue)
                 return null;
@@ -406,6 +424,7 @@ namespace Etherna.VideoImporter.Core
                 fundPinning,
                 fundDownload,
                 userEthAddress,
+                projectDirectory,
                 lastValidManifest.Manifest.BatchId);
 
             return video.EthernaPermalinkHash;
