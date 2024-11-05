@@ -16,6 +16,7 @@ using Etherna.BeeNet.Models;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.UniversalFiles;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
 using Medallion.Shell;
@@ -76,8 +77,8 @@ namespace Etherna.VideoImporter.Core.Services
                 [360] = 365,
                 [432] = 915, //avg of suggested
                 [540] = 2000,
-                [720] = 3750, //avg of suggested
-                [1080] = 6900 //avg of suggested
+                [720] = 3000, //lower of suggested
+                [1080] = 6000 //lower of suggested
             };
             HlsBitrateByArea = hlsBitrateByHeight.ToDictionary(
                 pair => pair.Key * pair.Key * 16 / 9, //apple example is with 16:9,
@@ -333,13 +334,15 @@ namespace Etherna.VideoImporter.Core.Services
             }
         }
         
-        public async Task<string> ExtractThumbnailAsync(VideoVariantBase inputVideoVariant)
+        public async Task<string> ExtractThumbnailAsync(
+            VideoVariantBase inputVideoVariant,
+            ProjectDirectory projectDirectory)
         {
             ioService.WriteLine($"Extract random thumbnail");
 
             // Run FFmpeg command.
             var outputThumbnailFilePath = Path.Combine(
-                CommonConsts.TempDirectory.FullName,
+                projectDirectory.DirPath,
                 $"input_{inputVideoVariant.Width}x{inputVideoVariant.Height}.jpg");
             var args = new[] {
                 "-i", inputVideoVariant.EntryFile.UUri.ToAbsoluteUri().OriginalUri,

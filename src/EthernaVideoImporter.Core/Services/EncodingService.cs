@@ -15,6 +15,7 @@
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
+using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
 using SkiaSharp;
@@ -28,55 +29,40 @@ using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace Etherna.VideoImporter.Core.Services
 {
-    internal sealed class EncodingService : IEncodingService
+    internal sealed class EncodingService(
+        IFFmpegService ffMpegService,
+        IIoService ioService,
+        IOptions<EncoderServiceOptions> options,
+        IUFileProvider uFileProvider)
+        : IEncodingService
     {
         // Consts.
         public const VideoType DefaultVideoType = VideoType.Hls;
-        public const string EncodedSubtitlesSubDirectory = "encoded/subs";
-        public const string EncodedThumbSubDirectory = "encoded/thumb";
-        public const string EncodedVideoSubDirectory = "encoded/video";
         public static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
         public static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440, 2160, 4320];
 
         // Fields.
-        private readonly IFFmpegService ffMpegService;
-        private readonly IIoService ioService;
-        private readonly IUFileProvider uFileProvider;
-
         [SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used")]
-        private readonly EncoderServiceOptions options;
-
-        // Constructor.
-        public EncodingService(
-            IFFmpegService ffMpegService,
-            IIoService ioService,
-            IOptions<EncoderServiceOptions> options,
-            IUFileProvider uFileProvider)
-        {
-            this.options = options.Value;
-            this.ffMpegService = ffMpegService;
-            this.ioService = ioService;
-            this.uFileProvider = uFileProvider;
-        }
+        [SuppressMessage("Performance", "CA1823:Avoid unused private fields")]
+        private readonly EncoderServiceOptions options = options.Value;
 
         // Methods.
         public async Task<SubtitleFile[]> EncodeSubtitlesFromSourceVariantAsync(
             VideoVariantBase sourceVariant,
-            ClosedCaptionTrackInfo[] subtitleTracks)
+            ClosedCaptionTrackInfo[] subtitleTracks,
+            EncodedDirectory encodedDirectory)
         {
             ArgumentNullException.ThrowIfNull(subtitleTracks, nameof(subtitleTracks));
 
             if (subtitleTracks.Length == 0)
                 return [];
-            
-            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedSubtitlesSubDirectory);
 
             ioService.WriteLine($"Encoding subtitles [{string.Join(", ", subtitleTracks.Select(t => t.Language.Name))}]...");
             
             var encodedSubFiles = await ffMpegService.EncodeSubtitlesFromSourceVariantAsync(
                 sourceVariant,
                 subtitleTracks,
-                outputDirectory);
+                encodedDirectory.SubtitlesDir.CreateDirectory().FullName);
             
             ioService.WriteLine($"Encoded subtitles");
 
@@ -84,13 +70,13 @@ namespace Etherna.VideoImporter.Core.Services
         }
 
         public async Task<ThumbnailFile[]> EncodeThumbnailsAsync(
-            ThumbnailFile sourceThumbnailFile)
+            ThumbnailFile sourceThumbnailFile,
+            EncodedDirectory encodedDirectory)
         {
             ArgumentNullException.ThrowIfNull(sourceThumbnailFile, nameof(sourceThumbnailFile));
 
             List<ThumbnailFile> thumbnails = [];
-            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedThumbSubDirectory);
-            Directory.CreateDirectory(outputDirectory);
+            var outputDirectory = encodedDirectory.ThumbnailDir.CreateDirectory();
 
             using var thumbFileStream = await sourceThumbnailFile.ReadToStreamAsync();
             using var thumbManagedStream = new SKManagedStream(thumbFileStream);
@@ -99,7 +85,7 @@ namespace Etherna.VideoImporter.Core.Services
             foreach (var responsiveWidthSize in ThumbnailHeightResolutions)
             {
                 var responsiveHeightSize = (int)(responsiveWidthSize / sourceThumbnailFile.AspectRatio);
-                var thumbnailResizedPath = Path.Combine(outputDirectory, $"{responsiveHeightSize}.jpg");
+                var thumbnailResizedPath = Path.Combine(outputDirectory.FullName, $"{responsiveHeightSize}.jpg");
 
                 using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium))
                 using (SKImage scaledImage = SKImage.FromBitmap(scaledBitmap))
@@ -118,23 +104,23 @@ namespace Etherna.VideoImporter.Core.Services
 
         public Task<VideoEncodingBase> EncodeVideoAsync(
             VideoEncodingBase sourceEncoding,
+            EncodedDirectory encodedDirectory,
             VideoType outputEncoding = DefaultVideoType) =>
-            EncodeVideoAsync(sourceEncoding.BestVariant, outputEncoding);
+            EncodeVideoAsync(sourceEncoding.BestVariant, encodedDirectory, outputEncoding);
 
         public async Task<VideoEncodingBase> EncodeVideoAsync(
             VideoVariantBase sourceVariant,
+            EncodedDirectory encodedDirectory,
             VideoType outputEncoding = DefaultVideoType)
         {
             ArgumentNullException.ThrowIfNull(sourceVariant, nameof(sourceVariant));
-            
-            var outputDirectory = Path.Combine(CommonConsts.TempDirectory.FullName, EncodedVideoSubDirectory);
 
             var encodedVideo = await ffMpegService.EncodeVideoAsync(
                 sourceVariant,
                 VideoHeightResolutions.OrderDescending()
                                       .ToArray(),
                 outputEncoding,
-                outputDirectory);
+                encodedDirectory.VideoDir.CreateDirectory().FullName);
 
             foreach (var variant in encodedVideo.Variants)
                 ioService.WriteLine($"Encoded video variant {variant.Width}x{variant.Height}, size: {variant.TotalByteSize} byte");

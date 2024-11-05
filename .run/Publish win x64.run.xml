@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Publish win x64" type="DotNetFolderPublish" factoryName="Publish to folder">
+    <riderPublish configuration="Release" platform="Any CPU" runtime="win-x64" self_contained="true" target_folder="$PROJECT_DIR$/src/EthernaVideoImporter/bin/Release/net8.0/win-x64/publish" target_framework="net8.0" uuid_high="7733598048098471660" uuid_low="-6828675579183111726" />
+    <method v="2" />
+  </configuration>
+</component>
