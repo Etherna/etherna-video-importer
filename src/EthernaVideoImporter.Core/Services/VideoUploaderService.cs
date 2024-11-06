@@ -18,6 +18,7 @@ using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
+using Etherna.Sdk.Users.Gateway.Services;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Domain.Directories;
@@ -50,6 +51,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Const.
         private const int BeeMaxRetry = 10;
+        public const ushort ChunkBatchMaxSize = 500;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
@@ -279,7 +281,7 @@ namespace Etherna.VideoImporter.Core.Services
                             lastUpdateDateTime = now;
                         }
                         
-                        var chunkBatchFiles = chunkFiles.Skip(totalUploaded).Take(GatewayService.ChunkBatchMaxSize).ToArray();
+                        var chunkBatchFiles = chunkFiles.Skip(totalUploaded).Take(ChunkBatchMaxSize).ToArray();
 
                         List<SwarmChunk> chunkBatch = [];
                         foreach (var chunkPath in chunkBatchFiles)
@@ -419,7 +421,21 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             //create batch
-            var batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
+            var batchId = await gatewayService.CreatePostageBatchAsync(
+                amount,
+                batchDepth,
+                onWaitingBatchCreation: () =>
+                {
+                    ioService.PrintTimeStamp();
+                    ioService.Write("Waiting for batch created... (it may take a while)");
+                },
+                onBatchCreated: _ => ioService.WriteLine(". Done", false),
+                onWaitingBatchUsable: () =>
+                {
+                    ioService.PrintTimeStamp();
+                    ioService.Write("Waiting for batch being usable... (it may take a while)");
+                },
+                onBatchUsable: () => ioService.WriteLine(". Done", false));
             ioService.WriteLine($"Postage batch: {batchId}");
             return batchId;
         }

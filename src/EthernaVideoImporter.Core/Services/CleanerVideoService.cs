@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Etherna.Sdk.Users.Gateway.Services;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;

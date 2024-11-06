@@ -15,6 +15,7 @@
 using Etherna.BeeNet.Models;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
+using Etherna.Sdk.Users.Gateway.Services;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
