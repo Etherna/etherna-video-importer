@@ -52,6 +52,7 @@ namespace Etherna.VideoImporter.Devcon
               -a, --auto-purchase     Accept automatically purchase of all batches
               --dry                   Run in dry mode. Any action on swarm gateway or index is performed read-only
               --yt-cookies            List of cookies to use with YouTube requests, divided by ';'
+              --yt-cookies-file       File path with list of cookies to use with YouTube requests, divided by ';'
               --working-dir           Use custom working directory
 
             Video Management Options:
@@ -166,6 +167,13 @@ namespace Etherna.VideoImporter.Devcon
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("YT cookies are missing");
                         ytCookies = optArgs[++i];
+                        break;
+                    
+                    case "--yt-cookies-file":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("YT cookies file path is missing");
+                        var ytCookiesFilePath = optArgs[++i];
+                        ytCookies = await File.ReadAllTextAsync(ytCookiesFilePath);
                         break;
                     
                     case "--working-dir":
