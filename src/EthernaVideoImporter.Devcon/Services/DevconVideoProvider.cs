@@ -92,7 +92,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     p.jsonRelativePath,
                     youtubeDownloader,
                     p.jsonDto.YoutubeId,
-                    p.jsonDto.SwarmHash is null ?
+                    string.IsNullOrWhiteSpace(p.jsonDto.SwarmHash) ?
                         (SwarmHash?)null :
                         new SwarmHash(p.jsonDto.SwarmHash),
                     this)).Cast<VideoMetadataBase>().ToArray();
