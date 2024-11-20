@@ -22,6 +22,8 @@
     <PackageLicenseFile>COPYING</PackageLicenseFile>
     <Configurations>Debug;Release;Debug-DevEnv</Configurations>
     <Platforms>AnyCPU</Platforms>
+
+    <NoWarn>NU1903</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug-DevEnv' ">
