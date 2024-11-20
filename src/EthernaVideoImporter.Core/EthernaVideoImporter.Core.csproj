@@ -16,8 +16,8 @@
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageLicenseFile>COPYING</PackageLicenseFile>
-    
-    <NoWarn>NU1903</NoWarn>
+
+    <NoWarn>NU1902;NU1903</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

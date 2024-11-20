@@ -23,7 +23,7 @@
     <Configurations>Debug;Release;Debug-DevEnv</Configurations>
     <Platforms>AnyCPU</Platforms>
 
-    <NoWarn>NU1903</NoWarn>
+    <NoWarn>NU1902;NU1903</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug-DevEnv' ">

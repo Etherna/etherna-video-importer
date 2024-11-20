@@ -6,6 +6,8 @@
     <RootNamespace>Etherna.VideoImporter.Core</RootNamespace>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
+    
+    <NoWarn>NU1902;NU1903</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
