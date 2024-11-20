@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Consts.
         public const VideoType DefaultVideoType = VideoType.Hls;
         public static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
-        public static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440, 2160, 4320];
+        public static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080/*, 1440, 2160, 4320*/]; //tmp: see https://etherna.atlassian.net/browse/EVI-223
 
         // Fields.
         [SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used")]
