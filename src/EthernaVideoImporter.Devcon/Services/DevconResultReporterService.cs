@@ -47,10 +47,10 @@ namespace Etherna.VideoImporter.Devcon.Services
             if (options.IsDryRun)
                 return;
             
-            if (importResult is not VideoImportResultSucceeded succededResult)
+            if (importResult is not VideoImportResultSucceeded { IsManifestUploaded: true } updatedResult)
                 return;
             
-            var filePath = Path.Combine(options.ResultFolderPath, succededResult.SourceMetadata.SourceId);
+            var filePath = Path.Combine(options.ResultFolderPath, updatedResult.SourceMetadata.SourceId);
 
             // Read full json file.
             var jsonString = await File.ReadAllTextAsync(filePath);
@@ -79,7 +79,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                         break;
                     
                     case DevconFileDto.SwarmHashKey:
-                        writer.WriteString(DevconFileDto.SwarmHashKey, succededResult.ReferenceHash.ToString());
+                        writer.WriteString(DevconFileDto.SwarmHashKey, updatedResult.ReferenceHash.ToString());
                         isWrote = true;
                         waitingToWrite = false;
                         break;
@@ -87,7 +87,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     default:
                         if (waitingToWrite)
                         {
-                            writer.WriteString(DevconFileDto.SwarmHashKey, succededResult.ReferenceHash.ToString());
+                            writer.WriteString(DevconFileDto.SwarmHashKey, updatedResult.ReferenceHash.ToString());
                             isWrote = true;
                             waitingToWrite = false;
                         }
