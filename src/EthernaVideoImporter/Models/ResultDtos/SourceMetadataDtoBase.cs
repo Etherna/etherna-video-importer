@@ -20,7 +20,7 @@ namespace Etherna.VideoImporter.Models.ResultDtos
 {
     [JsonDerivedType(typeof(JsonSourceMetadataDto))]
     [JsonDerivedType(typeof(YouTubeSourceMetadataDto))]
-    public abstract class SourceMetadataDtoBase
+    internal abstract class SourceMetadataDtoBase
     {
         protected internal SourceMetadataDtoBase(VideoMetadataBase sourceMetadata)
         {

@@ -16,7 +16,7 @@ using Etherna.VideoImporter.Models.Domain;
 
 namespace Etherna.VideoImporter.Models.ResultDtos
 {
-    public class JsonSourceMetadataDto : SourceMetadataDtoBase
+    internal sealed class JsonSourceMetadataDto : SourceMetadataDtoBase
     {
         internal JsonSourceMetadataDto(JsonVideoMetadata jsonSource)
             : base(jsonSource)

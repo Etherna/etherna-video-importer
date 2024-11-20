@@ -19,7 +19,7 @@ using System;
 
 namespace Etherna.VideoImporter.Models.ResultDtos
 {
-    public class VideoImportResultDto
+    internal sealed class VideoImportResultDto
     {
         public VideoImportResultDto(VideoImportResultBase result)
         {

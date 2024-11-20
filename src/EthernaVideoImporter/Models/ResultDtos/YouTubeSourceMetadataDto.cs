@@ -17,7 +17,7 @@ using System;
 
 namespace Etherna.VideoImporter.Models.ResultDtos
 {
-    public class YouTubeSourceMetadataDto : SourceMetadataDtoBase
+    internal sealed class YouTubeSourceMetadataDto : SourceMetadataDtoBase
     {
         internal YouTubeSourceMetadataDto(YouTubeVideoMetadataBase youtubeSource)
             : base(youtubeSource)

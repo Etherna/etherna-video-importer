@@ -424,6 +424,7 @@ namespace Etherna.VideoImporter.Core.Services
             var batchId = await gatewayService.CreatePostageBatchAsync(
                 amount,
                 batchDepth,
+                null,
                 onWaitingBatchCreation: () =>
                 {
                     ioService.PrintTimeStamp();
