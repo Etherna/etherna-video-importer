@@ -66,7 +66,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 SKEncodedImageFormat.Jpeg => ImageType.Jpeg,
                 SKEncodedImageFormat.Png => ImageType.Png,
                 SKEncodedImageFormat.Webp => ImageType.Webp,
-                SKEncodedImageFormat.Avif => ImageType.Avif,
                 _ => ImageType.Unknown
             };
 
