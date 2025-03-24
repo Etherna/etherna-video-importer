@@ -16,6 +16,7 @@ using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
+using Etherna.BeeNet.Stores;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Gateway.Services;
@@ -70,6 +71,7 @@ namespace Etherna.VideoImporter.Core.Services
             
             // Create chunks. Do as first thing, also to evaluate required postage batch depth.
             var chunksDirectory = projectDirectory.ChunksDirectory.CreateDirectory();
+            var chunksStore = new LocalDirectoryChunkStore(chunksDirectory.FullName);
             var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
             
             //video source files, exclude already uploaded Swarm files
@@ -77,10 +79,10 @@ namespace Etherna.VideoImporter.Core.Services
             {
                 ioService.WriteLine($"Creating chunks of master playlist in progress...");
 
-                using var stream = await video.VideoEncoding.MasterFile.ReadToStreamAsync();
+                await using var stream = await video.VideoEncoding.MasterFile.ReadToStreamAsync();
                 video.VideoEncoding.MasterFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    chunksStore,
                     stream,
-                    chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
             }
             foreach (var variant in video.VideoEncoding.Variants.Where(v => v.EntryFile.SwarmHash is null))
@@ -88,10 +90,10 @@ namespace Etherna.VideoImporter.Core.Services
                 ioService.WriteLine($"Creating chunks of {variant.QualityLabel} video variant in progress...");
                 
                 //common entry file
-                using var stream = await variant.EntryFile.ReadToStreamAsync();
+                await using var stream = await variant.EntryFile.ReadToStreamAsync();
                 variant.EntryFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    chunksStore,
                     stream,
-                    chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
                 
                 //additional files.
@@ -100,10 +102,10 @@ namespace Etherna.VideoImporter.Core.Services
                     case HlsVideoVariant hlsVariant:
                         foreach (var segment in hlsVariant.HlsSegmentFiles)
                         {
-                            using var segStream = await segment.ReadToStreamAsync();
+                            await using var segStream = await segment.ReadToStreamAsync();
                             segment.SwarmHash = await chunkService.WriteDataChunksAsync(
+                                chunksStore,
                                 segStream,
-                                chunksDirectory.FullName,
                                 postageStampIssuer: stampIssuer);
                         }
                         break;
@@ -116,10 +118,10 @@ namespace Etherna.VideoImporter.Core.Services
             ioService.WriteLine($"Creating chunks of thumbnail in progress...");
             foreach (var thumbnailFile in video.ThumbnailFiles.Where(f => f.SwarmHash is null))
             {
-                using var stream = await thumbnailFile.ReadToStreamAsync();
+                await using var stream = await thumbnailFile.ReadToStreamAsync();
                 thumbnailFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    chunksStore,
                     stream,
-                    chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
             }
             
@@ -127,10 +129,10 @@ namespace Etherna.VideoImporter.Core.Services
             ioService.WriteLine($"Creating chunks of subtitles in progress...");
             foreach (var subtitleFile in video.SubtitleFiles.Where(f => f.SwarmHash is null))
             {
-                using var stream = await subtitleFile.ReadToStreamAsync();
+                await using var stream = await subtitleFile.ReadToStreamAsync();
                 subtitleFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                    chunksStore,
                     stream,
-                    chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
             }
             
@@ -244,7 +246,8 @@ namespace Etherna.VideoImporter.Core.Services
             video.EthernaPermalinkHash = videoManifestHash;
             
             // Upload chunks. Pin only video manifest hash, if required.
-            var chunkFiles = chunkService.GetAllChunkFilesInDirectory(chunksDirectory.FullName);
+            var chunkFiles = (await chunksStore.GetAllHashesAsync()).Select(
+                h => Path.Combine(chunksDirectory.FullName, h + LocalDirectoryChunkStore.ChunkFileExtension)).ToArray();
             
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
             
