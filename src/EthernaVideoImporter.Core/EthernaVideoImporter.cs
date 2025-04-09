@@ -45,7 +45,7 @@ namespace Etherna.VideoImporter.Core
         private readonly IEthernaUserIndexClient ethernaIndexClient;
         private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
         private readonly IEthernaSignInService ethernaSignInService;
-        private readonly IHasher hasher;
+        private readonly Hasher hasher;
         private readonly IIoService ioService;
         private readonly IMigrationService migrationService;
         private readonly EthernaVideoImporterOptions options;
@@ -61,7 +61,7 @@ namespace Etherna.VideoImporter.Core
             IEthernaUserIndexClient ethernaIndexClient,
             IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
             IEthernaSignInService ethernaSignInService,
-            IHasher hasher,
+            Hasher hasher,
             IIoService ioService,
             IMigrationService migrationService,
             IOptions<EthernaVideoImporterOptions> options,

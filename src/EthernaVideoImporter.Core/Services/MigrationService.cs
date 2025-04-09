@@ -31,7 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
 {
     public class MigrationService(
         IGatewayService gatewayService,
-        IHasher hasher,
+        Hasher hasher,
         IHlsService hlsService,
         IUFileProvider uFileProvider)
         : IMigrationService

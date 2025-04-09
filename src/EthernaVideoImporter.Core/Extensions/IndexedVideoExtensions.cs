@@ -22,7 +22,7 @@ namespace Etherna.VideoImporter.Core.Extensions
 {
     public static class IndexedVideoExtensions
     {
-        public static bool HasEqualMetadata(this IndexedVideo indexedVideo, VideoMetadataBase metadata, IHasher hasher)
+        public static bool HasEqualMetadata(this IndexedVideo indexedVideo, VideoMetadataBase metadata, Hasher hasher)
         {
             ArgumentNullException.ThrowIfNull(hasher, nameof(hasher));
             ArgumentNullException.ThrowIfNull(indexedVideo, nameof(indexedVideo));

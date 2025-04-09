@@ -44,7 +44,7 @@ namespace Etherna.VideoImporter.Core.Services
         IChunkService chunkService,
         IEthernaUserIndexClient ethernaIndexClient,
         IGatewayService gatewayService,
-        IHasher hasher,
+        Hasher hasher,
         IIoService ioService,
         IOptions<VideoUploaderServiceOptions> options,
         IVideoManifestService videoManifestService)
@@ -289,7 +289,7 @@ namespace Etherna.VideoImporter.Core.Services
                         List<SwarmChunk> chunkBatch = [];
                         foreach (var chunkPath in chunkBatchFiles)
                         {
-                            chunkBatch.Add(SwarmChunk.BuildFromSpanAndData(
+                            chunkBatch.Add(new SwarmCac(
                                 Path.GetFileNameWithoutExtension(chunkPath),
                                 await File.ReadAllBytesAsync(chunkPath)));
                         }

@@ -31,7 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class CleanerVideoService(
         IEthernaUserIndexClient ethernaIndexClient,
         IGatewayService gatewayService,
-        IHasher hasher,
+        Hasher hasher,
         IIoService ioService,
         IOptions<CleanerVideoServiceOptions> options)
         : ICleanerVideoService
