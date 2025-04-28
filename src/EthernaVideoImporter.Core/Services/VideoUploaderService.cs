@@ -247,7 +247,7 @@ namespace Etherna.VideoImporter.Core.Services
             
             // Upload chunks. Pin only video manifest hash, if required.
             var chunkFiles = (await chunksStore.GetAllHashesAsync()).Select(
-                h => Path.Combine(chunksDirectory.FullName, h + LocalDirectoryChunkStore.ChunkFileExtension)).ToArray();
+                h => Path.Combine(chunksDirectory.FullName, h + LocalDirectoryChunkStore.CacFileExtension)).ToArray();
             
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
             

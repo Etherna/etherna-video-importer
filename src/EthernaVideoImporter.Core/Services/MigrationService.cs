@@ -12,11 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Stores;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
-using Etherna.Sdk.Users.Gateway.Services;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Extensions;
@@ -30,12 +31,15 @@ using System.Threading.Tasks;
 namespace Etherna.VideoImporter.Core.Services
 {
     public class MigrationService(
-        IGatewayService gatewayService,
+        IBeeClient beeClient,
         Hasher hasher,
         IHlsService hlsService,
         IUFileProvider uFileProvider)
         : IMigrationService
     {
+        // Fields.
+        private readonly IReadOnlyChunkStore chunkStore = new BeeClientChunkStore(beeClient);
+        
         // Methods.
         public OperationType DecideOperation(IndexedVideo alreadyIndexedVideo, VideoMetadataBase sourceMetadata)
         {
@@ -63,8 +67,9 @@ namespace Etherna.VideoImporter.Core.Services
                 allowedUriKinds: UUriKind.Online,
                 baseDirectory: manifestHash.ToString());
 
-            var thumbnailHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                thumbSourceUri.ToSwarmAddress(manifestHash));
+            var thumbnailChunkRef = await SwarmChunkReference.ResolveFromAddress(
+                thumbSourceUri.ToSwarmAddress(manifestHash), chunkStore);
+            var thumbnailHash = thumbnailChunkRef.Hash;
                     
             return await ThumbnailFile.BuildNewAsync(thumbnailLocalFile, thumbnailHash);
         }
@@ -117,8 +122,8 @@ namespace Etherna.VideoImporter.Core.Services
             var masterFileSwarmAddress = masterFileSource.Uri.ToSwarmAddress(manifestHash);
             var masterFile = await FileBase.BuildFromUFileAsync(
                 uFileProvider.BuildNewUFile(new SwarmUUri(masterFileSwarmAddress)));
-            masterFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                masterFileSwarmAddress);
+            var masterFileChunkRef = await SwarmChunkReference.ResolveFromAddress(masterFileSwarmAddress, chunkStore);
+            masterFile.SwarmHash = masterFileChunkRef.Hash;
             
             // Parse master playlist.
             var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(masterFile);
@@ -129,7 +134,8 @@ namespace Etherna.VideoImporter.Core.Services
                 manifest.Duration,
                 masterFile,
                 masterFileSwarmAddress,
-                masterPlaylist);
+                masterPlaylist,
+                chunkStore);
         }
         
         private async Task<Mp4VideoEncoding> DownloadMp4VideoEncodingFromManifestAsync(
@@ -149,8 +155,9 @@ namespace Etherna.VideoImporter.Core.Services
                 // Get video source file.
                 var videoFile = await FileBase.BuildFromUFileAsync(
                     uFileProvider.BuildNewUFile(new SwarmUUri(videoSource.Uri)));
-                videoFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                    videoSource.Uri.ToSwarmAddress(manifestHash));
+                var videoFileChunkRef = await SwarmChunkReference.ResolveFromAddress(
+                    videoSource.Uri.ToSwarmAddress(manifestHash), chunkStore);
+                videoFile.SwarmHash = videoFileChunkRef.Hash;
                 
                 // Build and add variant.
                 videoVariants.Add(

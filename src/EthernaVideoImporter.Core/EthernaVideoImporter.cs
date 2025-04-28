@@ -14,8 +14,10 @@
 
 using Etherna.Authentication;
 using Etherna.Authentication.Native;
+using Etherna.BeeNet;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Stores;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Clients;
@@ -37,58 +39,26 @@ using Video = Etherna.VideoImporter.Core.Models.Domain.Video;
 
 namespace Etherna.VideoImporter.Core
 {
-    public class EthernaVideoImporter : IEthernaVideoImporter
+    public class EthernaVideoImporter(
+        IAppVersionService appVersionService,
+        IBeeClient beeClient,
+        ICleanerVideoService cleanerVideoService,
+        IEthernaUserIndexClient ethernaIndexClient,
+        IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
+        IEthernaSignInService ethernaSignInService,
+        Hasher hasher,
+        IIoService ioService,
+        IMigrationService migrationService,
+        IOptions<EthernaVideoImporterOptions> options,
+        IResultReporterService resultReporterService,
+        IVideoManifestService videoManifestService,
+        IVideoProvider videoProvider,
+        IVideoUploaderService videoUploaderService)
+        : IEthernaVideoImporter
     {
         // Fields.
-        private readonly IAppVersionService appVersionService;
-        private readonly ICleanerVideoService cleanerVideoService;
-        private readonly IEthernaUserIndexClient ethernaIndexClient;
-        private readonly IEthernaOpenIdConnectClient ethernaOpenIdConnectClient;
-        private readonly IEthernaSignInService ethernaSignInService;
-        private readonly Hasher hasher;
-        private readonly IIoService ioService;
-        private readonly IMigrationService migrationService;
-        private readonly EthernaVideoImporterOptions options;
-        private readonly IResultReporterService resultReporterService;
-        private readonly IVideoManifestService videoManifestService;
-        private readonly IVideoUploaderService videoUploaderService;
-        private readonly IVideoProvider videoProvider;
-
-        // Constructor.
-        public EthernaVideoImporter(
-            IAppVersionService appVersionService,
-            ICleanerVideoService cleanerVideoService,
-            IEthernaUserIndexClient ethernaIndexClient,
-            IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
-            IEthernaSignInService ethernaSignInService,
-            Hasher hasher,
-            IIoService ioService,
-            IMigrationService migrationService,
-            IOptions<EthernaVideoImporterOptions> options,
-            IResultReporterService resultReporterService,
-            IVideoManifestService videoManifestService,
-            IVideoProvider videoProvider,
-            IVideoUploaderService videoUploaderService)
-        {
-            ArgumentNullException.ThrowIfNull(cleanerVideoService, nameof(cleanerVideoService));
-            ArgumentNullException.ThrowIfNull(options, nameof(options));
-            ArgumentNullException.ThrowIfNull(videoProvider, nameof(videoProvider));
-            ArgumentNullException.ThrowIfNull(videoUploaderService, nameof(videoUploaderService));
-
-            this.appVersionService = appVersionService;
-            this.cleanerVideoService = cleanerVideoService;
-            this.ethernaIndexClient = ethernaIndexClient;
-            this.ethernaOpenIdConnectClient = ethernaOpenIdConnectClient;
-            this.ethernaSignInService = ethernaSignInService;
-            this.hasher = hasher;
-            this.ioService = ioService;
-            this.migrationService = migrationService;
-            this.options = options.Value;
-            this.resultReporterService = resultReporterService;
-            this.videoManifestService = videoManifestService;
-            this.videoProvider = videoProvider;
-            this.videoUploaderService = videoUploaderService;
-        }
+        private readonly IReadOnlyChunkStore chunkStore = new BeeClientChunkStore(beeClient);
+        private readonly EthernaVideoImporterOptions options = options.Value;
 
         // Public methods.
         public async Task RunAsync(
@@ -385,7 +355,8 @@ namespace Etherna.VideoImporter.Core
             try
             {
                 lastValidManifest = await videoManifestService.GetPublishedVideoManifestAsync(
-                    alreadyIndexedVideo.LastValidManifestHash.Value).ConfigureAwait(false);
+                    alreadyIndexedVideo.LastValidManifestHash.Value,
+                    chunkStore).ConfigureAwait(false);
             }
             catch { return null; }
             if (lastValidManifest.Manifest is null)
