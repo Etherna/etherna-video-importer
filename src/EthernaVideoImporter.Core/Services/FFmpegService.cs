@@ -15,9 +15,9 @@
 using Etherna.BeeNet;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
+using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
@@ -107,7 +107,7 @@ namespace Etherna.VideoImporter.Core.Services
 
             if (swarmAddress is not null)
             {
-                var mainFileChunkRef = await SwarmChunkReference.ResolveFromAddress(swarmAddress.Value, chunkStore);
+                var mainFileChunkRef = await SwarmChunkReference.ResolveFromAddressAsync(swarmAddress.Value, chunkStore);
                 mainFile.SwarmHash = mainFileChunkRef.Hash;
             }
             

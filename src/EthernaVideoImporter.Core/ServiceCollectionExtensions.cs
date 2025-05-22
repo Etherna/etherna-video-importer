@@ -15,11 +15,11 @@
 using Etherna.BeeNet;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Services;
+using Etherna.Sdk.Tools.UniversalFiles;
+using Etherna.Sdk.Tools.UniversalFiles.Extensions;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Gateway.Options;
 using Etherna.Sdk.Users.Gateway.Services;
-using Etherna.UniversalFiles;
-using Etherna.UniversalFiles.Extensions;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Microsoft.Extensions.DependencyInjection;

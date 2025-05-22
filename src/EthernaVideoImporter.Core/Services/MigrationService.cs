@@ -16,10 +16,10 @@ using Etherna.BeeNet;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Stores;
+using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Models;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
@@ -67,7 +67,7 @@ namespace Etherna.VideoImporter.Core.Services
                 allowedUriKinds: UUriKind.Online,
                 baseDirectory: manifestHash.ToString());
 
-            var thumbnailChunkRef = await SwarmChunkReference.ResolveFromAddress(
+            var thumbnailChunkRef = await SwarmChunkReference.ResolveFromAddressAsync(
                 thumbSourceUri.ToSwarmAddress(manifestHash), chunkStore);
             var thumbnailHash = thumbnailChunkRef.Hash;
                     
@@ -122,7 +122,7 @@ namespace Etherna.VideoImporter.Core.Services
             var masterFileSwarmAddress = masterFileSource.Uri.ToSwarmAddress(manifestHash);
             var masterFile = await FileBase.BuildFromUFileAsync(
                 uFileProvider.BuildNewUFile(new SwarmUUri(masterFileSwarmAddress)));
-            var masterFileChunkRef = await SwarmChunkReference.ResolveFromAddress(masterFileSwarmAddress, chunkStore);
+            var masterFileChunkRef = await SwarmChunkReference.ResolveFromAddressAsync(masterFileSwarmAddress, chunkStore);
             masterFile.SwarmHash = masterFileChunkRef.Hash;
             
             // Parse master playlist.
@@ -155,7 +155,7 @@ namespace Etherna.VideoImporter.Core.Services
                 // Get video source file.
                 var videoFile = await FileBase.BuildFromUFileAsync(
                     uFileProvider.BuildNewUFile(new SwarmUUri(videoSource.Uri)));
-                var videoFileChunkRef = await SwarmChunkReference.ResolveFromAddress(
+                var videoFileChunkRef = await SwarmChunkReference.ResolveFromAddressAsync(
                     videoSource.Uri.ToSwarmAddress(manifestHash), chunkStore);
                 videoFile.SwarmHash = videoFileChunkRef.Hash;
                 
