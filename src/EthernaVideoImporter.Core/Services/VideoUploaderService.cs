@@ -251,14 +251,6 @@ namespace Etherna.VideoImporter.Core.Services
             
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
             
-            // //required to not bypass bee local storage
-            // var tagInfo = await gatewayService.CreateTagAsync(videoManifestHash, batchId.Value);
-            
-            // // Required to pre-pin the root chunk on same node owning the postage batch.
-            // // Doesn't actual pin the content. It's needed to pre-allocate the right node
-            // // for the successive pinning on gateway db.
-            // await gatewayService.AnnounceChunksUploadAsync(videoManifestHash, batchId.Value);
-            
             int totalUploaded = 0;
             var uploadStartDateTime = DateTime.UtcNow;
             for (int retry = 0; retry < BeeMaxRetry && totalUploaded < chunkFiles.Length; retry++)
@@ -345,10 +337,6 @@ namespace Etherna.VideoImporter.Core.Services
                     }
                 }
             }
-            
-            // // Update tag info and delete it to indicate end of upload.
-            // await gatewayService.UpdateTagInfoAsync(tagInfo.Id, videoManifestHash, batchId.Value);
-            // await gatewayService.DeleteTagAsync(tagInfo.Id, batchId.Value);
             
             // Fund downloads.
             if (fundDownload)
