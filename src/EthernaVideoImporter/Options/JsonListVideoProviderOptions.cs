@@ -18,6 +18,6 @@ namespace Etherna.VideoImporter.Options
 {
     internal sealed class JsonListVideoProviderOptions
     {
-        public UUri JsonMetadataUri { get; set; } = default!;
+        public UUri JsonMetadataUri { get; set; } = null!;
     }
 }
