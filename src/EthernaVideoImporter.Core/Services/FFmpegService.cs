@@ -106,10 +106,7 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new InvalidOperationException($"Can't get parent directory of {mainFileUri.OriginalUri}");
 
             if (swarmAddress is not null)
-            {
-                var mainFileChunkRef = await SwarmChunkReference.ResolveFromAddressAsync(swarmAddress.Value, chunkStore);
-                mainFile.SwarmHash = mainFileChunkRef.Hash;
-            }
+                mainFile.SwarmReference = await SwarmReference.ResolveFromAddressAsync(swarmAddress.Value, chunkStore);
             
             switch (Path.GetExtension(mainFile.FileName).ToLowerInvariant())
             {

@@ -53,7 +53,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             }
         }
         public string? EthernaIndexId { get; set; }
-        public SwarmHash? EthernaPermalinkHash { get; set; }
+        public SwarmReference? EthernaPermalinkReference { get; set; }
         public VideoMetadataBase Metadata { get; }
         public IEnumerable<SubtitleFile> SubtitleFiles { get; }
         public string ThumbnailBlurhash => ThumbnailFiles.First().Blurhash;

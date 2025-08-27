@@ -132,20 +132,20 @@ namespace Etherna.VideoImporter.Core.Services
             // Unpin manifest.
             if (removeSucceeded &&
                 unpinRemovedVideos &&
-                indexedVideo.LastValidManifestHash is not null)
-                await TryDefundPinningAsync(indexedVideo.LastValidManifestHash.Value);
+                indexedVideo.LastValidManifestReference is not null)
+                await TryDefundPinningAsync(indexedVideo.LastValidManifestReference.Value);
         }
 
-        private async Task TryDefundPinningAsync(SwarmHash hash)
+        private async Task TryDefundPinningAsync(SwarmReference reference)
         {
             try
             {
-                await gatewayService.DefundResourcePinningAsync(hash);
-                ioService.WriteSuccessLine($"Resource with hash {hash} unpinned from gateway");
+                await gatewayService.DefundResourcePinningAsync(reference);
+                ioService.WriteSuccessLine($"Resource with reference {reference} unpinned from gateway");
             }
             catch (Exception ex)
             {
-                ioService.WriteErrorLine($"Unable to unpin resource with hash {hash} from gateway");
+                ioService.WriteErrorLine($"Unable to unpin resource with reference {reference} from gateway");
                 ioService.PrintException(ex);
             }
         }

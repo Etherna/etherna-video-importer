@@ -155,7 +155,7 @@ namespace Etherna.VideoImporter.Core
                                 importResult = VideoImportResultSucceeded.Skipped(
                                     sourceMetadata,
                                     alreadyIndexedVideo.Id,
-                                    alreadyIndexedVideo.LastValidManifestHash!.Value);
+                                    alreadyIndexedVideo.LastValidManifestReference!.Value);
                                 break;
                             
                             case OperationType.UpdateManifest:
@@ -206,7 +206,7 @@ namespace Etherna.VideoImporter.Core
                         importResult = VideoImportResultSucceeded.FullUploaded(
                             sourceMetadata,
                             video.EthernaIndexId!,
-                            video.EthernaPermalinkHash!.Value);
+                            video.EthernaPermalinkReference!.Value);
                     }
 
                     // Import succeeded.
@@ -339,7 +339,7 @@ namespace Etherna.VideoImporter.Core
             }
         }
 
-        private async Task<SwarmHash?> TryMigrateManifestAsync(
+        private async Task<SwarmReference?> TryMigrateManifestAsync(
             IndexedVideo alreadyIndexedVideo,
             VideoMetadataBase sourceMetadata,
             string userEthAddress,
@@ -347,7 +347,7 @@ namespace Etherna.VideoImporter.Core
             bool fundPinning,
             ProjectDirectory projectDirectory)
         {
-            if (!alreadyIndexedVideo.LastValidManifestHash.HasValue)
+            if (!alreadyIndexedVideo.LastValidManifestReference.HasValue)
                 return null;
             
             // Try to get last valid manifest.
@@ -355,7 +355,7 @@ namespace Etherna.VideoImporter.Core
             try
             {
                 lastValidManifest = await videoManifestService.GetPublishedVideoManifestAsync(
-                    alreadyIndexedVideo.LastValidManifestHash.Value,
+                    alreadyIndexedVideo.LastValidManifestReference.Value,
                     chunkStore).ConfigureAwait(false);
             }
             catch { return null; }
@@ -370,12 +370,12 @@ namespace Etherna.VideoImporter.Core
                 List<ThumbnailFile> thumbnailFiles = [];
                 foreach (var thumbnailSource in lastValidManifest.Manifest.Thumbnail.Sources)
                     thumbnailFiles.Add(await migrationService.DownloadThumbnailFile(
-                        lastValidManifest.Hash,
+                        lastValidManifest.Reference,
                         thumbnailSource.Uri));
 
                 // Download encoded video.
                 var videoEncoding = await migrationService.DownloadVideoEncodingFromManifestAsync(
-                    lastValidManifest.Hash,
+                    lastValidManifest.Reference,
                     lastValidManifest.Manifest);
                 
                 video = new Video(
@@ -398,7 +398,7 @@ namespace Etherna.VideoImporter.Core
                 projectDirectory,
                 lastValidManifest.Manifest.BatchId);
 
-            return video.EthernaPermalinkHash;
+            return video.EthernaPermalinkReference;
         }
     }
 }

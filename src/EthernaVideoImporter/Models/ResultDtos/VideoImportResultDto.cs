@@ -40,7 +40,7 @@ namespace Etherna.VideoImporter.Models.ResultDtos
                 case VideoImportResultSucceeded succeededResult:
                     IndexId = succeededResult.IndexId;
                     Succeeded = true;
-                    SwarmHash = succeededResult.ReferenceHash.ToString();
+                    SwarmReference = succeededResult.Reference.ToString();
                     break;
                 default: throw new InvalidOperationException();
             }
@@ -48,12 +48,12 @@ namespace Etherna.VideoImporter.Models.ResultDtos
         
         public DateTime CompletedDateTimeUtc { get; }
         public string? EmbeddedIndexLink => IndexId is null ? null : UrlBuilder.BuildEmbeddedIndexUrl(IndexId);
-        public string? EmbeddedPermalink => SwarmHash is null ? null : UrlBuilder.BuildEmbeddedPermalinkUrl(SwarmHash);
+        public string? EmbeddedPermalink => SwarmReference is null ? null : UrlBuilder.BuildEmbeddedPermalinkUrl(SwarmReference);
         public string? IndexId { get; }
         public string? NormalIndexLink => IndexId is null ? null : UrlBuilder.BuildNormalIndexUrl(IndexId);
-        public string? NormalPermalink => SwarmHash is null ? null : UrlBuilder.BuildNormalPermalinkUrl(SwarmHash);
+        public string? NormalPermalink => SwarmReference is null ? null : UrlBuilder.BuildNormalPermalinkUrl(SwarmReference);
         public SourceMetadataDtoBase SourceMetadata { get; }
         public bool Succeeded { get; }
-        public string? SwarmHash { get; }
+        public string? SwarmReference { get; }
     }
 }

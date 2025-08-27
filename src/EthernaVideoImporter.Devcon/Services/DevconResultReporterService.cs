@@ -79,7 +79,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                         break;
                     
                     case DevconFileDto.SwarmHashKey:
-                        writer.WriteString(DevconFileDto.SwarmHashKey, updatedResult.ReferenceHash.ToString());
+                        writer.WriteString(DevconFileDto.SwarmHashKey, updatedResult.Reference.ToString());
                         isWrote = true;
                         waitingToWrite = false;
                         break;
@@ -87,7 +87,7 @@ namespace Etherna.VideoImporter.Devcon.Services
                     default:
                         if (waitingToWrite)
                         {
-                            writer.WriteString(DevconFileDto.SwarmHashKey, updatedResult.ReferenceHash.ToString());
+                            writer.WriteString(DevconFileDto.SwarmHashKey, updatedResult.Reference.ToString());
                             isWrote = true;
                             waitingToWrite = false;
                         }
