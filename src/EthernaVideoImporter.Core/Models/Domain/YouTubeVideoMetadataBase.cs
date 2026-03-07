@@ -63,7 +63,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
         public override async Task<bool> TryFetchMetadataAsync(
             IIoService ioService)
         {
-            ArgumentNullException.ThrowIfNull(ioService, nameof(ioService));
+            ArgumentNullException.ThrowIfNull(ioService);
             
             /*
              * YouTube could block fetches to avoid data scrapping.

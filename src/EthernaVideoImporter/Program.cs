@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet;
 using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core;
@@ -139,7 +140,7 @@ namespace Etherna.VideoImporter
             var bitrateReduction = FFmpegBitrateReduction.Normal;
             var ffmpegPreset = FFmpegServiceOptions.DefaultFFmpegPreset;
 
-            bool useBeeNativeNode = false;
+            var swarmApiCompatibility = SwarmClients.Beehive;
             string? customGatewayUrl = null;
 
             //print help
@@ -298,7 +299,7 @@ namespace Etherna.VideoImporter
 
                     //bee node
                     case "--bee-node":
-                        useBeeNativeNode = true;
+                        swarmApiCompatibility = SwarmClients.Bee;
                         break;
 
                     case "--gateway-url":
@@ -357,6 +358,8 @@ namespace Etherna.VideoImporter
                     });
             }
             ethernaClientsBuilder.AddEthernaGatewayClient(
+                    apiCompatibility: swarmApiCompatibility,
+                    dryMode: isDryRun,
 #if DEVENV
                     gatewayBaseUrl: customGatewayUrl ?? "http://localhost:1633/"
 #else
@@ -391,11 +394,6 @@ namespace Etherna.VideoImporter
                     ffMpegOptions.BitrateReduction = bitrateReduction;
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                     ffMpegOptions.Preset = ffmpegPreset;
-                },
-                gatewayOptions =>
-                {
-                    gatewayOptions.IsDryRun = isDryRun;
-                    gatewayOptions.UseBeeApi = useBeeNativeNode;
                 },
                 uploaderOptions =>
                 {

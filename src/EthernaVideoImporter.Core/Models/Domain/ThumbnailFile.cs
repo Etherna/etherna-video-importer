@@ -48,7 +48,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             BasicUFile uFile,
             SwarmHash? swarmHash = null)
         {
-            ArgumentNullException.ThrowIfNull(uFile, nameof(uFile));
+            ArgumentNullException.ThrowIfNull(uFile);
 
             // Get image info.
             var byteSize = await uFile.GetByteSizeAsync();

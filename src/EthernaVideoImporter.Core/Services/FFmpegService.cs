@@ -59,13 +59,13 @@ namespace Etherna.VideoImporter.Core.Services
 
         // Constructor.
         public FFmpegService(
-            IBeeClient beeClient,
+            ISwarmClient beeClient,
             IHlsService hlsService,
             IIoService ioService,
             IOptions<FFmpegServiceOptions> options,
             IUFileProvider uFileProvider)
         {
-            this.chunkStore = new BeeClientChunkStore(beeClient);
+            this.chunkStore = new SwarmClientChunkStore(beeClient);
             this.hlsService = hlsService;
             this.ioService = ioService;
             this.options = options.Value;
@@ -93,7 +93,7 @@ namespace Etherna.VideoImporter.Core.Services
             BasicUUri mainFileUri,
             SwarmAddress? swarmAddress = null)
         {
-            ArgumentNullException.ThrowIfNull(mainFileUri, nameof(mainFileUri));
+            ArgumentNullException.ThrowIfNull(mainFileUri);
 
             var mainFileAbsoluteUri = mainFileUri.ToAbsoluteUri();
             var mainFile = await FileBase.BuildFromUFileAsync(

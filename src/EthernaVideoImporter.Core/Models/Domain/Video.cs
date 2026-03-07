@@ -31,8 +31,8 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             ThumbnailFile[] thumbnailFiles,
             VideoEncodingBase videoEncoding)
         {
-            ArgumentNullException.ThrowIfNull(thumbnailFiles, nameof(thumbnailFiles));
-            ArgumentNullException.ThrowIfNull(videoEncoding, nameof(videoEncoding));
+            ArgumentNullException.ThrowIfNull(thumbnailFiles);
+            ArgumentNullException.ThrowIfNull(videoEncoding);
             
             if (thumbnailFiles.Length == 0)
                 throw new ArgumentException("Must exist at least a thumbnail");

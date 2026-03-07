@@ -24,7 +24,7 @@ namespace Etherna.VideoImporter.Models.ResultDtos
     {
         protected internal SourceMetadataDtoBase(VideoMetadataBase sourceMetadata)
         {
-            ArgumentNullException.ThrowIfNull(sourceMetadata, nameof(sourceMetadata));
+            ArgumentNullException.ThrowIfNull(sourceMetadata);
             
             SourceId = sourceMetadata.SourceId;
             Duration = sourceMetadata.Duration;

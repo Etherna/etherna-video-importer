@@ -41,7 +41,7 @@ namespace Etherna.VideoImporter.Core
 {
     public class EthernaVideoImporter(
         IAppVersionService appVersionService,
-        IBeeClient beeClient,
+        ISwarmClient beeClient,
         ICleanerVideoService cleanerVideoService,
         IEthernaUserIndexClient ethernaIndexClient,
         IEthernaOpenIdConnectClient ethernaOpenIdConnectClient,
@@ -57,7 +57,7 @@ namespace Etherna.VideoImporter.Core
         : IEthernaVideoImporter
     {
         // Fields.
-        private readonly IReadOnlyChunkStore chunkStore = new BeeClientChunkStore(beeClient);
+        private readonly IReadOnlyChunkStore chunkStore = new SwarmClientChunkStore(beeClient);
         private readonly EthernaVideoImporterOptions options = options.Value;
 
         // Public methods.
@@ -368,7 +368,7 @@ namespace Etherna.VideoImporter.Core
             {
                 // Download thumbnail.
                 List<ThumbnailFile> thumbnailFiles = [];
-                foreach (var thumbnailSource in lastValidManifest.Manifest.Thumbnail.Sources)
+                foreach (var thumbnailSource in lastValidManifest.Manifest.Thumbnail?.Sources ?? [])
                     thumbnailFiles.Add(await migrationService.DownloadThumbnailFile(
                         lastValidManifest.Reference,
                         thumbnailSource.Uri));
@@ -396,7 +396,7 @@ namespace Etherna.VideoImporter.Core
                 fundDownload,
                 userEthAddress,
                 projectDirectory,
-                lastValidManifest.Manifest.BatchId);
+                alreadyIndexedVideo.BatchId);
 
             return video.EthernaPermalinkReference;
         }

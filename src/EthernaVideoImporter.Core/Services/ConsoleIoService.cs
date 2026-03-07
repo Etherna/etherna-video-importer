@@ -41,7 +41,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Methods.
         public void PrintException(Exception exception)
         {
-            ArgumentNullException.ThrowIfNull(exception, nameof(exception));
+            ArgumentNullException.ThrowIfNull(exception);
             WriteLine($"{exception.GetType().Name}: {exception.Message}", false);
         }
 

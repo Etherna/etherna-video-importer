@@ -24,9 +24,9 @@ namespace Etherna.VideoImporter.Core.Extensions
     {
         public static bool HasEqualMetadata(this IndexedVideo indexedVideo, VideoMetadataBase metadata, Hasher hasher)
         {
-            ArgumentNullException.ThrowIfNull(hasher, nameof(hasher));
-            ArgumentNullException.ThrowIfNull(indexedVideo, nameof(indexedVideo));
-            ArgumentNullException.ThrowIfNull(metadata, nameof(metadata));
+            ArgumentNullException.ThrowIfNull(hasher);
+            ArgumentNullException.ThrowIfNull(indexedVideo);
+            ArgumentNullException.ThrowIfNull(metadata);
             
             return indexedVideo.PersonalData?.SourceVideoId == hasher.ComputeHash(metadata.SourceId).ToHex() &&
                    indexedVideo.Title == metadata.Title &&
