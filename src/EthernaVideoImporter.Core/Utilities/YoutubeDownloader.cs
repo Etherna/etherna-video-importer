@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Services;
@@ -51,8 +51,8 @@ namespace Etherna.VideoImporter.Core.Utilities
             YouTubeVideoMetadataBase videoMetadata,
             ProjectDirectory projectDirectory)
         {
-            ArgumentNullException.ThrowIfNull(projectDirectory, nameof(projectDirectory));
-            ArgumentNullException.ThrowIfNull(videoMetadata, nameof(videoMetadata));
+            ArgumentNullException.ThrowIfNull(projectDirectory);
+            ArgumentNullException.ThrowIfNull(videoMetadata);
 
             // Get manifest data.
             var youtubeStreamsManifest = await YoutubeClient.Videos.Streams.GetManifestAsync(videoMetadata.YoutubeId);
@@ -113,7 +113,7 @@ namespace Etherna.VideoImporter.Core.Utilities
             Thumbnail thumbnail,
             ProjectDirectory projectDirectory)
         {
-            ArgumentNullException.ThrowIfNull(thumbnail, nameof(thumbnail));
+            ArgumentNullException.ThrowIfNull(thumbnail);
 
             string thumbnailFilePath = Path.Combine(
                 projectDirectory.DirPath,

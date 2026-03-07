@@ -12,12 +12,14 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Stores;
+using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Models;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
@@ -29,16 +31,19 @@ using System.Threading.Tasks;
 namespace Etherna.VideoImporter.Core.Services
 {
     public class MigrationService(
-        IGatewayService gatewayService,
-        IHasher hasher,
+        ISwarmClient beeClient,
+        Hasher hasher,
         IHlsService hlsService,
         IUFileProvider uFileProvider)
         : IMigrationService
     {
+        // Fields.
+        private readonly IReadOnlyChunkStore chunkStore = new SwarmClientChunkStore(beeClient);
+        
         // Methods.
         public OperationType DecideOperation(IndexedVideo alreadyIndexedVideo, VideoMetadataBase sourceMetadata)
         {
-            ArgumentNullException.ThrowIfNull(alreadyIndexedVideo, nameof(alreadyIndexedVideo));
+            ArgumentNullException.ThrowIfNull(alreadyIndexedVideo);
             
             // If client version is missing (0.1.x or 0.2.x).
             if (string.IsNullOrWhiteSpace(alreadyIndexedVideo.PersonalData?.ClientVersion))
@@ -54,25 +59,28 @@ namespace Etherna.VideoImporter.Core.Services
             };
         }
         
-        public async Task<ThumbnailFile> DownloadThumbnailFile(SwarmHash manifestHash, SwarmUri thumbSourceUri)
+        public async Task<ThumbnailFile> DownloadThumbnailFile(
+            SwarmReference manifestReference,
+            SwarmUri thumbSourceUri)
         {
             var thumbnailSwarmFile = uFileProvider.BuildNewUFile(new SwarmUUri(thumbSourceUri));
             var thumbnailLocalFile = await uFileProvider.ToLocalUFileAsync(
                 thumbnailSwarmFile,
                 allowedUriKinds: UUriKind.Online,
-                baseDirectory: manifestHash.ToString());
+                baseDirectory: manifestReference.ToString());
 
-            var thumbnailHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                thumbSourceUri.ToSwarmAddress(manifestHash));
+            var thumbnailChunkRef = await SwarmReference.ResolveFromAddressAsync(
+                thumbSourceUri.ToSwarmAddress(manifestReference), chunkStore);
+            var thumbnailHash = thumbnailChunkRef.Hash;
                     
             return await ThumbnailFile.BuildNewAsync(thumbnailLocalFile, thumbnailHash);
         }
 
         public async Task<VideoEncodingBase> DownloadVideoEncodingFromManifestAsync(
-            SwarmHash manifestHash,
+            SwarmReference manifestReference,
             VideoManifest manifest)
         {
-            ArgumentNullException.ThrowIfNull(manifest, nameof(manifest));
+            ArgumentNullException.ThrowIfNull(manifest);
             
             // Define used video encoding.
             VideoType? encodingType = null;
@@ -97,15 +105,15 @@ namespace Etherna.VideoImporter.Core.Services
             // Parse sources based on used encoding.
             return encodingType switch
             {
-                VideoType.Hls => await DownloadHlsVideoEncodingFromManifestAsync(manifestHash, manifest),
-                VideoType.Mp4 => await DownloadMp4VideoEncodingFromManifestAsync(manifestHash, manifest),
+                VideoType.Hls => await DownloadHlsVideoEncodingFromManifestAsync(manifestReference, manifest),
+                VideoType.Mp4 => await DownloadMp4VideoEncodingFromManifestAsync(manifestReference, manifest),
                 _ => throw new InvalidOperationException()
             };
         }
         
         // Helpers.
         private async Task<HlsVideoEncoding> DownloadHlsVideoEncodingFromManifestAsync(
-            SwarmHash manifestHash,
+            SwarmReference manifestReference,
             VideoManifest manifest)
         {
             // Get master file.
@@ -113,11 +121,10 @@ namespace Etherna.VideoImporter.Core.Services
             var masterFileSource = manifest.VideoSources.Single(
                 s => s.Metadata.TotalSourceSize == 0);
             
-            var masterFileSwarmAddress = masterFileSource.Uri.ToSwarmAddress(manifestHash);
+            var masterFileSwarmAddress = masterFileSource.Uri.ToSwarmAddress(manifestReference);
             var masterFile = await FileBase.BuildFromUFileAsync(
                 uFileProvider.BuildNewUFile(new SwarmUUri(masterFileSwarmAddress)));
-            masterFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                masterFileSwarmAddress);
+            masterFile.SwarmReference = await SwarmReference.ResolveFromAddressAsync(masterFileSwarmAddress, chunkStore);
             
             // Parse master playlist.
             var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(masterFile);
@@ -128,11 +135,12 @@ namespace Etherna.VideoImporter.Core.Services
                 manifest.Duration,
                 masterFile,
                 masterFileSwarmAddress,
-                masterPlaylist);
+                masterPlaylist,
+                chunkStore);
         }
         
         private async Task<Mp4VideoEncoding> DownloadMp4VideoEncodingFromManifestAsync(
-            SwarmHash manifestHash,
+            SwarmReference manifestReference,
             VideoManifest manifest)
         {
             List<SingleFileVideoVariant> videoVariants = [];
@@ -148,8 +156,8 @@ namespace Etherna.VideoImporter.Core.Services
                 // Get video source file.
                 var videoFile = await FileBase.BuildFromUFileAsync(
                     uFileProvider.BuildNewUFile(new SwarmUUri(videoSource.Uri)));
-                videoFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(
-                    videoSource.Uri.ToSwarmAddress(manifestHash));
+                videoFile.SwarmReference = await SwarmReference.ResolveFromAddressAsync(
+                    videoSource.Uri.ToSwarmAddress(manifestReference), chunkStore);
                 
                 // Build and add variant.
                 videoVariants.Add(

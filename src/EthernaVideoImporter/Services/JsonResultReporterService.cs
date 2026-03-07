@@ -36,7 +36,7 @@ namespace Etherna.VideoImporter.Services
         public JsonResultReporterService(
             IOptions<JsonResultReporterOptions> options)
         {
-            ArgumentNullException.ThrowIfNull(options, nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
 
             this.options = options.Value;
         }

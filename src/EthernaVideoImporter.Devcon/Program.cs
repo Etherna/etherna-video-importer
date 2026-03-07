@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet;
 using Etherna.Sdk.Users;
 using Etherna.VideoImporter.Core;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
@@ -52,6 +53,7 @@ namespace Etherna.VideoImporter.Devcon
               -a, --auto-purchase     Accept automatically purchase of all batches
               --dry                   Run in dry mode. Any action on swarm gateway or index is performed read-only
               --yt-cookies            List of cookies to use with YouTube requests, divided by ';'
+              --yt-cookies-file       File path with list of cookies to use with YouTube requests, divided by ';'
               --working-dir           Use custom working directory
 
             Video Management Options:
@@ -98,7 +100,7 @@ namespace Etherna.VideoImporter.Devcon
             var bitrateReduction = FFmpegBitrateReduction.Normal;
             var ffmpegPreset = FFmpegServiceOptions.DefaultFFmpegPreset;
 
-            bool useBeeNativeNode = false;
+            var swarmApiCompatibility = SwarmClients.Beehive;
             string? customGatewayUrl = null;
 
             //print help
@@ -168,6 +170,13 @@ namespace Etherna.VideoImporter.Devcon
                         ytCookies = optArgs[++i];
                         break;
                     
+                    case "--yt-cookies-file":
+                        if (optArgs.Length == i + 1)
+                            throw new ArgumentException("YT cookies file path is missing");
+                        var ytCookiesFilePath = optArgs[++i];
+                        ytCookies = await File.ReadAllTextAsync(ytCookiesFilePath);
+                        break;
+                    
                     case "--working-dir":
                         if (optArgs.Length == i + 1)
                             throw new ArgumentException("Working directory is missing");
@@ -227,7 +236,7 @@ namespace Etherna.VideoImporter.Devcon
 
                     //bee node
                     case "--bee-node":
-                        useBeeNativeNode = true;
+                        swarmApiCompatibility = SwarmClients.Bee;
                         break;
 
                     case "--gateway-url":
@@ -281,6 +290,8 @@ namespace Etherna.VideoImporter.Devcon
                     });
             }
             ethernaClientsBuilder.AddEthernaGatewayClient(
+                    apiCompatibility: swarmApiCompatibility,
+                    dryMode: isDryRun,
 #if DEVENV
                     gatewayBaseUrl: customGatewayUrl ?? "http://localhost:1633/"
 #else
@@ -315,11 +326,6 @@ namespace Etherna.VideoImporter.Devcon
                     ffMpegOptions.BitrateReduction = bitrateReduction;
                     ffMpegOptions.CustomFFmpegFolderPath = customFFMpegFolderPath;
                     ffMpegOptions.Preset = ffmpegPreset;
-                },
-                gatewayOptions =>
-                {
-                    gatewayOptions.IsDryRun = isDryRun;
-                    gatewayOptions.UseBeeApi = useBeeNativeNode;
                 },
                 uploaderOptions =>
                 {

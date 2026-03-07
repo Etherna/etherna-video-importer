@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Options;
@@ -39,7 +39,7 @@ namespace Etherna.VideoImporter.Core.Services
         // Consts.
         public const VideoType DefaultVideoType = VideoType.Hls;
         public static readonly int[] ThumbnailHeightResolutions = [480, 960, 1280];
-        public static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080, 1440, 2160, 4320];
+        public static readonly int[] VideoHeightResolutions = [360, 480, 720, 1080/*, 1440, 2160, 4320*/]; //tmp: see https://etherna.atlassian.net/browse/EVI-223
 
         // Fields.
         [SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used")]
@@ -52,7 +52,7 @@ namespace Etherna.VideoImporter.Core.Services
             ClosedCaptionTrackInfo[] subtitleTracks,
             EncodedDirectory encodedDirectory)
         {
-            ArgumentNullException.ThrowIfNull(subtitleTracks, nameof(subtitleTracks));
+            ArgumentNullException.ThrowIfNull(subtitleTracks);
 
             if (subtitleTracks.Length == 0)
                 return [];
@@ -73,7 +73,7 @@ namespace Etherna.VideoImporter.Core.Services
             ThumbnailFile sourceThumbnailFile,
             EncodedDirectory encodedDirectory)
         {
-            ArgumentNullException.ThrowIfNull(sourceThumbnailFile, nameof(sourceThumbnailFile));
+            ArgumentNullException.ThrowIfNull(sourceThumbnailFile);
 
             List<ThumbnailFile> thumbnails = [];
             var outputDirectory = encodedDirectory.ThumbnailDir.CreateDirectory();
@@ -90,7 +90,7 @@ namespace Etherna.VideoImporter.Core.Services
                 using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium))
                 using (SKImage scaledImage = SKImage.FromBitmap(scaledBitmap))
                 using (SKData data = scaledImage.Encode(SKEncodedImageFormat.Jpeg, 75))
-                using (FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew))
+                await using (FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew))
                 {
                     await data.AsStream().CopyToAsync(outputFileStream);
                 }
@@ -113,7 +113,7 @@ namespace Etherna.VideoImporter.Core.Services
             EncodedDirectory encodedDirectory,
             VideoType outputEncoding = DefaultVideoType)
         {
-            ArgumentNullException.ThrowIfNull(sourceVariant, nameof(sourceVariant));
+            ArgumentNullException.ThrowIfNull(sourceVariant);
 
             var encodedVideo = await ffMpegService.EncodeVideoAsync(
                 sourceVariant,

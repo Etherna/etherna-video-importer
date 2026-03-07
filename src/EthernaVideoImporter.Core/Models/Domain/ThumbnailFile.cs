@@ -14,8 +14,8 @@
 
 using Blurhash.SkiaSharp;
 using Etherna.BeeNet.Models;
+using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
-using Etherna.UniversalFiles;
 using SkiaSharp;
 using System;
 using System.IO;
@@ -48,7 +48,7 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             BasicUFile uFile,
             SwarmHash? swarmHash = null)
         {
-            ArgumentNullException.ThrowIfNull(uFile, nameof(uFile));
+            ArgumentNullException.ThrowIfNull(uFile);
 
             // Get image info.
             var byteSize = await uFile.GetByteSizeAsync();
@@ -66,7 +66,6 @@ namespace Etherna.VideoImporter.Core.Models.Domain
                 SKEncodedImageFormat.Jpeg => ImageType.Jpeg,
                 SKEncodedImageFormat.Png => ImageType.Png,
                 SKEncodedImageFormat.Webp => ImageType.Webp,
-                SKEncodedImageFormat.Avif => ImageType.Avif,
                 _ => ImageType.Unknown
             };
 

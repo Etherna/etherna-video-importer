@@ -16,8 +16,10 @@ using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Hashing.Postage;
 using Etherna.BeeNet.Models;
 using Etherna.BeeNet.Services;
+using Etherna.BeeNet.Stores;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
+using Etherna.Sdk.Users.Gateway.Services;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Models.Domain.Directories;
@@ -42,7 +44,7 @@ namespace Etherna.VideoImporter.Core.Services
         IChunkService chunkService,
         IEthernaUserIndexClient ethernaIndexClient,
         IGatewayService gatewayService,
-        IHasher hasher,
+        Hasher hasher,
         IIoService ioService,
         IOptions<VideoUploaderServiceOptions> options,
         IVideoManifestService videoManifestService)
@@ -50,6 +52,7 @@ namespace Etherna.VideoImporter.Core.Services
     {
         // Const.
         private const int BeeMaxRetry = 10;
+        public const ushort ChunkBatchMaxSize = 500;
         private readonly TimeSpan UploadRetryTimeSpan = TimeSpan.FromSeconds(5);
 
         // Fields.
@@ -64,32 +67,33 @@ namespace Etherna.VideoImporter.Core.Services
             ProjectDirectory projectDirectory,
             PostageBatchId? batchId = null)
         {
-            ArgumentNullException.ThrowIfNull(video, nameof(video));
+            ArgumentNullException.ThrowIfNull(video);
             
             // Create chunks. Do as first thing, also to evaluate required postage batch depth.
             var chunksDirectory = projectDirectory.ChunksDirectory.CreateDirectory();
+            var chunksStore = new LocalDirectoryChunkStore(chunksDirectory.FullName);
             var stampIssuer = new PostageStampIssuer(PostageBatch.MaxDepthInstance);
             
             //video source files, exclude already uploaded Swarm files
-            if (video.VideoEncoding.MasterFile is { SwarmHash: null })
+            if (video.VideoEncoding.MasterFile is { SwarmReference: null })
             {
                 ioService.WriteLine($"Creating chunks of master playlist in progress...");
 
-                using var stream = await video.VideoEncoding.MasterFile.ReadToStreamAsync();
-                video.VideoEncoding.MasterFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                await using var stream = await video.VideoEncoding.MasterFile.ReadToStreamAsync();
+                video.VideoEncoding.MasterFile.SwarmReference = await chunkService.WriteDataChunksAsync(
+                    chunksStore,
                     stream,
-                    chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
             }
-            foreach (var variant in video.VideoEncoding.Variants.Where(v => v.EntryFile.SwarmHash is null))
+            foreach (var variant in video.VideoEncoding.Variants.Where(v => v.EntryFile.SwarmReference is null))
             {
                 ioService.WriteLine($"Creating chunks of {variant.QualityLabel} video variant in progress...");
                 
                 //common entry file
-                using var stream = await variant.EntryFile.ReadToStreamAsync();
-                variant.EntryFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                await using var stream = await variant.EntryFile.ReadToStreamAsync();
+                variant.EntryFile.SwarmReference = await chunkService.WriteDataChunksAsync(
+                    chunksStore,
                     stream,
-                    chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
                 
                 //additional files.
@@ -98,10 +102,10 @@ namespace Etherna.VideoImporter.Core.Services
                     case HlsVideoVariant hlsVariant:
                         foreach (var segment in hlsVariant.HlsSegmentFiles)
                         {
-                            using var segStream = await segment.ReadToStreamAsync();
-                            segment.SwarmHash = await chunkService.WriteDataChunksAsync(
+                            await using var segStream = await segment.ReadToStreamAsync();
+                            segment.SwarmReference = await chunkService.WriteDataChunksAsync(
+                                chunksStore,
                                 segStream,
-                                chunksDirectory.FullName,
                                 postageStampIssuer: stampIssuer);
                         }
                         break;
@@ -112,23 +116,23 @@ namespace Etherna.VideoImporter.Core.Services
             
             //thumbnail source files, exclude already uploaded Swarm files 
             ioService.WriteLine($"Creating chunks of thumbnail in progress...");
-            foreach (var thumbnailFile in video.ThumbnailFiles.Where(f => f.SwarmHash is null))
+            foreach (var thumbnailFile in video.ThumbnailFiles.Where(f => f.SwarmReference is null))
             {
-                using var stream = await thumbnailFile.ReadToStreamAsync();
-                thumbnailFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                await using var stream = await thumbnailFile.ReadToStreamAsync();
+                thumbnailFile.SwarmReference = await chunkService.WriteDataChunksAsync(
+                    chunksStore,
                     stream,
-                    chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
             }
             
             //subtitle source files, exclude already uploaded Swarm files 
             ioService.WriteLine($"Creating chunks of subtitles in progress...");
-            foreach (var subtitleFile in video.SubtitleFiles.Where(f => f.SwarmHash is null))
+            foreach (var subtitleFile in video.SubtitleFiles.Where(f => f.SwarmReference is null))
             {
-                using var stream = await subtitleFile.ReadToStreamAsync();
-                subtitleFile.SwarmHash = await chunkService.WriteDataChunksAsync(
+                await using var stream = await subtitleFile.ReadToStreamAsync();
+                subtitleFile.SwarmReference = await chunkService.WriteDataChunksAsync(
+                    chunksStore,
                     stream,
-                    chunksDirectory.FullName,
                     postageStampIssuer: stampIssuer);
             }
             
@@ -167,13 +171,13 @@ namespace Etherna.VideoImporter.Core.Services
                                 
                                 return new VideoManifestVideoSourceAdditionalFile(
                                     segmentRelativePath,
-                                    segment.SwarmHash ??
+                                    segment.SwarmReference ??
                                     throw new InvalidOperationException("Swarm hash can't be null here"));
                             })
                             .ToArray(),
                         _ => []
                     },
-                    v.EntryFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"));
+                    v.EntryFile.SwarmReference ?? throw new InvalidOperationException("Swarm hash can't be null here"));
             });
             if (video.VideoEncoding.MasterFile != null)
             {
@@ -188,7 +192,7 @@ namespace Etherna.VideoImporter.Core.Services
                     null,
                     0, //need to be 0 with manifest v2, to be recognizable
                     [],
-                    masterFile.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here")));
+                    masterFile.SwarmReference ?? throw new InvalidOperationException("Swarm hash can't be null here")));
             }
             
             //video manifest thumbnail
@@ -200,7 +204,7 @@ namespace Etherna.VideoImporter.Core.Services
                     t.FileName,
                     t.ImageType,
                     t.Width,
-                    t.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here"))));
+                    t.SwarmReference ?? throw new InvalidOperationException("Swarm hash can't be null here"))));
             
             //video manifest captions
             var manifestSubtitleSources = video.SubtitleFiles.Select(s =>
@@ -208,12 +212,11 @@ namespace Etherna.VideoImporter.Core.Services
                     s.Label,
                     s.LanguageCode,
                     s.FileName,
-                    s.SwarmHash ?? throw new InvalidOperationException("Swarm hash can't be null here")));
+                    s.SwarmReference ?? throw new InvalidOperationException("Swarm hash can't be null here")));
             
             //video manifest
             var videoManifest = new VideoManifest(
                 video.AspectRatio,
-                batchId: null,
                 DateTimeOffset.Now,
                 video.Metadata.Description,
                 video.Metadata.Duration,
@@ -224,35 +227,20 @@ namespace Etherna.VideoImporter.Core.Services
                 manifestThumbnail,
                 manifestSubtitleSources);
 
-            await videoManifestService.CreateVideoManifestChunksAsync(
+            var videoManifestReference = await videoManifestService.CreateVideoManifestChunksAsync(
                 videoManifest,
                 chunksDirectory.FullName,
                 postageStampIssuer: stampIssuer);
+            video.EthernaPermalinkReference = videoManifestReference;
             
             // Create new batch if required.
             batchId ??= await CreatePostageBatchAsync(stampIssuer.Buckets.RequiredPostageBatchDepth);
             
-            // Assign batchId to manifest, and re-create manifest chunks. Get final hash.
-            videoManifest.BatchId = batchId.Value;
-            var videoManifestHash = await videoManifestService.CreateVideoManifestChunksAsync(
-                videoManifest,
-                chunksDirectory.FullName,
-                postageStampIssuer: stampIssuer);
-            
-            video.EthernaPermalinkHash = videoManifestHash;
-            
             // Upload chunks. Pin only video manifest hash, if required.
-            var chunkFiles = chunkService.GetAllChunkFilesInDirectory(chunksDirectory.FullName);
+            var chunkFiles = (await chunksStore.GetAllHashesAsync()).Select(
+                h => Path.Combine(chunksDirectory.FullName, h + LocalDirectoryChunkStore.CacFileExtension)).ToArray();
             
             ioService.WriteLine($"Start uploading {chunkFiles.Length} chunks...");
-            
-            // //required to not bypass bee local storage
-            // var tagInfo = await gatewayService.CreateTagAsync(videoManifestHash, batchId.Value);
-            
-            // // Required to pre-pin the root chunk on same node owning the postage batch.
-            // // Doesn't actual pin the content. It's needed to pre-allocate the right node
-            // // for the successive pinning on gateway db.
-            // await gatewayService.AnnounceChunksUploadAsync(videoManifestHash, batchId.Value);
             
             int totalUploaded = 0;
             var uploadStartDateTime = DateTime.UtcNow;
@@ -279,12 +267,12 @@ namespace Etherna.VideoImporter.Core.Services
                             lastUpdateDateTime = now;
                         }
                         
-                        var chunkBatchFiles = chunkFiles.Skip(totalUploaded).Take(GatewayService.ChunkBatchMaxSize).ToArray();
+                        var chunkBatchFiles = chunkFiles.Skip(totalUploaded).Take(ChunkBatchMaxSize).ToArray();
 
                         List<SwarmChunk> chunkBatch = [];
                         foreach (var chunkPath in chunkBatchFiles)
                         {
-                            chunkBatch.Add(SwarmChunk.BuildFromSpanAndData(
+                            chunkBatch.Add(new SwarmCac(
                                 Path.GetFileNameWithoutExtension(chunkPath),
                                 await File.ReadAllBytesAsync(chunkPath)));
                         }
@@ -322,7 +310,7 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        await gatewayService.FundResourcePinningAsync(videoManifestHash);
+                        await gatewayService.CreatePinAsync(videoManifestReference);
                         ioService.WriteLine("Funded video pinning");
                         
                         break;
@@ -341,16 +329,12 @@ namespace Etherna.VideoImporter.Core.Services
                 }
             }
             
-            // // Update tag info and delete it to indicate end of upload.
-            // await gatewayService.UpdateTagInfoAsync(tagInfo.Id, videoManifestHash, batchId.Value);
-            // await gatewayService.DeleteTagAsync(tagInfo.Id, batchId.Value);
-            
             // Fund downloads.
             if (fundDownload)
             {
                 try
                 {
-                    await gatewayService.FundResourceDownloadAsync(videoManifestHash);
+                    await gatewayService.FundResourceDownloadAsync(videoManifestReference.Hash);
                     ioService.WriteLine("Funded public download");
                 }
                 catch (Exception e)
@@ -362,15 +346,17 @@ namespace Etherna.VideoImporter.Core.Services
             
             // Upload completed.
             ioService.WriteLine($"Chunks upload completed!");
-            ioService.WriteLine($"Published on (permalink): {UrlBuilder.BuildNormalPermalinkUrl(video.EthernaPermalinkHash.Value)}");
+            ioService.WriteLine($"Published on (permalink): {UrlBuilder.BuildNormalPermalinkUrl(video.EthernaPermalinkReference.Value)}");
 
             // List on index.
             if (!options.IsDryRun)
             {
                 if (video.EthernaIndexId is null)
-                    video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(video.EthernaPermalinkHash!.Value);
+                    video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(
+                        video.EthernaPermalinkReference!.Value,
+                        batchId);
                 else
-                    await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkHash!.Value);
+                    await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkReference!.Value);
             }
             else
             {
@@ -383,10 +369,10 @@ namespace Etherna.VideoImporter.Core.Services
         // Helpers.
         private async Task<PostageBatchId> CreatePostageBatchAsync(int batchDepth)
         {
-            var currentPrice = await gatewayService.GetChainPriceAsync();
-            ioService.WriteLine($"Current chain price: {currentPrice.ToPlurString()}");
+            var chainState = await gatewayService.GetChainStateAsync();
+            ioService.WriteLine($"Current chain price: {chainState.CurrentPrice.ToPlurString()}");
             
-            var amount = PostageBatch.CalculateAmount(currentPrice, options.TtlPostageStamp);
+            var amount = PostageBatch.CalculateAmount(chainState.CurrentPrice, options.TtlPostageStamp);
             var bzzPrice = PostageBatch.CalculatePrice(amount, batchDepth);
 
             //user confirmation
@@ -419,7 +405,22 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             //create batch
-            var batchId = await gatewayService.CreatePostageBatchAsync(amount, batchDepth);
+            var (batchId, _) = await gatewayService.BuyPostageBatchAsync(
+                amount,
+                batchDepth,
+                label: null,
+                onWaitingBatchCreation: () =>
+                {
+                    ioService.PrintTimeStamp();
+                    ioService.Write("Waiting for batch created... (it may take a while)");
+                },
+                onBatchCreated: _ => ioService.WriteLine(". Done", false),
+                onWaitingBatchUsable: () =>
+                {
+                    ioService.PrintTimeStamp();
+                    ioService.Write("Waiting for batch being usable... (it may take a while)");
+                },
+                onBatchUsable: () => ioService.WriteLine(". Done", false));
             ioService.WriteLine($"Postage batch: {batchId}");
             return batchId;
         }

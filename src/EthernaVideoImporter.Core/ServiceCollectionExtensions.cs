@@ -15,9 +15,10 @@
 using Etherna.BeeNet;
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Services;
+using Etherna.Sdk.Tools.UniversalFiles;
+using Etherna.Sdk.Tools.UniversalFiles.Extensions;
 using Etherna.Sdk.Tools.Video.Services;
-using Etherna.UniversalFiles;
-using Etherna.UniversalFiles.Extensions;
+using Etherna.Sdk.Users.Gateway.Services;
 using Etherna.VideoImporter.Core.Options;
 using Etherna.VideoImporter.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,14 +35,12 @@ namespace Etherna.VideoImporter.Core
             Action<CleanerVideoServiceOptions> configureCleanerOptions,
             Action<EncoderServiceOptions> configureEncoderOptions,
             Action<FFmpegServiceOptions> configureFFmpegOptions,
-            Action<GatewayServiceOptions> configureGatewayOptions,
             Action<VideoUploaderServiceOptions> configureVideoUploaderOptions)
         {
             // Configure options.
             services.Configure(configureCleanerOptions);
             services.Configure(configureEncoderOptions);
             services.Configure(configureFFmpegOptions);
-            services.Configure(configureGatewayOptions);
             services.Configure(configureVideoImporterOptions);
             services.Configure(configureVideoUploaderOptions);
 
@@ -52,7 +51,7 @@ namespace Etherna.VideoImporter.Core
             services.AddTransient<IEncodingService, EncodingService>();
             services.AddTransient<IEthernaVideoImporter, EthernaVideoImporter>();
             services.AddTransient<IGatewayService, GatewayService>();
-            services.AddTransient<IHasher, Hasher>();
+            services.AddTransient<Hasher>();
             services.AddTransient<IHlsService, HlsService>();
             services.AddTransient<IMigrationService, MigrationService>();
             services.AddTransient<IIoService, ConsoleIoService>();
@@ -63,7 +62,7 @@ namespace Etherna.VideoImporter.Core
             services.AddSingleton<IFFmpegService, FFmpegService>();
             services.AddSingleton<IUFileProvider>(sp =>
             {
-                var beeClient = sp.GetRequiredService<IBeeClient>();
+                var beeClient = sp.GetRequiredService<ISwarmClient>();
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
 
                 var provider = new UFileProvider(httpClientFactory);

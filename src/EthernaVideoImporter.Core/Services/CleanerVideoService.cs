@@ -14,6 +14,7 @@
 
 using Etherna.BeeNet.Hashing;
 using Etherna.BeeNet.Models;
+using Etherna.Sdk.Users.Gateway.Services;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.Sdk.Users.Index.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
@@ -30,7 +31,7 @@ namespace Etherna.VideoImporter.Core.Services
     public sealed class CleanerVideoService(
         IEthernaUserIndexClient ethernaIndexClient,
         IGatewayService gatewayService,
-        IHasher hasher,
+        Hasher hasher,
         IIoService ioService,
         IOptions<CleanerVideoServiceOptions> options)
         : ICleanerVideoService
@@ -43,7 +44,7 @@ namespace Etherna.VideoImporter.Core.Services
             IEnumerable<IndexedVideo> indexedVideos,
             bool unpinRemovedVideos)
         {
-            ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
+            ArgumentNullException.ThrowIfNull(indexedVideos);
 
             ioService.WriteLine($"Start removing videos not generated with this tool");
 
@@ -73,7 +74,7 @@ namespace Etherna.VideoImporter.Core.Services
             bool unpinRemovedVideos,
             string sourceProviderName)
         {
-            ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
+            ArgumentNullException.ThrowIfNull(indexedVideos);
 
             ioService.WriteLine($"Start removing videos deleted from source");
 
@@ -131,20 +132,20 @@ namespace Etherna.VideoImporter.Core.Services
             // Unpin manifest.
             if (removeSucceeded &&
                 unpinRemovedVideos &&
-                indexedVideo.LastValidManifestHash is not null)
-                await TryDefundPinningAsync(indexedVideo.LastValidManifestHash.Value);
+                indexedVideo.LastValidManifestReference is not null)
+                await TryDeletePinAsync(indexedVideo.LastValidManifestReference.Value);
         }
 
-        private async Task TryDefundPinningAsync(SwarmHash hash)
+        private async Task TryDeletePinAsync(SwarmReference reference)
         {
             try
             {
-                await gatewayService.DefundResourcePinningAsync(hash);
-                ioService.WriteSuccessLine($"Resource with hash {hash} unpinned from gateway");
+                await gatewayService.DeletePinAsync(reference);
+                ioService.WriteSuccessLine($"Resource with reference {reference} unpinned from gateway");
             }
             catch (Exception ex)
             {
-                ioService.WriteErrorLine($"Unable to unpin resource with hash {hash} from gateway");
+                ioService.WriteErrorLine($"Unable to unpin resource with reference {reference} from gateway");
                 ioService.PrintException(ex);
             }
         }

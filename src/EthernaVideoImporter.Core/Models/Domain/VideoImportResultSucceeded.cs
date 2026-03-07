@@ -24,37 +24,38 @@ namespace Etherna.VideoImporter.Core.Models.Domain
             bool isManifestUploaded,
             bool isContentUploaded,
             string indexId,
-            SwarmHash referenceHash) : base(sourceMetadata)
+            SwarmReference reference)
+            : base(sourceMetadata)
         {
             IndexId = indexId;
             IsManifestUploaded = isManifestUploaded;
             IsContentUploaded = isContentUploaded;
-            ReferenceHash = referenceHash;
+            Reference = reference;
         }
         
         // Static builders.
         public static VideoImportResultSucceeded FullUploaded(
             VideoMetadataBase sourceMetadata,
             string indexId,
-            SwarmHash referenceHash) =>
-            new(sourceMetadata, true, true, indexId, referenceHash);
+            SwarmReference reference) =>
+            new(sourceMetadata, true, true, indexId, reference);
         
         public static VideoImportResultSucceeded ManifestUpdated(
             VideoMetadataBase sourceMetadata,
             string indexId,
-            SwarmHash referenceHash) =>
-            new(sourceMetadata, true, false, indexId, referenceHash);
+            SwarmReference reference) =>
+            new(sourceMetadata, true, false, indexId, reference);
         
         public static VideoImportResultSucceeded Skipped(
             VideoMetadataBase sourceMetadata,
             string indexId,
-            SwarmHash referenceHash) =>
-            new(sourceMetadata, false, false, indexId, referenceHash);
+            SwarmReference reference) =>
+            new(sourceMetadata, false, false, indexId, reference);
 
         // Properties.
         public string IndexId { get; }
         public bool IsManifestUploaded { get; }
         public bool IsContentUploaded { get; }
-        public SwarmHash ReferenceHash { get; }
+        public SwarmReference Reference { get; }
     }
 }

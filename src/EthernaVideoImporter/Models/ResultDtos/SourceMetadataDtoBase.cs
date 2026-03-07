@@ -20,11 +20,11 @@ namespace Etherna.VideoImporter.Models.ResultDtos
 {
     [JsonDerivedType(typeof(JsonSourceMetadataDto))]
     [JsonDerivedType(typeof(YouTubeSourceMetadataDto))]
-    public abstract class SourceMetadataDtoBase
+    internal abstract class SourceMetadataDtoBase
     {
         protected internal SourceMetadataDtoBase(VideoMetadataBase sourceMetadata)
         {
-            ArgumentNullException.ThrowIfNull(sourceMetadata, nameof(sourceMetadata));
+            ArgumentNullException.ThrowIfNull(sourceMetadata);
             
             SourceId = sourceMetadata.SourceId;
             Duration = sourceMetadata.Duration;

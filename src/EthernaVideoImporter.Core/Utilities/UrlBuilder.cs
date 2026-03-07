@@ -26,8 +26,8 @@ namespace Etherna.VideoImporter.Core.Utilities
         
         // Static methods.
         public static string BuildEmbeddedIndexUrl(string indexId) => EmbeddedUrlPrefix + indexId;
-        public static string BuildEmbeddedPermalinkUrl(SwarmHash referenceHash) => EmbeddedUrlPrefix + referenceHash;
+        public static string BuildEmbeddedPermalinkUrl(SwarmReference reference) => EmbeddedUrlPrefix + reference;
         public static string BuildNormalIndexUrl(string indexId) => NormalUrlPrefix + indexId;
-        public static string BuildNormalPermalinkUrl(SwarmHash referenceHash) => NormalUrlPrefix + referenceHash;
+        public static string BuildNormalPermalinkUrl(SwarmReference reference) => NormalUrlPrefix + reference;
     }
 }

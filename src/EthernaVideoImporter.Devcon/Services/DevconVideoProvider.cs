@@ -85,14 +85,14 @@ namespace Etherna.VideoImporter.Devcon.Services
                 videosMetadata.Add((videoDataInfoDto, jsonFileRelativePath));
             }
 
-            return videosMetadata.Select(
-                p => new DevconFileVideoMetadata(
+            return videosMetadata.Where(p => !string.IsNullOrEmpty(p.jsonDto.YoutubeId))
+                .Select(p => new DevconFileVideoMetadata(
                     p.jsonDto.Title,
                     p.jsonDto.Description,
                     p.jsonRelativePath,
                     youtubeDownloader,
                     p.jsonDto.YoutubeId,
-                    p.jsonDto.SwarmHash is null ?
+                    string.IsNullOrWhiteSpace(p.jsonDto.SwarmHash) ?
                         (SwarmHash?)null :
                         new SwarmHash(p.jsonDto.SwarmHash),
                     this)).Cast<VideoMetadataBase>().ToArray();

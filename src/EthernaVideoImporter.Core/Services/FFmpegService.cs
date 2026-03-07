@@ -12,10 +12,12 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
+using Etherna.BeeNet;
 using Etherna.BeeNet.Models;
+using Etherna.BeeNet.Stores;
+using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
-using Etherna.UniversalFiles;
 using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
@@ -46,23 +48,24 @@ namespace Etherna.VideoImporter.Core.Services
         
         // Fields.
         private readonly List<Command> activedCommands = new();
+        private readonly IReadOnlyChunkStore chunkStore;
         private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private readonly FFmpegServiceOptions options;
         private string? ffMpegBinaryPath;
         private string? ffProbeBinaryPath;
-        private readonly IGatewayService gatewayService;
         private readonly IHlsService hlsService;
         private readonly IIoService ioService;
         private readonly IUFileProvider uFileProvider;
 
+        // Constructor.
         public FFmpegService(
-            IGatewayService gatewayService,
+            ISwarmClient beeClient,
             IHlsService hlsService,
             IIoService ioService,
             IOptions<FFmpegServiceOptions> options,
             IUFileProvider uFileProvider)
         {
-            this.gatewayService = gatewayService;
+            this.chunkStore = new SwarmClientChunkStore(beeClient);
             this.hlsService = hlsService;
             this.ioService = ioService;
             this.options = options.Value;
@@ -90,7 +93,7 @@ namespace Etherna.VideoImporter.Core.Services
             BasicUUri mainFileUri,
             SwarmAddress? swarmAddress = null)
         {
-            ArgumentNullException.ThrowIfNull(mainFileUri, nameof(mainFileUri));
+            ArgumentNullException.ThrowIfNull(mainFileUri);
 
             var mainFileAbsoluteUri = mainFileUri.ToAbsoluteUri();
             var mainFile = await FileBase.BuildFromUFileAsync(
@@ -103,7 +106,7 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new InvalidOperationException($"Can't get parent directory of {mainFileUri.OriginalUri}");
 
             if (swarmAddress is not null)
-                mainFile.SwarmHash = await gatewayService.ResolveSwarmAddressToHashAsync(swarmAddress.Value);
+                mainFile.SwarmReference = await SwarmReference.ResolveFromAddressAsync(swarmAddress.Value, chunkStore);
             
             switch (Path.GetExtension(mainFile.FileName).ToLowerInvariant())
             {
@@ -118,14 +121,16 @@ namespace Etherna.VideoImporter.Core.Services
                             ffProbeResult.Format.Duration,
                             mainFile,
                             swarmAddress,
-                            masterPlaylist);
+                            masterPlaylist,
+                            chunkStore);
                     
                     //else, this is a single stream playlist
                     var variant = await hlsService.ParseVideoVariantFromHlsStreamPlaylistFileAsync(
                         mainFile,
                         swarmAddress,
                         ffProbeResult.Streams.First(s => s.Height != 0).Height,
-                        ffProbeResult.Streams.First(s => s.Height != 0).Width);
+                        ffProbeResult.Streams.First(s => s.Height != 0).Width,
+                        chunkStore);
                     return new HlsVideoEncoding(
                         ffProbeResult.Format.Duration,
                         masterFileDirectory.OriginalUri,
@@ -305,7 +310,8 @@ namespace Etherna.VideoImporter.Core.Services
                             streamPlaylistFile,
                             null,
                             varRef.height,
-                            varRef.width));
+                            varRef.width,
+                            chunkStore));
                     }
                     return new HlsVideoEncoding(
                         duration.Value,

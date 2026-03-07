@@ -25,10 +25,10 @@ namespace Etherna.VideoImporter.Core.Services
         // Methods.
         OperationType DecideOperation(IndexedVideo alreadyIndexedVideo, VideoMetadataBase sourceMetadata);
         
-        Task<ThumbnailFile> DownloadThumbnailFile(SwarmHash manifestHash, SwarmUri thumbSourceUri);
+        Task<ThumbnailFile> DownloadThumbnailFile(SwarmReference manifestReference, SwarmUri thumbSourceUri);
 
         Task<VideoEncodingBase> DownloadVideoEncodingFromManifestAsync(
-            SwarmHash manifestHash,
+            SwarmReference manifestReference,
             VideoManifest manifest);
     }
 }
