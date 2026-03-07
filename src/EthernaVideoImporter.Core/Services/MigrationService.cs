@@ -31,19 +31,19 @@ using System.Threading.Tasks;
 namespace Etherna.VideoImporter.Core.Services
 {
     public class MigrationService(
-        IBeeClient beeClient,
+        ISwarmClient beeClient,
         Hasher hasher,
         IHlsService hlsService,
         IUFileProvider uFileProvider)
         : IMigrationService
     {
         // Fields.
-        private readonly IReadOnlyChunkStore chunkStore = new BeeClientChunkStore(beeClient);
+        private readonly IReadOnlyChunkStore chunkStore = new SwarmClientChunkStore(beeClient);
         
         // Methods.
         public OperationType DecideOperation(IndexedVideo alreadyIndexedVideo, VideoMetadataBase sourceMetadata)
         {
-            ArgumentNullException.ThrowIfNull(alreadyIndexedVideo, nameof(alreadyIndexedVideo));
+            ArgumentNullException.ThrowIfNull(alreadyIndexedVideo);
             
             // If client version is missing (0.1.x or 0.2.x).
             if (string.IsNullOrWhiteSpace(alreadyIndexedVideo.PersonalData?.ClientVersion))
@@ -80,7 +80,7 @@ namespace Etherna.VideoImporter.Core.Services
             SwarmReference manifestReference,
             VideoManifest manifest)
         {
-            ArgumentNullException.ThrowIfNull(manifest, nameof(manifest));
+            ArgumentNullException.ThrowIfNull(manifest);
             
             // Define used video encoding.
             VideoType? encodingType = null;

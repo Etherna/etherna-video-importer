@@ -23,7 +23,7 @@ namespace Etherna.VideoImporter.Models.ResultDtos
     {
         public VideoImportResultDto(VideoImportResultBase result)
         {
-            ArgumentNullException.ThrowIfNull(result, nameof(result));
+            ArgumentNullException.ThrowIfNull(result);
             
             CompletedDateTimeUtc = result.CompletedDateTime;
             SourceMetadata = result.SourceMetadata switch

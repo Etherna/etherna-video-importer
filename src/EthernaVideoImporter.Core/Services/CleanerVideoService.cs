@@ -44,7 +44,7 @@ namespace Etherna.VideoImporter.Core.Services
             IEnumerable<IndexedVideo> indexedVideos,
             bool unpinRemovedVideos)
         {
-            ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
+            ArgumentNullException.ThrowIfNull(indexedVideos);
 
             ioService.WriteLine($"Start removing videos not generated with this tool");
 
@@ -74,7 +74,7 @@ namespace Etherna.VideoImporter.Core.Services
             bool unpinRemovedVideos,
             string sourceProviderName)
         {
-            ArgumentNullException.ThrowIfNull(indexedVideos, nameof(indexedVideos));
+            ArgumentNullException.ThrowIfNull(indexedVideos);
 
             ioService.WriteLine($"Start removing videos deleted from source");
 
@@ -133,14 +133,14 @@ namespace Etherna.VideoImporter.Core.Services
             if (removeSucceeded &&
                 unpinRemovedVideos &&
                 indexedVideo.LastValidManifestReference is not null)
-                await TryDefundPinningAsync(indexedVideo.LastValidManifestReference.Value);
+                await TryDeletePinAsync(indexedVideo.LastValidManifestReference.Value);
         }
 
-        private async Task TryDefundPinningAsync(SwarmReference reference)
+        private async Task TryDeletePinAsync(SwarmReference reference)
         {
             try
             {
-                await gatewayService.DefundResourcePinningAsync(reference);
+                await gatewayService.DeletePinAsync(reference);
                 ioService.WriteSuccessLine($"Resource with reference {reference} unpinned from gateway");
             }
             catch (Exception ex)

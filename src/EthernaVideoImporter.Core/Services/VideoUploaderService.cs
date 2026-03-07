@@ -67,7 +67,7 @@ namespace Etherna.VideoImporter.Core.Services
             ProjectDirectory projectDirectory,
             PostageBatchId? batchId = null)
         {
-            ArgumentNullException.ThrowIfNull(video, nameof(video));
+            ArgumentNullException.ThrowIfNull(video);
             
             // Create chunks. Do as first thing, also to evaluate required postage batch depth.
             var chunksDirectory = projectDirectory.ChunksDirectory.CreateDirectory();
@@ -217,7 +217,6 @@ namespace Etherna.VideoImporter.Core.Services
             //video manifest
             var videoManifest = new VideoManifest(
                 video.AspectRatio,
-                batchId: null,
                 DateTimeOffset.Now,
                 video.Metadata.Description,
                 video.Metadata.Duration,
@@ -228,22 +227,14 @@ namespace Etherna.VideoImporter.Core.Services
                 manifestThumbnail,
                 manifestSubtitleSources);
 
-            await videoManifestService.CreateVideoManifestChunksAsync(
-                videoManifest,
-                chunksDirectory.FullName,
-                postageStampIssuer: stampIssuer);
-            
-            // Create new batch if required.
-            batchId ??= await CreatePostageBatchAsync(stampIssuer.Buckets.RequiredPostageBatchDepth);
-            
-            // Assign batchId to manifest, and re-create manifest chunks. Get final hash.
-            videoManifest.BatchId = batchId.Value;
             var videoManifestReference = await videoManifestService.CreateVideoManifestChunksAsync(
                 videoManifest,
                 chunksDirectory.FullName,
                 postageStampIssuer: stampIssuer);
-            
             video.EthernaPermalinkReference = videoManifestReference;
+            
+            // Create new batch if required.
+            batchId ??= await CreatePostageBatchAsync(stampIssuer.Buckets.RequiredPostageBatchDepth);
             
             // Upload chunks. Pin only video manifest hash, if required.
             var chunkFiles = (await chunksStore.GetAllHashesAsync()).Select(
@@ -319,7 +310,7 @@ namespace Etherna.VideoImporter.Core.Services
                 {
                     try
                     {
-                        await gatewayService.FundResourcePinningAsync(videoManifestReference);
+                        await gatewayService.CreatePinAsync(videoManifestReference);
                         ioService.WriteLine("Funded video pinning");
                         
                         break;
@@ -361,7 +352,9 @@ namespace Etherna.VideoImporter.Core.Services
             if (!options.IsDryRun)
             {
                 if (video.EthernaIndexId is null)
-                    video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(video.EthernaPermalinkReference!.Value);
+                    video.EthernaIndexId = await ethernaIndexClient.PublishNewVideoAsync(
+                        video.EthernaPermalinkReference!.Value,
+                        batchId);
                 else
                     await ethernaIndexClient.UpdateVideoManifestAsync(video.EthernaIndexId, video.EthernaPermalinkReference!.Value);
             }
@@ -376,10 +369,10 @@ namespace Etherna.VideoImporter.Core.Services
         // Helpers.
         private async Task<PostageBatchId> CreatePostageBatchAsync(int batchDepth)
         {
-            var currentPrice = await gatewayService.GetChainPriceAsync();
-            ioService.WriteLine($"Current chain price: {currentPrice.ToPlurString()}");
+            var chainState = await gatewayService.GetChainStateAsync();
+            ioService.WriteLine($"Current chain price: {chainState.CurrentPrice.ToPlurString()}");
             
-            var amount = PostageBatch.CalculateAmount(currentPrice, options.TtlPostageStamp);
+            var amount = PostageBatch.CalculateAmount(chainState.CurrentPrice, options.TtlPostageStamp);
             var bzzPrice = PostageBatch.CalculatePrice(amount, batchDepth);
 
             //user confirmation
@@ -412,10 +405,10 @@ namespace Etherna.VideoImporter.Core.Services
             }
 
             //create batch
-            var batchId = await gatewayService.CreatePostageBatchAsync(
+            var (batchId, _) = await gatewayService.BuyPostageBatchAsync(
                 amount,
                 batchDepth,
-                null,
+                label: null,
                 onWaitingBatchCreation: () =>
                 {
                     ioService.PrintTimeStamp();

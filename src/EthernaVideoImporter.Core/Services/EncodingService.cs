@@ -52,7 +52,7 @@ namespace Etherna.VideoImporter.Core.Services
             ClosedCaptionTrackInfo[] subtitleTracks,
             EncodedDirectory encodedDirectory)
         {
-            ArgumentNullException.ThrowIfNull(subtitleTracks, nameof(subtitleTracks));
+            ArgumentNullException.ThrowIfNull(subtitleTracks);
 
             if (subtitleTracks.Length == 0)
                 return [];
@@ -73,7 +73,7 @@ namespace Etherna.VideoImporter.Core.Services
             ThumbnailFile sourceThumbnailFile,
             EncodedDirectory encodedDirectory)
         {
-            ArgumentNullException.ThrowIfNull(sourceThumbnailFile, nameof(sourceThumbnailFile));
+            ArgumentNullException.ThrowIfNull(sourceThumbnailFile);
 
             List<ThumbnailFile> thumbnails = [];
             var outputDirectory = encodedDirectory.ThumbnailDir.CreateDirectory();
@@ -113,7 +113,7 @@ namespace Etherna.VideoImporter.Core.Services
             EncodedDirectory encodedDirectory,
             VideoType outputEncoding = DefaultVideoType)
         {
-            ArgumentNullException.ThrowIfNull(sourceVariant, nameof(sourceVariant));
+            ArgumentNullException.ThrowIfNull(sourceVariant);
 
             var encodedVideo = await ffMpegService.EncodeVideoAsync(
                 sourceVariant,
