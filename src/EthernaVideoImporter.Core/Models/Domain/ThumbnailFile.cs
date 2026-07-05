@@ -13,9 +13,9 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 using Blurhash.SkiaSharp;
-using Etherna.BeeNet.Models;
 using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
+using Etherna.SwarmSdk.Models;
 using SkiaSharp;
 using System;
 using System.IO;

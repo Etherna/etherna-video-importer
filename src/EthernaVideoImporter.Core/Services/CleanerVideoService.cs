@@ -12,15 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Hashing;
-using Etherna.BeeNet.Models;
 using Etherna.Sdk.Users.Gateway.Services;
 using Etherna.Sdk.Users.Index.Clients;
 using Etherna.Sdk.Users.Index.Models;
+using Etherna.SwarmSdk.Extensions;
+using Etherna.SwarmSdk.Hashing;
+using Etherna.SwarmSdk.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using Etherna.VideoImporter.Core.Options;
 using Microsoft.Extensions.Options;
-using Nethereum.Hex.HexConvertors.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;

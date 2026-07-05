@@ -12,14 +12,15 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet;
-using Etherna.BeeNet.Hashing;
-using Etherna.BeeNet.Models;
-using Etherna.BeeNet.Stores;
 using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
 using Etherna.Sdk.Users.Index.Models;
+using Etherna.SwarmSdk;
+using Etherna.SwarmSdk.Hashing;
+using Etherna.SwarmSdk.Manifest;
+using Etherna.SwarmSdk.Models;
+using Etherna.SwarmSdk.Stores;
 using Etherna.VideoImporter.Core.Extensions;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System;
@@ -69,7 +70,7 @@ namespace Etherna.VideoImporter.Core.Services
                 allowedUriKinds: UUriKind.Online,
                 baseDirectory: manifestReference.ToString());
 
-            var thumbnailChunkRef = await SwarmReference.ResolveFromAddressAsync(
+            var thumbnailChunkRef = await SwarmAddressResolver.ResolveReferenceAsync(
                 thumbSourceUri.ToSwarmAddress(manifestReference), chunkStore);
             var thumbnailHash = thumbnailChunkRef.Hash;
                     
@@ -124,7 +125,7 @@ namespace Etherna.VideoImporter.Core.Services
             var masterFileSwarmAddress = masterFileSource.Uri.ToSwarmAddress(manifestReference);
             var masterFile = await FileBase.BuildFromUFileAsync(
                 uFileProvider.BuildNewUFile(new SwarmUUri(masterFileSwarmAddress)));
-            masterFile.SwarmReference = await SwarmReference.ResolveFromAddressAsync(masterFileSwarmAddress, chunkStore);
+            masterFile.SwarmReference = await SwarmAddressResolver.ResolveReferenceAsync(masterFileSwarmAddress, chunkStore);
             
             // Parse master playlist.
             var masterPlaylist = await hlsService.TryParseHlsMasterPlaylistFromFileAsync(masterFile);
@@ -156,7 +157,7 @@ namespace Etherna.VideoImporter.Core.Services
                 // Get video source file.
                 var videoFile = await FileBase.BuildFromUFileAsync(
                     uFileProvider.BuildNewUFile(new SwarmUUri(videoSource.Uri)));
-                videoFile.SwarmReference = await SwarmReference.ResolveFromAddressAsync(
+                videoFile.SwarmReference = await SwarmAddressResolver.ResolveReferenceAsync(
                     videoSource.Uri.ToSwarmAddress(manifestReference), chunkStore);
                 
                 // Build and add variant.

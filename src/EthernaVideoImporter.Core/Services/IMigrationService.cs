@@ -12,9 +12,9 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet.Models;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Users.Index.Models;
+using Etherna.SwarmSdk.Models;
 using Etherna.VideoImporter.Core.Models.Domain;
 using System.Threading.Tasks;
 

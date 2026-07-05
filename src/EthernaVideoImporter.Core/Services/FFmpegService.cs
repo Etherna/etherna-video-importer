@@ -12,12 +12,13 @@
 // You should have received a copy of the GNU Affero General Public License along with Etherna Video Importer.
 // If not, see <https://www.gnu.org/licenses/>.
 
-using Etherna.BeeNet;
-using Etherna.BeeNet.Models;
-using Etherna.BeeNet.Stores;
 using Etherna.Sdk.Tools.UniversalFiles;
 using Etherna.Sdk.Tools.Video.Models;
 using Etherna.Sdk.Tools.Video.Services;
+using Etherna.SwarmSdk;
+using Etherna.SwarmSdk.Manifest;
+using Etherna.SwarmSdk.Models;
+using Etherna.SwarmSdk.Stores;
 using Etherna.VideoImporter.Core.Models.Domain.Directories;
 using Etherna.VideoImporter.Core.Models.FFmpeg;
 using Etherna.VideoImporter.Core.Options;
@@ -106,7 +107,7 @@ namespace Etherna.VideoImporter.Core.Services
                 throw new InvalidOperationException($"Can't get parent directory of {mainFileUri.OriginalUri}");
 
             if (swarmAddress is not null)
-                mainFile.SwarmReference = await SwarmReference.ResolveFromAddressAsync(swarmAddress.Value, chunkStore);
+                mainFile.SwarmReference = await SwarmAddressResolver.ResolveReferenceAsync(swarmAddress.Value, chunkStore);
             
             switch (Path.GetExtension(mainFile.FileName).ToLowerInvariant())
             {
