@@ -323,7 +323,10 @@ namespace Etherna.VideoImporter.Core
         {
             try
             {
-                await ethernaSignInService.SignInAsync();
+                if (options.ApiKey is null) //"code" grant flow
+                    await ethernaSignInService.SignInAsync();
+                else //"password" grant flow
+                    await ethernaSignInService.SignInAsync(options.ApiKey);
             }
             catch (InvalidOperationException e)
             {

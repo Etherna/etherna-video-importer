@@ -322,41 +322,21 @@ namespace Etherna.VideoImporter
             // Input validation.
             // Register etherna service clients.
             var services = new ServiceCollection();
-            IEthernaUserClientsBuilder ethernaClientsBuilder;
-            if (apiKey is null) //"code" grant flow
-            {
-                ethernaClientsBuilder = services.AddEthernaUserClientsWithCodeAuth(
-                    CommonConsts.EthernaVideoImporterClientId,
-                    null,
-                    11420,
-                    ApiScopes,
+            var ethernaClientsBuilder = services.AddEthernaUserClients(
+                CommonConsts.EthernaVideoImporterClientId,
+                null,
+                11420,
+                ApiScopes,
 #if DEVENV
-                    authority: "https://localhost:44379/",
+                authority: "https://localhost:44379/",
 #else
-                    authority: EthernaUserClientsBuilder.DefaultSsoUrl,
+                authority: EthernaUserClientsBuilder.DefaultSsoUrl,
 #endif
-                    httpClientName: HttpClientName,
-                    configureHttpClient: c =>
-                    {
-                        c.Timeout = TimeSpan.FromMinutes(30);
-                    });
-            }
-            else //"password" grant flow
-            {
-                ethernaClientsBuilder = services.AddEthernaUserClientsWithApiKeyAuth(
-                    apiKey,
-                    ApiScopes,
-#if DEVENV
-                    authority: "https://localhost:44379/",
-#else
-                    authority: EthernaUserClientsBuilder.DefaultSsoUrl,
-#endif
-                    httpClientName: HttpClientName,
-                    configureHttpClient: c =>
-                    {
-                        c.Timeout = TimeSpan.FromMinutes(30);
-                    });
-            }
+                httpClientName: HttpClientName,
+                configureHttpClient: c =>
+                {
+                    c.Timeout = TimeSpan.FromMinutes(30);
+                });
             ethernaClientsBuilder.AddEthernaGatewayClient(
                     apiCompatibility: swarmApiCompatibility,
                     dryMode: isDryRun,
@@ -379,6 +359,7 @@ namespace Etherna.VideoImporter
             services.AddCoreServices(
                 videoImporterOptions =>
                 {
+                    videoImporterOptions.ApiKey = apiKey;
                     videoImporterOptions.CustomWorkingDirectory = customWorkingDirectory;
                 },
                 cleanerOptions =>
