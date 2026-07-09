@@ -87,7 +87,7 @@ namespace Etherna.VideoImporter.Core.Services
                 var responsiveHeightSize = (int)(responsiveWidthSize / sourceThumbnailFile.AspectRatio);
                 var thumbnailResizedPath = Path.Combine(outputDirectory.FullName, $"{responsiveHeightSize}.jpg");
 
-                using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), SKFilterQuality.Medium))
+                using (SKBitmap scaledBitmap = thumbBitmap.Resize(new SKImageInfo(responsiveWidthSize, responsiveHeightSize), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear)))
                 using (SKImage scaledImage = SKImage.FromBitmap(scaledBitmap))
                 using (SKData data = scaledImage.Encode(SKEncodedImageFormat.Jpeg, 75))
                 await using (FileStream outputFileStream = new(thumbnailResizedPath, FileMode.CreateNew))
